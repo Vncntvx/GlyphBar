@@ -93,10 +93,12 @@ final class QuickPanelCoordinator: ObservableObject {
             return
         }
 
-        let buttonFrame = window.convertToScreen(button.frame)
+        let buttonFrameInWindow = button.convert(button.bounds, to: nil)
+        let buttonFrame = window.convertToScreen(buttonFrameInWindow)
         var frame = panel.frame
+        let verticalGap: CGFloat = 2
         frame.origin.x = buttonFrame.midX - frame.width / 2
-        frame.origin.y = buttonFrame.minY - frame.height - 8
+        frame.origin.y = buttonFrame.minY - frame.height - verticalGap
 
         if let screen = window.screen {
             let visible = screen.visibleFrame

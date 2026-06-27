@@ -22,6 +22,9 @@ final class StatusBarController: NSObject {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private var cancellables: Set<AnyCancellable> = []
     private var pendingRender: DispatchWorkItem?
+    private var isPresentingContextMenu = false
+    private var lastMouseEventType: NSEvent.EventType?
+    private var eventMonitor: Any?
 
     init(
         runtime: ModuleRuntime,
@@ -38,6 +41,7 @@ final class StatusBarController: NSObject {
 
     func start() {
         configureButton()
+        startEventMonitoring()
         observeRuntime()
         render()
     }
@@ -51,6 +55,17 @@ final class StatusBarController: NSObject {
         button.action = #selector(handleClick(_:))
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         button.toolTip = "GlyphBar"
+    }
+
+    private func startEventMonitoring() {
+        eventMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseUp, .rightMouseUp]
+        ) { [weak self] event in
+            if event.window == self?.statusItem.button?.window {
+                self?.lastMouseEventType = event.type
+            }
+            return event
+        }
     }
 
     private func observeRuntime() {
@@ -100,14 +115,24 @@ final class StatusBarController: NSObject {
     }
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {
-        switch StatusItemClickRouter.action(for: NSApp.currentEvent?.type) {
+        switch StatusItemClickRouter.action(for: lastMouseEventType) {
         case .togglePanel:
             panelCoordinator.toggle(relativeTo: statusItem)
         case .openContextMenu:
+            guard !isPresentingContextMenu else {
+                return
+            }
+            isPresentingContextMenu = true
+            defer { isPresentingContextMenu = false }
+
             panelCoordinator.close()
-            statusItem.menu = menuCoordinator.makeMenu()
-            sender.performClick(nil)
-            statusItem.menu = nil
+            let menu = menuCoordinator.makeMenu()
+
+            let buttonFrameInWindow = sender.convert(sender.bounds, to: nil)
+            guard let window = sender.window else { return }
+            let screenFrame = window.convertToScreen(buttonFrameInWindow)
+            let menuPoint = NSPoint(x: screenFrame.minX, y: screenFrame.minY - 2)
+            menu.popUp(positioning: nil, at: menuPoint, in: nil)
         }
     }
 }

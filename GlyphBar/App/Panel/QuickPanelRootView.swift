@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct QuickPanelRootView: View {
     @ObservedObject var runtime: ModuleRuntime
@@ -28,7 +29,6 @@ struct QuickPanelRootView: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .padding(.top, 8)
         .task {
             if runtime.selectedModuleID == nil {
                 runtime.setSelectedModule(runtime.enabledModuleIDs.first)
@@ -54,24 +54,6 @@ private struct PanelMaterialBackground: View {
                     .stroke(.quaternary, lineWidth: 1)
             }
             .shadow(color: .black.opacity(reduceTransparency ? 0.14 : 0.22), radius: 18, y: 10)
-            .overlay(alignment: .top) {
-                Triangle()
-                    .fill(reduceTransparency ? Color(nsColor: .windowBackgroundColor) : Color(nsColor: .windowBackgroundColor).opacity(0.72))
-                    .frame(width: 18, height: 9)
-                    .offset(y: -7)
-                    .shadow(color: .black.opacity(0.08), radius: 1, y: -1)
-            }
-    }
-}
-
-private struct Triangle: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        return path
     }
 }
 
@@ -128,28 +110,196 @@ private struct PanelHeader: View {
     }
 }
 
+// MARK: - Module Switcher Scroller (AppKit bridge for thin scrollbar + scroll wheel support)
+
+private struct ModuleSwitcherScroller: NSViewRepresentable {
+    struct Item {
+        let id: ModuleID
+        let title: String
+        let systemImage: String
+        let isSelected: Bool
+        let severity: Severity
+    }
+
+    let items: [Item]
+    let scrollToIndex: Int?
+    let onSelect: (ModuleID) -> Void
+
+    func makeNSView(context: Context) -> HScrollScrollView {
+        let scrollView = HScrollScrollView()
+        let stack = NSStackView()
+        stack.orientation = .horizontal
+        stack.spacing = 6
+        stack.edgeInsets = NSEdgeInsets(top: 2, left: 4, bottom: 12, right: 4)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.documentView = stack
+        stack.heightAnchor.constraint(equalTo: scrollView.contentView.heightAnchor).isActive = true
+        context.coordinator.scrollView = scrollView
+        rebuild(stack, context: context)
+        return scrollView
+    }
+
+    func updateNSView(_ nsView: HScrollScrollView, context: Context) {
+        guard let stack = nsView.documentView as? NSStackView else { return }
+        let newIDs = items.map(\.id)
+        if context.coordinator.currentIDs != newIDs {
+            rebuild(stack, context: context)
+            context.coordinator.currentIDs = newIDs
+        } else {
+            for (i, item) in items.enumerated() {
+                guard i < stack.arrangedSubviews.count else { break }
+                if let host = stack.arrangedSubviews[i] as? NSHostingView<AnyView> {
+                    host.rootView = AnyView(buttonView(for: item))
+                }
+            }
+        }
+        if let scrollToIndex, scrollToIndex != context.coordinator.lastScrollIndex {
+            context.coordinator.lastScrollIndex = scrollToIndex
+            DispatchQueue.main.async { nsView.scrollToIndex(scrollToIndex) }
+        }
+    }
+
+    private func rebuild(_ stack: NSStackView, context: Context) {
+        stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        for item in items {
+            let host = NSHostingView(rootView: AnyView(buttonView(for: item)))
+            host.setContentHuggingPriority(.required, for: .horizontal)
+            host.setContentHuggingPriority(.required, for: .vertical)
+            stack.addArrangedSubview(host)
+        }
+    }
+
+    private func buttonView(for item: Item) -> some View {
+        ModuleSwitchButton(
+            title: item.title,
+            systemImage: item.systemImage,
+            isSelected: item.isSelected,
+            severity: item.severity,
+            action: { onSelect(item.id) }
+        )
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator {
+        weak var scrollView: HScrollScrollView?
+        var currentIDs: [ModuleID] = []
+        var lastScrollIndex: Int?
+    }
+}
+
+// MARK: - Thin Horizontal Scroll View
+
+private final class HScrollScrollView: NSScrollView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        configure()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configure()
+    }
+
+    private func configure() {
+        hasHorizontalScroller = true
+        hasVerticalScroller = false
+        autohidesScrollers = true
+        drawsBackground = false
+        automaticallyAdjustsContentInsets = false
+        contentInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+
+        let scroller = ThinScroller()
+        scroller.scrollerStyle = .overlay
+        horizontalScroller = scroller
+
+        contentView.drawsBackground = false
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        if event.scrollingDeltaX == 0 && event.scrollingDeltaY != 0 {
+            let clip = contentView
+            let newOrigin = clip.bounds.origin.x - event.scrollingDeltaY
+            let maxOrigin = max(0, (documentView?.frame.width ?? 0) - clip.bounds.width)
+            let clamped = max(0, min(newOrigin, maxOrigin))
+            clip.scroll(to: NSPoint(x: clamped, y: 0))
+            reflectScrolledClipView(clip)
+        } else {
+            super.scrollWheel(with: event)
+        }
+    }
+
+    func scrollToIndex(_ index: Int) {
+        guard let stack = documentView as? NSStackView,
+              index >= 0, index < stack.arrangedSubviews.count else { return }
+        let target = stack.arrangedSubviews[index]
+        let frame = target.convert(target.bounds, to: contentView)
+        let targetOrigin = max(0, frame.midX - contentView.bounds.width / 2)
+        let maxOrigin = max(0, (documentView?.frame.width ?? 0) - contentView.bounds.width)
+        let clamped = min(targetOrigin, maxOrigin)
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.16
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            contentView.animator().setBoundsOrigin(NSPoint(x: clamped, y: 0))
+        }
+        reflectScrolledClipView(contentView)
+    }
+}
+
+private final class ThinScroller: NSScroller {
+    override class func scrollerWidth(for controlSize: NSControl.ControlSize, scrollerStyle: NSScroller.Style) -> CGFloat {
+        return 6.5
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        drawKnob()
+    }
+
+    override func drawKnob() {
+        let knobRect = rect(for: .knob).insetBy(dx: 0.5, dy: 1)
+        let path = NSBezierPath(roundedRect: knobRect, xRadius: knobRect.height / 2, yRadius: knobRect.height / 2)
+        NSColor.labelColor.withAlphaComponent(0.12).setFill()
+        path.fill()
+    }
+}
+
+// MARK: - Module Switcher
+
 private struct ModuleSwitcher: View {
     @ObservedObject var runtime: ModuleRuntime
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(runtime.enabledModuleIDs, id: \.self) { moduleID in
-                    if let module = runtime.modules[moduleID] {
-                        ModuleSwitchButton(
-                            title: module.manifest.displayName,
-                            systemImage: module.manifest.systemImage,
-                            isSelected: runtime.selectedModuleID == moduleID,
-                            severity: severity(for: moduleID)
-                        ) {
-                            runtime.setSelectedModule(moduleID)
-                        }
-                    }
-                }
+        ModuleSwitcherScroller(
+            items: moduleItems,
+            scrollToIndex: scrollTargetIndex,
+            onSelect: { moduleID in
+                runtime.setSelectedModule(moduleID)
             }
-            .padding(.horizontal, 12)
+        )
+        .padding(.horizontal, 8)
+        .frame(height: 42)
+    }
+
+    private var moduleItems: [ModuleSwitcherScroller.Item] {
+        enabledIDs.map { id in
+            ModuleSwitcherScroller.Item(
+                id: id,
+                title: runtime.modules[id]?.manifest.displayName ?? "",
+                systemImage: runtime.modules[id]?.manifest.systemImage ?? "questionmark",
+                isSelected: runtime.selectedModuleID == id,
+                severity: severity(for: id)
+            )
         }
-        .frame(height: 34)
+    }
+
+    private var scrollTargetIndex: Int? {
+        guard let selectedID = runtime.selectedModuleID,
+              let index = enabledIDs.firstIndex(of: selectedID) else { return nil }
+        return index
+    }
+
+    private var enabledIDs: [ModuleID] {
+        runtime.enabledModuleIDs
     }
 
     private func severity(for moduleID: ModuleID) -> Severity {
@@ -373,6 +523,7 @@ private struct CompactSnapshotDetails: View {
                         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
             }
+            .padding(.trailing, 4)
         }
         .scrollIndicators(.never)
     }
@@ -604,8 +755,9 @@ private struct DashboardModuleDetailContent: View {
                     }
                 }
             }
-            .padding(18)
+            .padding(EdgeInsets(top: 18, leading: 18, bottom: 18, trailing: 22))
         }
+        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .top) {
             HStack {
                 Spacer()
