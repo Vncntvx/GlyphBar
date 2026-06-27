@@ -139,10 +139,13 @@ final class CounterModule: StatusModule {
         if let min = minValue, direction < 0, newValue < min { return }
         count = newValue
         lastModified = Date()
-        Task {
-            let snap = try await refresh(context: context)
-            await MainActor.run {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let snap = try await self.refresh(context: context)
                 context.cacheStore.save(snap)
+            } catch {
+                context.logger.error("Counter refresh failed: \(error.localizedDescription)")
             }
         }
     }
@@ -150,10 +153,13 @@ final class CounterModule: StatusModule {
     private func resetCounter(context: ModuleContext) {
         count = 0
         lastModified = Date()
-        Task {
-            let snap = try await refresh(context: context)
-            await MainActor.run {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let snap = try await self.refresh(context: context)
                 context.cacheStore.save(snap)
+            } catch {
+                context.logger.error("Counter reset refresh failed: \(error.localizedDescription)")
             }
         }
     }

@@ -43,6 +43,7 @@
 		B00000000000000000000122 /* WidgetShared/WidgetDataBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000122 /* WidgetShared/WidgetDataBridge.swift */; };
 		B00000000000000000000151 /* GlyphBarWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A00000000000000000000051 /* GlyphBarWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B00000000000000000000162 /* Resources/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000162 /* Resources/Assets.xcassets */; };
+		B00000000000000000000163 /* Resources/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000163 /* Resources/PrivacyInfo.xcprivacy */; };
 		B00000000000000000000201 /* GlyphBarWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000201 /* GlyphBarWidgetsBundle.swift */; };
 		B00000000000000000000202 /* Providers/ModuleTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000202 /* Providers/ModuleTimelineProvider.swift */; };
 		B00000000000000000000203 /* Widgets/ClockWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000203 /* Widgets/ClockWidget.swift */; };
@@ -146,8 +147,9 @@
 		A00000000000000000000122 /* WidgetShared/WidgetDataBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetShared/WidgetDataBridge.swift; sourceTree = "<group>"; };
 		A00000000000000000000160 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A00000000000000000000161 /* GlyphBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GlyphBar.entitlements; sourceTree = "<group>"; };
-		A00000000000000000000162 /* Resources/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
-		A00000000000000000000201 /* GlyphBarWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlyphBarWidgetsBundle.swift; sourceTree = "<group>"; };
+			A00000000000000000000162 /* Resources/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
+			A00000000000000000000163 /* Resources/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Resources/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+			A00000000000000000000201 /* GlyphBarWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlyphBarWidgetsBundle.swift; sourceTree = "<group>"; };
 		A00000000000000000000202 /* Providers/ModuleTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Providers/ModuleTimelineProvider.swift; sourceTree = "<group>"; };
 		A00000000000000000000203 /* Widgets/ClockWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Widgets/ClockWidget.swift; sourceTree = "<group>"; };
 		A00000000000000000000204 /* Widgets/SystemPulseWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Widgets/SystemPulseWidget.swift; sourceTree = "<group>"; };
@@ -271,6 +273,7 @@
 				A00000000000000000000160 /* Info.plist */,
 				A00000000000000000000161 /* GlyphBar.entitlements */,
 				A00000000000000000000162 /* Resources/Assets.xcassets */,
+				A00000000000000000000163 /* Resources/PrivacyInfo.xcprivacy */,
 			);
 			path = GlyphBar;
 			sourceTree = "<group>";
@@ -371,8 +374,8 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1600;
-				LastUpgradeCheck = 1600;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					A00000000000000000000010 = {
 						CreatedOnToolsVersion = 16.0;
@@ -412,6 +415,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000162 /* Resources/Assets.xcassets in Resources */,
+				B00000000000000000000163 /* Resources/PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -545,6 +549,7 @@
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_VERSION = 6.0;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -563,6 +568,7 @@
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_UPCOMING_VERSION = 6.0;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;

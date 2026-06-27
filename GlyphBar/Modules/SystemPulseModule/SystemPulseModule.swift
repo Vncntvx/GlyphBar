@@ -39,9 +39,6 @@ final class SystemPulseModule: StatusModule {
         let uptime = ProcessInfo.processInfo.systemUptime
 
         let highestMetric = max(cpu, memory, storage)
-        let severity: Severity = highestMetric > 90 ? .critical
-            : highestMetric > 75 ? .warning
-            : .normal
 
         var signals: [StatusSignal] = []
         if highestMetric > 90 {
@@ -126,11 +123,11 @@ final class SystemPulseModule: StatusModule {
         }
         guard result == KERN_SUCCESS else { return 0 }
 
-        let free = UInt64(stats.free_count) * UInt64(pageSize)
         let active = UInt64(stats.active_count) * UInt64(pageSize)
-        let inactive = UInt64(stats.inactive_count) * UInt64(pageSize)
         let wired = UInt64(stats.wire_count) * UInt64(pageSize)
         let compressed = UInt64(stats.compressor_page_count) * UInt64(pageSize)
+        _ = UInt64(stats.free_count) * UInt64(pageSize)
+        _ = UInt64(stats.inactive_count) * UInt64(pageSize)
 
         let total = UInt64(ProcessInfo.processInfo.physicalMemory)
         let used = active + wired + compressed

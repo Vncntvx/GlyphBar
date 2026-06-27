@@ -64,25 +64,20 @@ final class NetworkMockModule: StatusModule {
 
         let statusText: String
         let statusIcon: String
-        let severity: Severity
 
         switch path?.status {
         case .satisfied:
             statusText = "Connected"
             statusIcon = "wifi"
-            severity = .normal
         case .unsatisfied:
             statusText = "No Connection"
             statusIcon = "wifi.slash"
-            severity = .critical
         case .requiresConnection:
             statusText = "Connecting…"
             statusIcon = "wifi.exclamationmark"
-            severity = .warning
         case nil, _:
             statusText = "Unknown"
             statusIcon = "questionmark.circle"
-            severity = .info
         }
 
         let interfaces = path?.availableInterfaces ?? []
@@ -162,9 +157,14 @@ final class NetworkMockModule: StatusModule {
                 get: { [weak self] in self?.useMockMode ?? false },
                 set: { [weak self] in
                     self?.useMockMode = $0
-                    Task {
-                        let snap = try await self?.refresh(context: context)
-                        if let snap { context.cacheStore.save(snap) }
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        do {
+                            let snap = try await self.refresh(context: context)
+                            context.cacheStore.save(snap)
+                        } catch {
+                            context.logger.error("Network mock refresh failed: \(error.localizedDescription)")
+                        }
                     }
                 }
             )

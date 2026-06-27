@@ -121,9 +121,14 @@ final class ClockModule: StatusModule {
                 get: { [weak self] in self?.uses24HourClock ?? true },
                 set: { [weak self] in
                     self?.uses24HourClock = $0
-                    Task {
-                        let snap = try await self?.refresh(context: context)
-                        if let snap { context.cacheStore.save(snap) }
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        do {
+                            let snap = try await self.refresh(context: context)
+                            context.cacheStore.save(snap)
+                        } catch {
+                            context.logger.error("Clock refresh failed: \(error.localizedDescription)")
+                        }
                     }
                 }
             ),
@@ -131,9 +136,14 @@ final class ClockModule: StatusModule {
                 get: { [weak self] in self?.showSeconds ?? false },
                 set: { [weak self] in
                     self?.showSeconds = $0
-                    Task {
-                        let snap = try await self?.refresh(context: context)
-                        if let snap { context.cacheStore.save(snap) }
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        do {
+                            let snap = try await self.refresh(context: context)
+                            context.cacheStore.save(snap)
+                        } catch {
+                            context.logger.error("Clock refresh failed: \(error.localizedDescription)")
+                        }
                     }
                 }
             ),
