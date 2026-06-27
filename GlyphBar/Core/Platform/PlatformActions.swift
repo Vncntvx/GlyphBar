@@ -3,6 +3,9 @@ import Foundation
 
 @MainActor
 final class PlatformActions {
+    /// Bound by `AppDelegate` to the hosted scene's `openSettings` action.
+    var openSettings: (() -> Void)?
+
     func copyToPasteboard(_ string: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(string, forType: .string)
@@ -13,8 +16,8 @@ final class PlatformActions {
     }
 
     func showSettingsWindow() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        NSApp.activate(ignoringOtherApps: true)
+        openSettings?()
+        NSApp.activate()
     }
 
     func quit() {

@@ -2,6 +2,18 @@ import SwiftUI
 
 struct SettingsRootView: View {
     @ObservedObject var environment: AppEnvironment
+    @ObservedObject private var navigation: SettingsNavigationState
+    @ObservedObject private var settingsStore: AppSettingsStore
+    @ObservedObject private var runtime: ModuleRuntime
+    @ObservedObject private var permissionCenter: PermissionCenter
+
+    init(environment: AppEnvironment) {
+        self.environment = environment
+        self._navigation = ObservedObject(wrappedValue: environment.settingsNavigation)
+        self._settingsStore = ObservedObject(wrappedValue: environment.settingsStore)
+        self._runtime = ObservedObject(wrappedValue: environment.runtime)
+        self._permissionCenter = ObservedObject(wrappedValue: environment.permissionCenter)
+    }
 
     var body: some View {
         TabView(selection: selectedSectionBinding) {
@@ -24,8 +36,8 @@ struct SettingsRootView: View {
             Form {
                 Toggle("Compact Status Title", isOn: compactStatusTitleBinding)
                 Picker("Primary Module", selection: primaryModuleBinding) {
-                    ForEach(environment.runtime.orderedModuleIDs, id: \.self) { moduleID in
-                        Text(environment.runtime.modules[moduleID]?.manifest.displayName ?? moduleID)
+                    ForEach(runtime.orderedModuleIDs, id: \.self) { moduleID in
+                        Text(runtime.modules[moduleID]?.manifest.displayName ?? moduleID)
                             .tag(Optional(moduleID))
                     }
                 }
@@ -35,10 +47,10 @@ struct SettingsRootView: View {
 
             ModuleManagementView(
                 environment: environment,
-                runtime: environment.runtime,
-                settingsStore: environment.settingsStore,
+                runtime: runtime,
+                settingsStore: settingsStore,
                 cacheStore: environment.cacheStore,
-                navigation: environment.settingsNavigation
+                navigation: navigation
             )
             .tabItem { Label("Modules", systemImage: "square.grid.2x2") }
             .tag(SettingsSection.modules)
@@ -65,8 +77,8 @@ struct SettingsRootView: View {
                         Text(permission.rawValue.capitalized)
                         Spacer()
                         GlyphStatusBadge(
-                            severity: environment.permissionCenter.isGranted(permission) ? .normal : .warning,
-                            title: environment.permissionCenter.isGranted(permission) ? "Granted" : "Pending"
+                            severity: permissionCenter.isGranted(permission) ? .normal : .warning,
+                            title: permissionCenter.isGranted(permission) ? "Granted" : "Pending"
                         )
                     }
                 }
@@ -77,11 +89,11 @@ struct SettingsRootView: View {
             Form {
                 Button("Refresh Enabled Modules") {
                     Task {
-                        await environment.runtime.refreshEnabledModules()
+                        await runtime.refreshEnabledModules()
                     }
                 }
                 Button("Clear All Cached Snapshots", role: .destructive) {
-                    for moduleID in environment.runtime.orderedModuleIDs {
+                    for moduleID in runtime.orderedModuleIDs {
                         environment.cacheStore.clear(moduleID: moduleID)
                     }
                 }
@@ -109,37 +121,37 @@ struct SettingsRootView: View {
 
     private var selectedSectionBinding: Binding<SettingsSection> {
         Binding(
-            get: { environment.settingsNavigation.selectedSection },
-            set: { environment.settingsNavigation.selectedSection = $0 }
+            get: { navigation.selectedSection },
+            set: { navigation.selectedSection = $0 }
         )
     }
 
     private var primaryModuleBinding: Binding<ModuleID?> {
         Binding(
-            get: { environment.settingsStore.primaryModuleID },
-            set: { environment.settingsStore.primaryModuleID = $0 }
+            get: { settingsStore.primaryModuleID },
+            set: { settingsStore.primaryModuleID = $0 }
         )
     }
 
     private var launchAtLoginBinding: Binding<Bool> {
         Binding(
-            get: { environment.settingsStore.launchAtLogin },
-            set: { environment.settingsStore.launchAtLogin = $0 }
+            get: { settingsStore.launchAtLogin },
+            set: { settingsStore.launchAtLogin = $0 }
         )
     }
 
     private var compactStatusTitleBinding: Binding<Bool> {
         Binding(
-            get: { environment.settingsStore.compactStatusTitle },
-            set: { environment.settingsStore.compactStatusTitle = $0 }
+            get: { settingsStore.compactStatusTitle },
+            set: { settingsStore.compactStatusTitle = $0 }
         )
     }
 
     private var showDockIconBinding: Binding<Bool> {
         Binding(
-            get: { environment.settingsStore.showDockIcon },
+            get: { settingsStore.showDockIcon },
             set: {
-                environment.settingsStore.showDockIcon = $0
+                settingsStore.showDockIcon = $0
                 environment.applyActivationPolicy()
             }
         )
