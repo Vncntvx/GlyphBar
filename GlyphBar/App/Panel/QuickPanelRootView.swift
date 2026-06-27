@@ -84,7 +84,7 @@ private struct PanelHeader: View {
             Image(systemName: selectedManifest?.systemImage ?? "sparkles")
                 .font(.title3)
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 1) {

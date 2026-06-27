@@ -140,6 +140,7 @@ final class ModuleRuntime: ObservableObject {
     func importModule(from sourceURL: URL, replacing: Bool = false) throws -> ModuleID {
         let package = try registry.importExternalPackage(from: sourceURL, replacing: replacing)
         reloadModules(selecting: package.moduleManifest.id)
+        settingsStore.setEnabled(true, moduleID: package.moduleManifest.id)
         return package.moduleManifest.id
     }
 

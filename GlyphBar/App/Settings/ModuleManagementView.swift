@@ -139,7 +139,7 @@ private struct ModuleManagementDetailView: View {
             Image(systemName: module.manifest.systemImage)
                 .font(.largeTitle)
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 44)
 
             VStack(alignment: .leading, spacing: 4) {
