@@ -4,13 +4,17 @@ import SwiftUI
 @MainActor
 final class QuickPanelCoordinator: ObservableObject {
     private let runtime: ModuleRuntime
+    private let openFullWindowAction: () -> Void
     private var panel: NSPanel?
+    private weak var lastStatusItem: NSStatusItem?
 
-    init(runtime: ModuleRuntime) {
+    init(runtime: ModuleRuntime, openFullWindow: @escaping () -> Void = {}) {
         self.runtime = runtime
+        self.openFullWindowAction = openFullWindow
     }
 
     func toggle(relativeTo statusItem: NSStatusItem) {
+        lastStatusItem = statusItem
         if panel?.isVisible == true {
             close()
         } else {
@@ -20,16 +24,21 @@ final class QuickPanelCoordinator: ObservableObject {
 
     func show(moduleID: ModuleID) {
         runtime.setSelectedModule(moduleID)
-        show(relativeTo: nil)
+        show(relativeTo: lastStatusItem)
     }
 
     func show(relativeTo statusItem: NSStatusItem?) {
+        if let statusItem {
+            lastStatusItem = statusItem
+        }
         let panel = panel ?? makePanel()
         self.panel = panel
-        panel.contentView = NSHostingView(rootView: QuickPanelRootView(runtime: runtime, coordinator: self))
+        panel.contentView = NSHostingView(
+            rootView: QuickPanelRootView(runtime: runtime, coordinator: self)
+                .frame(width: 404, height: 500)
+        )
         position(panel, relativeTo: statusItem)
         panel.orderFrontRegardless()
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     func close() {
@@ -43,9 +52,19 @@ final class QuickPanelCoordinator: ObservableObject {
         panel.hidesOnDeactivate.toggle()
     }
 
+    func openFullWindow() {
+        close()
+        openFullWindowAction()
+    }
+
+    func openSettings() {
+        close()
+        AppEnvironment.shared.openSettings(section: .general)
+    }
+
     private func makePanel() -> NSPanel {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
+            contentRect: NSRect(x: 0, y: 0, width: 404, height: 500),
             styleMask: [.titled, .fullSizeContentView, .utilityWindow],
             backing: .buffered,
             defer: true
@@ -53,13 +72,17 @@ final class QuickPanelCoordinator: ObservableObject {
         panel.title = "GlyphBar"
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
         panel.isMovableByWindowBackground = true
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = true
         panel.level = .floating
-        panel.collectionBehavior = [.moveToActiveSpace, .transient]
+        panel.collectionBehavior = [.moveToActiveSpace, .transient, .ignoresCycle]
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
+        panel.standardWindowButton(.closeButton)?.isHidden = true
         return panel
     }
 

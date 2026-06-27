@@ -1,9 +1,11 @@
 import Foundation
 
 enum DeepLinkRoute: Equatable {
+    case appPanel
     case appSettings
     case appModules
     case appLogs
+    case appImportModule
     case module(ModuleID)
     case moduleSettings(ModuleID)
     case moduleWidget(ModuleID)
@@ -13,25 +15,28 @@ enum DeepLinkRoute: Equatable {
 @MainActor
 final class DeepLinkRouter {
     private weak var runtime: ModuleRuntime?
-    private let openSettings: () -> Void
-    private let openModules: () -> Void
+    private let openPanel: () -> Void
+    private let openSettings: (SettingsSection, ModuleID?) -> Void
     private let openLogs: () -> Void
+    private let importModule: () -> Void
     private let showModule: (ModuleID) -> Void
     private let logger: GlyphLogger
 
     init(
         runtime: ModuleRuntime,
         logger: GlyphLogger,
-        openSettings: @escaping () -> Void,
-        openModules: @escaping () -> Void,
+        openPanel: @escaping () -> Void,
+        openSettings: @escaping (SettingsSection, ModuleID?) -> Void,
         openLogs: @escaping () -> Void,
+        importModule: @escaping () -> Void,
         showModule: @escaping (ModuleID) -> Void
     ) {
         self.runtime = runtime
         self.logger = logger
+        self.openPanel = openPanel
         self.openSettings = openSettings
-        self.openModules = openModules
         self.openLogs = openLogs
+        self.importModule = importModule
         self.showModule = showModule
     }
 
@@ -49,9 +54,11 @@ final class DeepLinkRouter {
                 return nil
             }
             switch destination {
+            case "panel": return .appPanel
             case "settings": return .appSettings
             case "modules": return .appModules
             case "logs": return .appLogs
+            case "import-module", "import": return .appImportModule
             default: return nil
             }
 
@@ -107,18 +114,22 @@ final class DeepLinkRouter {
         logger.route("Routing \(url.absoluteString)")
 
         switch route {
+        case .appPanel:
+            openPanel()
         case .appSettings:
-            openSettings()
+            openSettings(.general, nil)
         case .appModules:
-            openModules()
+            openSettings(.modules, nil)
         case .appLogs:
             openLogs()
-        case .module(let moduleID), .moduleSettings(let moduleID), .moduleWidget(let moduleID):
+        case .appImportModule:
+            importModule()
+        case .module(let moduleID), .moduleWidget(let moduleID):
             runtime?.setSelectedModule(moduleID)
             showModule(moduleID)
-            if case .moduleSettings = route {
-                openSettings()
-            }
+        case .moduleSettings(let moduleID):
+            runtime?.setSelectedModule(moduleID)
+            openSettings(.modules, moduleID)
         case .moduleAction(let moduleID, let actionID):
             guard let action = runtime?.modules[moduleID]?.manifest.actions.first(where: { $0.id == actionID }) else {
                 logger.warning("Ignored missing action \(actionID) for \(moduleID)")

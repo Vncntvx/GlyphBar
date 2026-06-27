@@ -11,7 +11,9 @@ final class ClockModule: StatusModule {
             displayName: "Clock",
             subtitle: "Local time, date, and timezone",
             systemImage: "clock",
-            capabilities: [.statusItem, .panel, .widgets, .actions],
+            version: "1.0.0",
+            author: "Wenjie Xu",
+            capabilities: [.statusItem, .panel, .widgets, .actions, .deepLinks],
             permissions: [.pasteboard],
             defaultRefreshPolicy: .interval(seconds: 60),
             actions: [

@@ -1,6 +1,17 @@
 import AppKit
 import Combine
 
+enum StatusItemClickAction: Equatable {
+    case togglePanel
+    case openContextMenu
+}
+
+struct StatusItemClickRouter {
+    static func action(for eventType: NSEvent.EventType?) -> StatusItemClickAction {
+        eventType == .rightMouseUp ? .openContextMenu : .togglePanel
+    }
+}
+
 @MainActor
 final class StatusBarController: NSObject {
     private let runtime: ModuleRuntime
@@ -89,17 +100,14 @@ final class StatusBarController: NSObject {
     }
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {
-        guard let event = NSApp.currentEvent else {
+        switch StatusItemClickRouter.action(for: NSApp.currentEvent?.type) {
+        case .togglePanel:
             panelCoordinator.toggle(relativeTo: statusItem)
-            return
-        }
-
-        if event.type == .rightMouseUp {
+        case .openContextMenu:
+            panelCoordinator.close()
             statusItem.menu = menuCoordinator.makeMenu()
             sender.performClick(nil)
             statusItem.menu = nil
-        } else {
-            panelCoordinator.toggle(relativeTo: statusItem)
         }
     }
 }

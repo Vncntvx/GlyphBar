@@ -25,6 +25,10 @@ final class AppSettingsStore: ObservableObject {
         didSet { defaults.set(compactStatusTitle, forKey: Keys.compactStatusTitle) }
     }
 
+    @Published var showDockIcon: Bool {
+        didSet { defaults.set(showDockIcon, forKey: Keys.showDockIcon) }
+    }
+
     private let defaults: UserDefaults
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -36,6 +40,7 @@ final class AppSettingsStore: ObservableObject {
         primaryModuleID = defaults.string(forKey: Keys.primaryModuleID)
         launchAtLogin = defaults.bool(forKey: Keys.launchAtLogin)
         compactStatusTitle = defaults.object(forKey: Keys.compactStatusTitle) as? Bool ?? false
+        showDockIcon = defaults.object(forKey: Keys.showDockIcon) as? Bool ?? true
 
         if let data = defaults.data(forKey: Keys.refreshPolicies),
            let policies = try? decoder.decode([ModuleID: RefreshPolicy].self, from: data) {
@@ -97,6 +102,17 @@ final class AppSettingsStore: ObservableObject {
         cacheStore.clear(moduleID: moduleID)
     }
 
+    func removeModuleState(moduleID: ModuleID) {
+        enabledModuleIDs.remove(moduleID)
+        moduleOrder.removeAll { $0 == moduleID }
+        refreshPolicies.removeValue(forKey: moduleID)
+        if primaryModuleID == moduleID {
+            primaryModuleID = moduleOrder.first
+        }
+        persist()
+        persistPolicies()
+    }
+
     private func persist() {
         defaults.set(Array(enabledModuleIDs).sorted(), forKey: Keys.enabledModuleIDs)
         defaults.set(moduleOrder, forKey: Keys.moduleOrder)
@@ -121,5 +137,6 @@ final class AppSettingsStore: ObservableObject {
         static let refreshPolicies = "settings.refreshPolicies"
         static let launchAtLogin = "settings.launchAtLogin"
         static let compactStatusTitle = "settings.compactStatusTitle"
+        static let showDockIcon = "settings.showDockIcon"
     }
 }

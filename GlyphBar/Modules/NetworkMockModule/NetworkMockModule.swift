@@ -16,7 +16,9 @@ final class NetworkMockModule: StatusModule {
             displayName: "Network Mock",
             subtitle: "Async refresh, failure, and stale-cache demo",
             systemImage: "antenna.radiowaves.left.and.right",
-            capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState],
+            version: "1.0.0",
+            author: "Wenjie Xu",
+            capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
             permissions: [],
             defaultRefreshPolicy: .interval(seconds: 120),
             actions: [

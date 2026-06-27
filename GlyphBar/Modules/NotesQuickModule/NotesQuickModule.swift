@@ -21,7 +21,9 @@ final class NotesQuickModule: StatusModule {
             displayName: "Notes Quick",
             subtitle: "Pinned and recent local notes",
             systemImage: "note.text",
-            capabilities: [.panel, .widgets, .actions, .cachedState],
+            version: "1.0.0",
+            author: "Wenjie Xu",
+            capabilities: [.panel, .widgets, .actions, .cachedState, .deepLinks],
             permissions: [],
             defaultRefreshPolicy: .manual,
             actions: [

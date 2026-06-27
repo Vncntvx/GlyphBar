@@ -1,0 +1,14 @@
+{
+  "title": "Ready",
+  "subtitle": "Example package loaded",
+  "metrics": {
+    "value": 42,
+    "health": 100
+  },
+  "notes": [
+    "This package is rendered by GlyphBar's declarative module host."
+  ],
+  "metadata": {
+    "source": "examples/ExampleStatus.glyphbarmodule"
+  }
+}

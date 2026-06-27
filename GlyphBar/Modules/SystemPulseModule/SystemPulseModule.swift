@@ -9,7 +9,9 @@ final class SystemPulseModule: StatusModule {
             displayName: "System Pulse",
             subtitle: "Local CPU, memory, and storage indicators",
             systemImage: "waveform.path.ecg",
-            capabilities: [.statusItem, .panel, .widgets],
+            version: "1.0.0",
+            author: "Wenjie Xu",
+            capabilities: [.statusItem, .panel, .widgets, .actions, .deepLinks],
             permissions: [.systemMetrics],
             defaultRefreshPolicy: .interval(seconds: 30),
             actions: [

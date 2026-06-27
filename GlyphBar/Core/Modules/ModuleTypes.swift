@@ -30,6 +30,8 @@ enum ModuleCapability: String, Codable, CaseIterable, Sendable {
     case settings
     case cachedState
     case permissions
+    case deepLinks
+    case storage
 }
 
 enum ModulePermission: String, Codable, CaseIterable, Sendable {
@@ -37,6 +39,8 @@ enum ModulePermission: String, Codable, CaseIterable, Sendable {
     case notifications
     case systemMetrics
     case appGroupStorage
+    case openExternalURLs
+    case localFiles
 }
 
 struct ModuleAction: Identifiable, Codable, Hashable, Sendable {
@@ -67,16 +71,54 @@ struct ModuleWidgetDescriptor: Identifiable, Codable, Hashable, Sendable {
     var supportedFamilies: [String]
 }
 
+struct ModuleCompatibility: Codable, Hashable, Sendable {
+    var minimumGlyphBarVersion: String
+    var maximumGlyphBarVersion: String?
+
+    static let current = ModuleCompatibility(minimumGlyphBarVersion: "1.0", maximumGlyphBarVersion: nil)
+}
+
 struct ModuleManifest: Identifiable, Codable, Hashable, Sendable {
     let id: ModuleID
     var displayName: String
     var subtitle: String
     var systemImage: String
+    var version: String
+    var author: String
+    var compatibility: ModuleCompatibility
     var capabilities: [ModuleCapability]
     var permissions: [ModulePermission]
     var defaultRefreshPolicy: RefreshPolicy
     var actions: [ModuleAction]
     var widgets: [ModuleWidgetDescriptor]
+
+    init(
+        id: ModuleID,
+        displayName: String,
+        subtitle: String,
+        systemImage: String,
+        version: String = "1.0.0",
+        author: String = "GlyphBar",
+        compatibility: ModuleCompatibility = .current,
+        capabilities: [ModuleCapability],
+        permissions: [ModulePermission],
+        defaultRefreshPolicy: RefreshPolicy,
+        actions: [ModuleAction],
+        widgets: [ModuleWidgetDescriptor]
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.subtitle = subtitle
+        self.systemImage = systemImage
+        self.version = version
+        self.author = author
+        self.compatibility = compatibility
+        self.capabilities = capabilities
+        self.permissions = permissions
+        self.defaultRefreshPolicy = defaultRefreshPolicy
+        self.actions = actions
+        self.widgets = widgets
+    }
 }
 
 enum RefreshPolicy: Codable, Hashable, Sendable {

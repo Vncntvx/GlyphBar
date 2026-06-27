@@ -13,7 +13,10 @@ final class AppMenuCoordinator: NSObject {
     func makeMenu() -> NSMenu {
         let menu = NSMenu(title: "GlyphBar")
         menu.addItem(item("Open GlyphBar", action: #selector(openPanel)))
+        menu.addItem(item("Open Full Window", action: #selector(openFullWindow)))
         menu.addItem(item("Settings...", action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(item("Module Management...", action: #selector(openModules)))
+        menu.addItem(item("Import Module...", action: #selector(importModule)))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(item("Refresh All", action: #selector(refreshAll), keyEquivalent: "r"))
 
@@ -51,8 +54,20 @@ final class AppMenuCoordinator: NSObject {
         AppEnvironment.shared.quickPanelCoordinator.show(relativeTo: nil)
     }
 
+    @objc private func openFullWindow() {
+        AppEnvironment.shared.mainWindowCoordinator.openModuleWindow()
+    }
+
     @objc private func openSettings() {
-        platformActions.showSettingsWindow()
+        AppEnvironment.shared.openSettings(section: .general)
+    }
+
+    @objc private func openModules() {
+        AppEnvironment.shared.openSettings(section: .modules)
+    }
+
+    @objc private func importModule() {
+        AppEnvironment.shared.importModuleFromPanel()
     }
 
     @objc private func refreshAll() {

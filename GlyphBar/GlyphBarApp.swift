@@ -12,14 +12,36 @@ struct GlyphBarApp: App {
                     environment.router.route(url)
                 }
         }
-
-        Window("GlyphBar", id: "main") {
-            QuickPanelRootView(runtime: environment.runtime, coordinator: environment.quickPanelCoordinator)
-                .frame(minWidth: 680, minHeight: 460)
-                .onOpenURL { url in
-                    environment.router.route(url)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings...") {
+                    environment.openSettings(section: .general)
                 }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+
+            CommandMenu("GlyphBar") {
+                Button("Show Panel") {
+                    environment.quickPanelCoordinator.show(relativeTo: nil)
+                }
+                .keyboardShortcut("g", modifiers: [.command, .shift])
+
+                Button("Open Module Management") {
+                    environment.openSettings(section: .modules)
+                }
+                .keyboardShortcut("m", modifiers: [.command, .shift])
+
+                Button("Import Module...") {
+                    environment.importModuleFromPanel()
+                }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("Open Full Window") {
+                    environment.mainWindowCoordinator.openModuleWindow()
+                }
+            }
         }
-        .windowResizability(.contentSize)
     }
 }

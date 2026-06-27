@@ -11,7 +11,9 @@ final class CounterModule: StatusModule {
             displayName: "Counter",
             subtitle: "Shared action state",
             systemImage: "number.circle",
-            capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState],
+            version: "1.0.0",
+            author: "Wenjie Xu",
+            capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
             permissions: [],
             defaultRefreshPolicy: .manual,
             actions: [

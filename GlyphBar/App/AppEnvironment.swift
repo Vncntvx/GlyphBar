@@ -2,6 +2,30 @@ import AppKit
 import Combine
 import Foundation
 
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case general
+    case menuBar
+    case modules
+    case appearance
+    case widgets
+    case privacy
+    case advanced
+    case about
+
+    var id: String { rawValue }
+}
+
+@MainActor
+final class SettingsNavigationState: ObservableObject {
+    @Published var selectedSection: SettingsSection = .general
+    @Published var selectedModuleID: ModuleID?
+
+    func open(section: SettingsSection, moduleID: ModuleID? = nil) {
+        selectedSection = section
+        selectedModuleID = moduleID
+    }
+}
+
 @MainActor
 final class AppEnvironment: ObservableObject {
     static let shared = AppEnvironment()
@@ -16,6 +40,7 @@ final class AppEnvironment: ObservableObject {
     let context: ModuleContext
     let registry: ModuleRegistry
     let runtime: ModuleRuntime
+    let settingsNavigation: SettingsNavigationState
     let quickPanelCoordinator: QuickPanelCoordinator
     let appMenuCoordinator: AppMenuCoordinator
     let statusBarController: StatusBarController
@@ -30,6 +55,7 @@ final class AppEnvironment: ObservableObject {
         let settingsStore = AppSettingsStore()
         let platformActions = PlatformActions()
         let widgetBridge = WidgetDataBridge()
+        let settingsNavigation = SettingsNavigationState()
         let context = ModuleContext(
             logger: logger,
             cacheStore: cacheStore,
@@ -47,8 +73,13 @@ final class AppEnvironment: ObservableObject {
         registry.register { NetworkMockModule() }
 
         let runtime = ModuleRuntime(registry: registry, context: context, settingsStore: settingsStore)
-        let quickPanelCoordinator = QuickPanelCoordinator(runtime: runtime)
-        let mainWindowCoordinator = MainWindowCoordinator(platformActions: platformActions)
+        let mainWindowCoordinator = MainWindowCoordinator(runtime: runtime)
+        let quickPanelCoordinator = QuickPanelCoordinator(
+            runtime: runtime,
+            openFullWindow: {
+                mainWindowCoordinator.openModuleWindow()
+            }
+        )
         let appMenuCoordinator = AppMenuCoordinator(runtime: runtime, platformActions: platformActions)
         let statusBarController = StatusBarController(
             runtime: runtime,
@@ -59,9 +90,15 @@ final class AppEnvironment: ObservableObject {
         let router = DeepLinkRouter(
             runtime: runtime,
             logger: logger,
-            openSettings: { platformActions.showSettingsWindow() },
-            openModules: { platformActions.showSettingsWindow() },
+            openPanel: { quickPanelCoordinator.show(relativeTo: nil) },
+            openSettings: { section, moduleID in
+                settingsNavigation.open(section: section, moduleID: moduleID)
+                platformActions.showSettingsWindow()
+            },
             openLogs: { mainWindowCoordinator.openLogsWindow() },
+            importModule: {
+                AppEnvironment.shared.importModuleFromPanel()
+            },
             showModule: { moduleID in quickPanelCoordinator.show(moduleID: moduleID) }
         )
 
@@ -75,6 +112,7 @@ final class AppEnvironment: ObservableObject {
         self.context = context
         self.registry = registry
         self.runtime = runtime
+        self.settingsNavigation = settingsNavigation
         self.quickPanelCoordinator = quickPanelCoordinator
         self.mainWindowCoordinator = mainWindowCoordinator
         self.appMenuCoordinator = appMenuCoordinator
@@ -85,5 +123,46 @@ final class AppEnvironment: ObservableObject {
     func start() {
         statusBarController.start()
         runtime.start()
+    }
+
+    func applyActivationPolicy() {
+        NSApp.setActivationPolicy(settingsStore.showDockIcon ? .regular : .accessory)
+        if settingsStore.showDockIcon {
+            NSApp.activate(ignoringOtherApps: false)
+        }
+    }
+
+    func openSettings(section: SettingsSection = .general, moduleID: ModuleID? = nil) {
+        settingsNavigation.open(section: section, moduleID: moduleID)
+        platformActions.showSettingsWindow()
+    }
+
+    func importModuleFromPanel() {
+        let panel = NSOpenPanel()
+        panel.title = "Import GlyphBar Module"
+        panel.prompt = "Import"
+        panel.message = "Choose a .glyphbarmodule package or folder containing glyphbar-module.json."
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+
+        guard panel.runModal() == .OK,
+              let url = panel.url else {
+            return
+        }
+
+        do {
+            let moduleID = try runtime.importModule(from: url)
+            settingsNavigation.open(section: .modules, moduleID: moduleID)
+            platformActions.showSettingsWindow()
+            Task {
+                await runtime.refresh(moduleID: moduleID)
+            }
+        } catch {
+            runtime.userNotice = error.localizedDescription
+            logger.error(error.localizedDescription)
+            settingsNavigation.open(section: .modules)
+            platformActions.showSettingsWindow()
+        }
     }
 }

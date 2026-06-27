@@ -4,14 +4,22 @@ struct SettingsRootView: View {
     @ObservedObject var environment: AppEnvironment
 
     var body: some View {
-        TabView {
+        TabView(selection: selectedSectionBinding) {
             Form {
+                Toggle("Show Dock Icon", isOn: showDockIconBinding)
+                Text("Turn this off to run GlyphBar as a menu-bar-only utility. If macOS does not update the Dock immediately, relaunch GlyphBar.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Divider()
+
                 Toggle("Launch at Login", isOn: launchAtLoginBinding)
                 Text("Launch at Login is a placeholder for the v1 shell.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .tabItem { Label("General", systemImage: "gearshape") }
+            .tag(SettingsSection.general)
 
             Form {
                 Toggle("Compact Status Title", isOn: compactStatusTitleBinding)
@@ -23,13 +31,17 @@ struct SettingsRootView: View {
                 }
             }
             .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
+            .tag(SettingsSection.menuBar)
 
             ModuleManagementView(
+                environment: environment,
                 runtime: environment.runtime,
                 settingsStore: environment.settingsStore,
-                cacheStore: environment.cacheStore
+                cacheStore: environment.cacheStore,
+                navigation: environment.settingsNavigation
             )
             .tabItem { Label("Modules", systemImage: "square.grid.2x2") }
+            .tag(SettingsSection.modules)
 
             Form {
                 Picker("Accent Style", selection: .constant("System")) {
@@ -38,12 +50,14 @@ struct SettingsRootView: View {
                 }
             }
             .tabItem { Label("Appearance", systemImage: "paintbrush") }
+            .tag(SettingsSection.appearance)
 
             Form {
                 Text("Clock, System Pulse, Notes Quick, Counter, and Network Mock publish lightweight cached snapshots for widgets.")
                     .foregroundStyle(.secondary)
             }
             .tabItem { Label("Widgets", systemImage: "rectangle.3.group") }
+            .tag(SettingsSection.widgets)
 
             Form {
                 ForEach(ModulePermission.allCases, id: \.self) { permission in
@@ -58,6 +72,7 @@ struct SettingsRootView: View {
                 }
             }
             .tabItem { Label("Privacy", systemImage: "hand.raised") }
+            .tag(SettingsSection.privacy)
 
             Form {
                 Button("Refresh Enabled Modules") {
@@ -72,6 +87,7 @@ struct SettingsRootView: View {
                 }
             }
             .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
+            .tag(SettingsSection.advanced)
 
             VStack(spacing: 8) {
                 Image(systemName: "sparkles")
@@ -85,9 +101,17 @@ struct SettingsRootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .tabItem { Label("About", systemImage: "info.circle") }
+            .tag(SettingsSection.about)
         }
-        .frame(width: 620, height: 420)
+        .frame(width: 760, height: 520)
         .scenePadding()
+    }
+
+    private var selectedSectionBinding: Binding<SettingsSection> {
+        Binding(
+            get: { environment.settingsNavigation.selectedSection },
+            set: { environment.settingsNavigation.selectedSection = $0 }
+        )
     }
 
     private var primaryModuleBinding: Binding<ModuleID?> {
@@ -108,6 +132,16 @@ struct SettingsRootView: View {
         Binding(
             get: { environment.settingsStore.compactStatusTitle },
             set: { environment.settingsStore.compactStatusTitle = $0 }
+        )
+    }
+
+    private var showDockIconBinding: Binding<Bool> {
+        Binding(
+            get: { environment.settingsStore.showDockIcon },
+            set: {
+                environment.settingsStore.showDockIcon = $0
+                environment.applyActivationPolicy()
+            }
         )
     }
 }

@@ -3,12 +3,14 @@ import Foundation
 @MainActor
 final class ModuleRuntime: ObservableObject {
     @Published private(set) var modules: [ModuleID: any StatusModule]
+    @Published private(set) var moduleRecords: [ModuleID: ModuleRecord]
     @Published private(set) var snapshots: [ModuleID: ModuleSnapshot] = [:]
     @Published var selectedModuleID: ModuleID?
     @Published var userNotice: String?
 
     let context: ModuleContext
     let settingsStore: AppSettingsStore
+    private let registry: ModuleRegistry
     private let scheduler: RefreshScheduler
     private let logger: GlyphLogger
 
@@ -18,7 +20,10 @@ final class ModuleRuntime: ObservableObject {
         settingsStore: AppSettingsStore,
         scheduler: RefreshScheduler = RefreshScheduler()
     ) {
-        self.modules = registry.makeModules()
+        let records = registry.makeRecords()
+        self.registry = registry
+        self.moduleRecords = records
+        self.modules = records.mapValues(\.module)
         self.context = context
         self.settingsStore = settingsStore
         self.scheduler = scheduler
@@ -44,6 +49,14 @@ final class ModuleRuntime: ObservableObject {
 
     var enabledModuleIDs: [ModuleID] {
         orderedModuleIDs.filter { settingsStore.isEnabled($0) }
+    }
+
+    var builtInModuleIDs: [ModuleID] {
+        orderedModuleIDs.filter { moduleRecords[$0]?.sourceKind == .builtIn }
+    }
+
+    var thirdPartyModuleIDs: [ModuleID] {
+        orderedModuleIDs.filter { moduleRecords[$0]?.sourceKind == .thirdParty }
     }
 
     func start() {
@@ -117,6 +130,56 @@ final class ModuleRuntime: ObservableObject {
 
     func setSelectedModule(_ moduleID: ModuleID?) {
         selectedModuleID = moduleID
+    }
+
+    func record(for moduleID: ModuleID) -> ModuleRecord? {
+        moduleRecords[moduleID]
+    }
+
+    @discardableResult
+    func importModule(from sourceURL: URL, replacing: Bool = false) throws -> ModuleID {
+        let package = try registry.importExternalPackage(from: sourceURL, replacing: replacing)
+        reloadModules(selecting: package.moduleManifest.id)
+        return package.moduleManifest.id
+    }
+
+    func removeThirdPartyModule(moduleID: ModuleID, removeData: Bool = true) throws {
+        guard moduleRecords[moduleID]?.sourceKind == .thirdParty else {
+            throw ExternalModuleError.notThirdParty(moduleID)
+        }
+
+        settingsStore.setEnabled(false, moduleID: moduleID)
+        try registry.removeExternalPackage(moduleID: moduleID)
+        if removeData {
+            context.cacheStore.clear(moduleID: moduleID)
+            context.widgetBridge.remove(moduleID: moduleID)
+        }
+        settingsStore.removeModuleState(moduleID: moduleID)
+        reloadModules(selecting: enabledModuleIDs.first)
+    }
+
+    func storageLocation(for moduleID: ModuleID) -> URL? {
+        guard moduleRecords[moduleID]?.sourceKind == .thirdParty else {
+            return nil
+        }
+        return registry.externalStorageLocation(moduleID: moduleID)
+    }
+
+    private func reloadModules(selecting preferredModuleID: ModuleID?) {
+        let records = registry.makeRecords()
+        moduleRecords = records
+        modules = records.mapValues(\.module)
+
+        let manifests = modules.values.map(\.manifest).sorted { $0.displayName < $1.displayName }
+        settingsStore.registerDefaults(for: manifests)
+
+        if let preferredModuleID, modules[preferredModuleID] != nil {
+            selectedModuleID = preferredModuleID
+        } else if let selectedModuleID, modules[selectedModuleID] != nil {
+            self.selectedModuleID = selectedModuleID
+        } else {
+            selectedModuleID = enabledModuleIDs.first ?? orderedModuleIDs.first
+        }
     }
 
     private func apply(_ event: ModuleEvent) async {

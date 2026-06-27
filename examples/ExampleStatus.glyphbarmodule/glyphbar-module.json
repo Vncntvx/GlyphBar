@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "exampleStatus",
+  "displayName": "Example Status",
+  "subtitle": "A sample third-party module",
+  "systemImage": "sparkles",
+  "version": "1.0.0",
+  "author": "Example Developer",
+  "minimumGlyphBarVersion": "1.0",
+  "capabilities": ["statusItem", "panel", "actions", "widgets", "deepLinks"],
+  "permissions": ["pasteboard"],
+  "refreshPolicy": { "type": "manual" },
+  "actions": [
+    {
+      "id": "copyStatus",
+      "title": "Copy Status",
+      "systemImage": "doc.on.doc",
+      "kind": "copy",
+      "value": "Example Status: Ready"
+    }
+  ],
+  "widgets": [
+    {
+      "id": "exampleStatus.widget",
+      "title": "Example Status",
+      "subtitle": "Cached sample status",
+      "systemImage": "sparkles",
+      "supportedFamilies": ["small", "medium"]
+    }
+  ],
+  "panel": {
+    "metricOrder": ["value", "health"],
+    "noteTitle": "Notes",
+    "metadataKeys": ["source"]
+  }
+}
