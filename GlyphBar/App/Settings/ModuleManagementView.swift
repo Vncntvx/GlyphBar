@@ -54,6 +54,7 @@ struct ModuleManagementView: View {
                     }
                 }
                 .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
                 .frame(width: 250)
 
                 Divider()

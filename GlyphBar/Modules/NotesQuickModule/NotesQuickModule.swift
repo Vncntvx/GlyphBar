@@ -3,17 +3,31 @@ import SwiftUI
 
 @MainActor
 final class NotesQuickModule: StatusModule {
-    private struct Note: Identifiable, Codable, Hashable {
+    struct Note: Identifiable, Codable, Hashable {
         let id: UUID
         var text: String
         var isPinned: Bool
         var isComplete: Bool
+        let createdAt: Date
+
+        init(id: UUID = UUID(), text: String, isPinned: Bool = false, isComplete: Bool = false, createdAt: Date = Date()) {
+            self.id = id
+            self.text = text
+            self.isPinned = isPinned
+            self.isComplete = isComplete
+            self.createdAt = createdAt
+        }
     }
 
-    private var notes: [Note] = [
-        Note(id: UUID(), text: "Review module snapshots", isPinned: true, isComplete: false),
-        Note(id: UUID(), text: "Check widget cache", isPinned: false, isComplete: false)
-    ]
+    private var notes: [Note] {
+        didSet { persistState() }
+    }
+
+    private let defaults = UserDefaults.standard
+
+    init() {
+        self.notes = Self.loadState() ?? []
+    }
 
     var manifest: ModuleManifest {
         ModuleManifest(
@@ -21,9 +35,9 @@ final class NotesQuickModule: StatusModule {
             displayName: "Notes Quick",
             subtitle: "Pinned and recent local notes",
             systemImage: "note.text",
-            version: "1.0.0",
+            version: "1.1.0",
             author: "Wenjie Xu",
-            capabilities: [.panel, .widgets, .actions, .cachedState, .deepLinks],
+            capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
             permissions: [],
             defaultRefreshPolicy: .manual,
             actions: [
@@ -44,25 +58,38 @@ final class NotesQuickModule: StatusModule {
     }
 
     func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
-        let pinnedCount = notes.filter(\.isPinned).count
-        let visibleNotes = notes
-            .sorted { lhs, rhs in
-                if lhs.isPinned == rhs.isPinned {
-                    return lhs.text < rhs.text
-                }
-                return lhs.isPinned && !rhs.isPinned
+        let activeNotes = notes.filter { !$0.isComplete }
+        let pinnedCount = activeNotes.filter(\.isPinned).count
+
+        let sorted = activeNotes.sorted { lhs, rhs in
+            if lhs.isPinned == rhs.isPinned {
+                return lhs.createdAt > rhs.createdAt
             }
-            .map { note in
-                note.isPinned ? "Pinned: \(note.text)" : note.text
-            }
+            return lhs.isPinned && !rhs.isPinned
+        }
+
+        let displayNotes: [String] = sorted.prefix(8).map { note in
+            let pin = note.isPinned ? "📌 " : ""
+            return "\(pin)\(note.text)"
+        }
+
+        var signals: [StatusSignal] = []
+        if pinnedCount > 0 {
+            signals.append(StatusSignal(
+                id: "notesQuick.pinned", title: "\(pinnedCount) pinned",
+                message: "\(pinnedCount) pinned notes pending",
+                systemImage: "pin.fill", severity: .info, priority: 30
+            ))
+        }
 
         return ModuleSnapshot(
             id: manifest.id,
-            title: "\(notes.count) notes",
-            subtitle: "\(pinnedCount) pinned",
+            title: "\(activeNotes.count) notes",
+            subtitle: pinnedCount > 0 ? "\(pinnedCount) pinned" : "No pinned notes",
             systemImage: manifest.systemImage,
-            metrics: ["notes": Double(notes.count), "pinned": Double(pinnedCount)],
-            notes: Array(visibleNotes.prefix(5))
+            signals: signals,
+            metrics: ["notes": Double(activeNotes.count), "pinned": Double(pinnedCount)],
+            notes: displayNotes
         )
     }
 
@@ -71,11 +98,14 @@ final class NotesQuickModule: StatusModule {
         case "addNote":
             let formatter = DateFormatter()
             formatter.timeStyle = .short
-            notes.insert(Note(id: UUID(), text: "Captured at \(formatter.string(from: Date()))", isPinned: false, isComplete: false), at: 0)
+            notes.insert(Note(
+                text: "New note at \(formatter.string(from: Date()))",
+                createdAt: Date()
+            ), at: 0)
             return .refreshRequested(manifest.id)
         case "pinFirst":
-            guard !notes.isEmpty else { return .none }
-            notes[0].isPinned.toggle()
+            guard let idx = notes.firstIndex(where: { !$0.isComplete }) else { return .none }
+            notes[idx].isPinned.toggle()
             return .refreshRequested(manifest.id)
         case "clearCompleted":
             notes.removeAll(where: \.isComplete)
@@ -86,30 +116,211 @@ final class NotesQuickModule: StatusModule {
     }
 
     func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(NotesPanel(snapshot: snapshot))
+        AnyView(NotesPanel(
+            snapshot: snapshot,
+            notes: notes,
+            onAdd: { [weak self] text in self?.addNote(text: text) },
+            onToggleComplete: { [weak self] id in self?.toggleComplete(id: id) },
+            onTogglePin: { [weak self] id in self?.togglePin(id: id) },
+            onDelete: { [weak self] id in self?.deleteNote(id: id) },
+            onClearCompleted: { [weak self] in self?.clearCompleted() }
+        ))
+    }
+
+    private func addNote(text: String) {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        notes.insert(Note(text: text.trimmingCharacters(in: .whitespacesAndNewlines), createdAt: Date()), at: 0)
+    }
+
+    private func toggleComplete(id: UUID) {
+        guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
+        notes[idx].isComplete.toggle()
+    }
+
+    private func togglePin(id: UUID) {
+        guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
+        notes[idx].isPinned.toggle()
+    }
+
+    private func deleteNote(id: UUID) {
+        notes.removeAll { $0.id == id }
+    }
+
+    private func clearCompleted() {
+        notes.removeAll(where: \.isComplete)
+    }
+
+    // MARK: - Persistence
+
+    private static let stateKey = "notesQuick.moduleState"
+
+    private func persistState() {
+        if let data = try? JSONEncoder().encode(notes) {
+            defaults.set(data, forKey: Self.stateKey)
+        }
+    }
+
+    private static func loadState() -> [Note]? {
+        guard let data = UserDefaults.standard.data(forKey: stateKey) else { return nil }
+        return try? JSONDecoder().decode([Note].self, from: data)
     }
 }
 
 private struct NotesPanel: View {
     let snapshot: ModuleSnapshot?
+    let notes: [NotesQuickModule.Note]
+    var onAdd: (String) -> Void
+    var onToggleComplete: (UUID) -> Void
+    var onTogglePin: (UUID) -> Void
+    var onDelete: (UUID) -> Void
+    var onClearCompleted: () -> Void
+
+    @State private var newNoteText: String = ""
+    @State private var searchText: String = ""
+    @State private var showCompleted: Bool = false
+
+    private var activeNotes: [NotesQuickModule.Note] {
+        notes.filter { showCompleted || !$0.isComplete }
+    }
+
+    private var filteredNotes: [NotesQuickModule.Note] {
+        if searchText.isEmpty { return activeNotes }
+        return activeNotes.filter { $0.text.localizedCaseInsensitiveContains(searchText) }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if snapshot?.notes.isEmpty != false {
-                GlyphEmptyStateView(title: "No Notes", subtitle: "Add a note from the action row.", systemImage: "note.text")
-                    .frame(height: 180)
+        VStack(spacing: 0) {
+            // Search bar
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField("Search notes…", text: $searchText)
+                    .textFieldStyle(.plain)
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(10)
+            .background(.thinMaterial)
+
+            Divider()
+
+            // Notes list
+            if filteredNotes.isEmpty && !notes.isEmpty {
+                GlyphEmptyStateView(
+                    title: "No matches",
+                    subtitle: "Try a different search term.",
+                    systemImage: "magnifyingglass"
+                )
+                .frame(height: 200)
+            } else if notes.isEmpty {
+                GlyphEmptyStateView(
+                    title: "No Notes",
+                    subtitle: "Type below to add your first note.",
+                    systemImage: "note.text"
+                )
+                .frame(height: 200)
             } else {
-                ForEach(snapshot?.notes ?? [], id: \.self) { note in
-                    GlyphCard {
-                        HStack(spacing: 10) {
-                            Image(systemName: note.hasPrefix("Pinned:") ? "pin.fill" : "text.alignleft")
-                                .foregroundStyle(note.hasPrefix("Pinned:") ? .orange : .secondary)
-                            Text(note)
-                                .lineLimit(2)
-                            Spacer()
+                ScrollView {
+                    LazyVStack(spacing: 6) {
+                        ForEach(filteredNotes) { note in
+                            NoteCard(
+                                note: note,
+                                onToggleComplete: { onToggleComplete(note.id) },
+                                onTogglePin: { onTogglePin(note.id) },
+                                onDelete: { onDelete(note.id) }
+                            )
                         }
                     }
+                    .padding(10)
                 }
+            }
+
+            Divider()
+
+            // Bottom bar
+            HStack(spacing: 8) {
+                TextField("Add a note…", text: $newNoteText)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        onAdd(newNoteText)
+                        newNoteText = ""
+                    }
+
+                Button(action: {
+                    onAdd(newNoteText)
+                    newNoteText = ""
+                }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
+                .disabled(newNoteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                Menu {
+                    Toggle("Show Completed", isOn: $showCompleted)
+                    Divider()
+                    Button("Clear Completed", role: .destructive, action: onClearCompleted)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3)
+                }
+                .menuStyle(.borderlessButton)
+            }
+            .padding(10)
+            .background(.thinMaterial)
+        }
+    }
+}
+
+private struct NoteCard: View {
+    let note: NotesQuickModule.Note
+    var onToggleComplete: () -> Void
+    var onTogglePin: () -> Void
+    var onDelete: () -> Void
+
+    var body: some View {
+        GlyphCard {
+            HStack(spacing: 10) {
+                // Complete toggle
+                Button(action: onToggleComplete) {
+                    Image(systemName: note.isComplete ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .foregroundStyle(note.isComplete ? .green : .secondary)
+                }
+                .buttonStyle(.plain)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(note.text)
+                        .font(.callout)
+                        .strikethrough(note.isComplete)
+                        .foregroundStyle(note.isComplete ? .secondary : .primary)
+                    Text(note.createdAt, style: .relative)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                // Pin toggle
+                Button(action: onTogglePin) {
+                    Image(systemName: note.isPinned ? "pin.fill" : "pin")
+                        .font(.caption)
+                        .foregroundStyle(note.isPinned ? .orange : .secondary)
+                }
+                .buttonStyle(.plain)
+
+                // Delete
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
