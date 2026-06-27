@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let env = AppEnvironment.shared
         env.applyActivationPolicy()
+        env.applyLaunchAtLogin()
 
         // Host the Settings scene via the official AppKit↔SwiftUI bridge so the
         // window can be opened from AppKit entry points (status menu, deep links,

@@ -63,6 +63,16 @@
 		B00000000000000000000403 /* CoreTests/RefreshSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */; };
 		B00000000000000000000404 /* CoreTests/WidgetDataBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */; };
 		B00000000000000000000405 /* ModuleTests/TemplateModuleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */; };
+		B52A7A82D25D74065B4B38EF /* CoreTests/SettingsOverhaulTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */; };
+		BC0AE133EBDB04F6ABBAB2E4 /* App/Settings/ColorSchemeOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADD4D73C767BE42D281E3397 /* App/Settings/ColorSchemeOption.swift */; };
+		BFF5589ECC5374BF49CF9E9B /* App/Settings/GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD087B0EC6D904392BA58B11 /* App/Settings/GeneralSettingsView.swift */; };
+		B7ABC75BEADE648349B9C4B1 /* App/Settings/MenuBarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB65AF26BD12347D6A9A4153 /* App/Settings/MenuBarSettingsView.swift */; };
+		B74A535196D9F4B7C92873E9 /* App/Settings/ModulesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A236120CB68E74EFCB993814 /* App/Settings/ModulesSettingsView.swift */; };
+		BA646BE8E32124892B533BC0 /* App/Settings/PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA4FB64ABC564313A22C327 /* App/Settings/PrivacySettingsView.swift */; };
+		BEF9465E100AC4A4CA3EB168 /* App/Settings/AdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2508B063AC24C07BF2DDC5 /* App/Settings/AdvancedSettingsView.swift */; };
+		B9AB32F8FB56640F4B5DDCA6 /* App/Settings/AboutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22D343E5522A4BD0A3337A9 /* App/Settings/AboutSettingsView.swift */; };
+		B320177F2AE2345FF9853167 /* App/Settings/LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D76B73A1CF44B03B29ED64 /* App/Settings/LogsView.swift */; };
+		BFB039805179844118448B23 /* App/Windows/LogsWindowCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE68FD1ED5C0844FD9A613AC /* App/Windows/LogsWindowCoordinator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -155,6 +165,16 @@
 		A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/RefreshSchedulerTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/WidgetDataBridgeTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/TemplateModuleTests.swift; sourceTree = "<group>"; };
+		A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/SettingsOverhaulTests.swift; sourceTree = "<group>"; };
+		ADD4D73C767BE42D281E3397 /* App/Settings/ColorSchemeOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/ColorSchemeOption.swift; sourceTree = "<group>"; };
+		AD087B0EC6D904392BA58B11 /* App/Settings/GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/GeneralSettingsView.swift; sourceTree = "<group>"; };
+		AB65AF26BD12347D6A9A4153 /* App/Settings/MenuBarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/MenuBarSettingsView.swift; sourceTree = "<group>"; };
+		A236120CB68E74EFCB993814 /* App/Settings/ModulesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/ModulesSettingsView.swift; sourceTree = "<group>"; };
+		ABA4FB64ABC564313A22C327 /* App/Settings/PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/PrivacySettingsView.swift; sourceTree = "<group>"; };
+		AA2508B063AC24C07BF2DDC5 /* App/Settings/AdvancedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/AdvancedSettingsView.swift; sourceTree = "<group>"; };
+		A22D343E5522A4BD0A3337A9 /* App/Settings/AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/AboutSettingsView.swift; sourceTree = "<group>"; };
+		A9D76B73A1CF44B03B29ED64 /* App/Settings/LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/LogsView.swift; sourceTree = "<group>"; };
+		AE68FD1ED5C0844FD9A613AC /* App/Windows/LogsWindowCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Windows/LogsWindowCoordinator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -213,8 +233,17 @@
 				A00000000000000000000106 /* App/Panel/QuickPanelRootView.swift */,
 				A00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift */,
 				A00000000000000000000108 /* App/Settings/SettingsRootView.swift */,
+				A9D76B73A1CF44B03B29ED64 /* App/Settings/LogsView.swift */,
+				A22D343E5522A4BD0A3337A9 /* App/Settings/AboutSettingsView.swift */,
+				AA2508B063AC24C07BF2DDC5 /* App/Settings/AdvancedSettingsView.swift */,
+				ABA4FB64ABC564313A22C327 /* App/Settings/PrivacySettingsView.swift */,
+				A236120CB68E74EFCB993814 /* App/Settings/ModulesSettingsView.swift */,
+				AB65AF26BD12347D6A9A4153 /* App/Settings/MenuBarSettingsView.swift */,
+				AD087B0EC6D904392BA58B11 /* App/Settings/GeneralSettingsView.swift */,
+				ADD4D73C767BE42D281E3397 /* App/Settings/ColorSchemeOption.swift */,
 				A00000000000000000000109 /* App/Settings/ModuleManagementView.swift */,
 				A0000000000000000000010A /* App/Windows/MainWindowCoordinator.swift */,
+				AE68FD1ED5C0844FD9A613AC /* App/Windows/LogsWindowCoordinator.swift */,
 				A0000000000000000000010B /* App/Routing/DeepLinkRouter.swift */,
 				A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */,
 				A0000000000000000000010D /* Core/Modules/StatusModule.swift */,
@@ -271,6 +300,7 @@
 			children = (
 				A00000000000000000000301 /* CoreTests/StatusComposerTests.swift */,
 				A00000000000000000000302 /* CoreTests/DeepLinkRouterTests.swift */,
+				A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */,
 				A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */,
 				A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */,
 				A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */,
@@ -408,8 +438,17 @@
 				B00000000000000000000106 /* App/Panel/QuickPanelRootView.swift in Sources */,
 				B00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift in Sources */,
 				B00000000000000000000108 /* App/Settings/SettingsRootView.swift in Sources */,
+				B320177F2AE2345FF9853167 /* App/Settings/LogsView.swift in Sources */,
+				B9AB32F8FB56640F4B5DDCA6 /* App/Settings/AboutSettingsView.swift in Sources */,
+				BEF9465E100AC4A4CA3EB168 /* App/Settings/AdvancedSettingsView.swift in Sources */,
+				BA646BE8E32124892B533BC0 /* App/Settings/PrivacySettingsView.swift in Sources */,
+				B74A535196D9F4B7C92873E9 /* App/Settings/ModulesSettingsView.swift in Sources */,
+				B7ABC75BEADE648349B9C4B1 /* App/Settings/MenuBarSettingsView.swift in Sources */,
+				BFF5589ECC5374BF49CF9E9B /* App/Settings/GeneralSettingsView.swift in Sources */,
+				BC0AE133EBDB04F6ABBAB2E4 /* App/Settings/ColorSchemeOption.swift in Sources */,
 				B00000000000000000000109 /* App/Settings/ModuleManagementView.swift in Sources */,
 				B0000000000000000000010A /* App/Windows/MainWindowCoordinator.swift in Sources */,
+				BFB039805179844118448B23 /* App/Windows/LogsWindowCoordinator.swift in Sources */,
 				B0000000000000000000010B /* App/Routing/DeepLinkRouter.swift in Sources */,
 				B0000000000000000000010C /* Core/Modules/ModuleTypes.swift in Sources */,
 				B0000000000000000000010D /* Core/Modules/StatusModule.swift in Sources */,
@@ -464,6 +503,7 @@
 			files = (
 				B00000000000000000000401 /* CoreTests/StatusComposerTests.swift in Sources */,
 				B00000000000000000000402 /* CoreTests/DeepLinkRouterTests.swift in Sources */,
+				B52A7A82D25D74065B4B38EF /* CoreTests/SettingsOverhaulTests.swift in Sources */,
 				B00000000000000000000403 /* CoreTests/RefreshSchedulerTests.swift in Sources */,
 				B00000000000000000000404 /* CoreTests/WidgetDataBridgeTests.swift in Sources */,
 				B00000000000000000000405 /* ModuleTests/TemplateModuleTests.swift in Sources */,

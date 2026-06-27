@@ -4,10 +4,12 @@ import SwiftUI
 @MainActor
 final class MainWindowCoordinator {
     private let runtime: ModuleRuntime
+    private let settingsStore: AppSettingsStore
     private var moduleWindow: NSWindow?
 
-    init(runtime: ModuleRuntime) {
+    init(runtime: ModuleRuntime, settingsStore: AppSettingsStore) {
         self.runtime = runtime
+        self.settingsStore = settingsStore
     }
 
     func openModuleWindow(moduleID: ModuleID? = nil) {
@@ -16,15 +18,14 @@ final class MainWindowCoordinator {
         }
 
         let window = moduleWindow ?? makeModuleWindow()
-        window.contentView = NSHostingView(rootView: ModuleDashboardWindowView(runtime: runtime))
+        window.contentView = NSHostingView(
+            rootView: ModuleDashboardWindowView(runtime: runtime)
+                .preferredColorScheme(ColorSchemeOption(rawValue: settingsStore.colorScheme)?.colorScheme)
+        )
         moduleWindow = window
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-    }
-
-    func openLogsWindow() {
-        AppEnvironment.shared.openSettings(section: .advanced)
     }
 
     private func makeModuleWindow() -> NSWindow {

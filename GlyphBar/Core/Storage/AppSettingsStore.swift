@@ -29,6 +29,14 @@ final class AppSettingsStore: ObservableObject {
         didSet { defaults.set(showDockIcon, forKey: Keys.showDockIcon) }
     }
 
+    @Published var colorScheme: String {
+        didSet { defaults.set(colorScheme, forKey: Keys.colorScheme) }
+    }
+
+    @Published var pinPanel: Bool {
+        didSet { defaults.set(pinPanel, forKey: Keys.pinPanel) }
+    }
+
     private let defaults: UserDefaults
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -41,6 +49,8 @@ final class AppSettingsStore: ObservableObject {
         launchAtLogin = defaults.bool(forKey: Keys.launchAtLogin)
         compactStatusTitle = defaults.object(forKey: Keys.compactStatusTitle) as? Bool ?? false
         showDockIcon = defaults.object(forKey: Keys.showDockIcon) as? Bool ?? true
+        colorScheme = defaults.string(forKey: Keys.colorScheme) ?? "system"
+        pinPanel = defaults.object(forKey: Keys.pinPanel) as? Bool ?? false
 
         if let data = defaults.data(forKey: Keys.refreshPolicies),
            let policies = try? decoder.decode([ModuleID: RefreshPolicy].self, from: data) {
@@ -113,6 +123,10 @@ final class AppSettingsStore: ObservableObject {
         persistPolicies()
     }
 
+    func setRefreshPolicy(_ policy: RefreshPolicy, for moduleID: ModuleID) {
+        refreshPolicies[moduleID] = policy
+    }
+
     private func persist() {
         defaults.set(Array(enabledModuleIDs).sorted(), forKey: Keys.enabledModuleIDs)
         defaults.set(moduleOrder, forKey: Keys.moduleOrder)
@@ -138,5 +152,7 @@ final class AppSettingsStore: ObservableObject {
         static let launchAtLogin = "settings.launchAtLogin"
         static let compactStatusTitle = "settings.compactStatusTitle"
         static let showDockIcon = "settings.showDockIcon"
+        static let colorScheme = "settings.colorScheme"
+        static let pinPanel = "settings.pinPanel"
     }
 }

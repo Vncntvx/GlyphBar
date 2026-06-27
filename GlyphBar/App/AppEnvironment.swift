@@ -1,13 +1,12 @@
 import AppKit
 import Combine
 import Foundation
+import ServiceManagement
 
 enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case menuBar
     case modules
-    case appearance
-    case widgets
     case privacy
     case advanced
     case about
@@ -45,10 +44,12 @@ final class AppEnvironment: ObservableObject {
     let appMenuCoordinator: AppMenuCoordinator
     let statusItemController: StatusItemController
     let mainWindowCoordinator: MainWindowCoordinator
+    let logsWindowCoordinator: LogsWindowCoordinator
     let router: DeepLinkRouter
 
     private init() {
         let logger = GlyphLogger()
+        let logsWindowCoordinator = LogsWindowCoordinator(logger: logger)
         let cacheStore = CacheStore()
         let secureStore = SecureStore()
         let permissionCenter = PermissionCenter()
@@ -73,11 +74,12 @@ final class AppEnvironment: ObservableObject {
         registry.register { NetworkMockModule() }
 
         let runtime = ModuleRuntime(registry: registry, context: context, settingsStore: settingsStore)
-        let mainWindowCoordinator = MainWindowCoordinator(runtime: runtime)
+        let mainWindowCoordinator = MainWindowCoordinator(runtime: runtime, settingsStore: settingsStore)
         let appMenuCoordinator = AppMenuCoordinator(runtime: runtime, platformActions: platformActions)
         let quickPanelCoordinator = QuickPanelCoordinator(
             runtime: runtime,
             menuCoordinator: appMenuCoordinator,
+            settingsStore: settingsStore,
             openFullWindow: {
                 mainWindowCoordinator.openModuleWindow()
             }
@@ -97,7 +99,7 @@ final class AppEnvironment: ObservableObject {
                 settingsNavigation.open(section: section, moduleID: moduleID)
                 platformActions.showSettingsWindow()
             },
-            openLogs: { mainWindowCoordinator.openLogsWindow() },
+            openLogs: { logsWindowCoordinator.open() },
             importModule: {
                 AppEnvironment.shared.importModuleFromPanel()
             },
@@ -117,6 +119,7 @@ final class AppEnvironment: ObservableObject {
         self.settingsNavigation = settingsNavigation
         self.quickPanelCoordinator = quickPanelCoordinator
         self.mainWindowCoordinator = mainWindowCoordinator
+        self.logsWindowCoordinator = logsWindowCoordinator
         self.appMenuCoordinator = appMenuCoordinator
         self.statusItemController = statusItemController
         self.router = router
@@ -134,9 +137,25 @@ final class AppEnvironment: ObservableObject {
         }
     }
 
+    func applyLaunchAtLogin() {
+        do {
+            if settingsStore.launchAtLogin {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            logger.error("Launch-at-login toggle failed: \(error.localizedDescription)")
+        }
+    }
+
     func openSettings(section: SettingsSection = .general, moduleID: ModuleID? = nil) {
         settingsNavigation.open(section: section, moduleID: moduleID)
         platformActions.showSettingsWindow()
+    }
+
+    func openLogsWindow() {
+        logsWindowCoordinator.open()
     }
 
     func importModuleFromPanel() {
