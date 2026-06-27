@@ -84,6 +84,12 @@ private struct PanelHeader: View {
             GlyphToolbarButton(systemImage: "macwindow", help: "Open Full Window") {
                 coordinator?.openFullWindow()
             }
+            // Fallback entry to the context menu. On macOS 27 Beta the status
+            // item's right-click gesture may not be forwarded by the system, so
+            // the menu (settings/about/quit/modules) stays reachable from here.
+            GlyphToolbarButton(systemImage: "line.3.horizontal", help: "More") {
+                coordinator?.showMoreMenu()
+            }
             GlyphToolbarButton(systemImage: "gearshape", help: "Settings") {
                 coordinator?.openSettings()
             }

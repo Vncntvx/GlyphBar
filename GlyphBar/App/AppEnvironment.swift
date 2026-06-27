@@ -43,7 +43,7 @@ final class AppEnvironment: ObservableObject {
     let settingsNavigation: SettingsNavigationState
     let quickPanelCoordinator: QuickPanelCoordinator
     let appMenuCoordinator: AppMenuCoordinator
-    let statusBarController: StatusBarController
+    let statusItemController: StatusItemController
     let mainWindowCoordinator: MainWindowCoordinator
     let router: DeepLinkRouter
 
@@ -74,18 +74,20 @@ final class AppEnvironment: ObservableObject {
 
         let runtime = ModuleRuntime(registry: registry, context: context, settingsStore: settingsStore)
         let mainWindowCoordinator = MainWindowCoordinator(runtime: runtime)
+        let appMenuCoordinator = AppMenuCoordinator(runtime: runtime, platformActions: platformActions)
         let quickPanelCoordinator = QuickPanelCoordinator(
             runtime: runtime,
+            menuCoordinator: appMenuCoordinator,
             openFullWindow: {
                 mainWindowCoordinator.openModuleWindow()
             }
         )
-        let appMenuCoordinator = AppMenuCoordinator(runtime: runtime, platformActions: platformActions)
-        let statusBarController = StatusBarController(
+        let statusItemController = StatusItemController(
             runtime: runtime,
             settingsStore: settingsStore,
             panelCoordinator: quickPanelCoordinator,
-            menuCoordinator: appMenuCoordinator
+            menuCoordinator: appMenuCoordinator,
+            logger: logger
         )
         let router = DeepLinkRouter(
             runtime: runtime,
@@ -116,12 +118,12 @@ final class AppEnvironment: ObservableObject {
         self.quickPanelCoordinator = quickPanelCoordinator
         self.mainWindowCoordinator = mainWindowCoordinator
         self.appMenuCoordinator = appMenuCoordinator
-        self.statusBarController = statusBarController
+        self.statusItemController = statusItemController
         self.router = router
     }
 
     func start() {
-        statusBarController.start()
+        statusItemController.start()
         runtime.start()
     }
 

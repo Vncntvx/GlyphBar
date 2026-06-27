@@ -4,12 +4,29 @@ import SwiftUI
 @MainActor
 final class QuickPanelCoordinator: ObservableObject {
     private let runtime: ModuleRuntime
+    private let menuCoordinator: AppMenuCoordinator
     private let openFullWindowAction: () -> Void
     private var panel: NSPanel?
     private weak var lastStatusItem: NSStatusItem?
 
-    init(runtime: ModuleRuntime, openFullWindow: @escaping () -> Void = {}) {
+    /// Set by `StatusItemController` on macOS 27 so the panel can stay in sync
+    /// with the expanded interface session: any path that hides the panel
+    /// (close button, settings, full window, outside click) reports it here so
+    /// the controller can cancel an still-active session.
+    var onPanelHidden: (() -> Void)?
+
+    /// When true, resigning key (user clicked elsewhere) closes the panel and
+    /// cancels the expanded session. Enabled only on macOS 27; left false on
+    /// macOS 26, where `hidesOnDeactivate` handles dismissal.
+    var dismissOnResignKey = false
+
+    init(
+        runtime: ModuleRuntime,
+        menuCoordinator: AppMenuCoordinator,
+        openFullWindow: @escaping () -> Void = {}
+    ) {
         self.runtime = runtime
+        self.menuCoordinator = menuCoordinator
         self.openFullWindowAction = openFullWindow
     }
 
@@ -39,17 +56,51 @@ final class QuickPanelCoordinator: ObservableObject {
         )
         position(panel, relativeTo: statusItem)
         panel.orderFrontRegardless()
+        AppEnvironment.shared.logger.statusItem("popover show")
     }
 
     func close() {
-        panel?.orderOut(nil)
+        let wasVisible = panel?.isVisible == true
+        if wasVisible {
+            panel?.orderOut(nil)
+            AppEnvironment.shared.logger.statusItem("popover close")
+        }
+        // Notify unconditionally so the controller can cancel a still-active
+        // expanded session even when the panel was already hidden by AppKit
+        // (e.g. hidesOnDeactivate on app deactivation). Without this, the
+        // session stays "active" after an auto-hide and subsequent left-clicks
+        // stop showing the panel until the app is restarted.
+        onPanelHidden?()
     }
+
+    /// Base value for the panel's hidesOnDeactivate. Defaults to true (macOS 26
+    /// and earlier: auto-hide on app deactivation). Set to false on macOS 27,
+    /// where AppKit auto-hiding the panel desyncs the expanded interface
+    /// session — the panel disappears while the session stays "active", leaving
+    /// the menu bar unclickable until restart. On 27 the session plus
+    /// didResignActive manage dismissal instead.
+    var panelHidesOnDeactivate = true
+
+    private var _isPinned = false
 
     func pin() {
         guard let panel else {
             return
         }
-        panel.hidesOnDeactivate.toggle()
+        _isPinned.toggle()
+        if panelHidesOnDeactivate {
+            // macOS 26: toggle the panel's auto-hide so a pinned panel stays
+            // open across app deactivation.
+            panel.hidesOnDeactivate = !_isPinned
+        }
+        // macOS 27: the panel never auto-hides; _isPinned alone gates whether
+        // didResignActive cancels the expanded session on deactivation.
+    }
+
+    /// True when the user has pinned the panel (it should survive app
+    /// deactivation instead of auto-dismissing).
+    var isPinned: Bool {
+        _isPinned
     }
 
     func openFullWindow() {
@@ -60,6 +111,33 @@ final class QuickPanelCoordinator: ObservableObject {
     func openSettings() {
         close()
         AppEnvironment.shared.openSettings(section: .general)
+    }
+
+    /// Fallback entry point for the context menu, surfaced from a "More" button
+    /// inside the quick panel. On macOS 27 Beta the status item's secondary
+    /// (right-click) gesture may not be forwarded by the system, so the menu
+    /// must remain reachable from within the panel itself.
+    func showMoreMenu() {
+        let menu = menuCoordinator.makeMenu()
+        guard let panel, panel.isVisible else {
+            return
+        }
+        // Anchor at the panel's top-trailing corner; the system flips the menu
+        // to stay on screen. Coordinates are in screen space (in: nil).
+        let anchor = NSPoint(x: panel.frame.maxX, y: panel.frame.maxY - 4)
+        menu.popUp(positioning: nil, at: anchor, in: nil)
+    }
+
+    private func handlePanelResignedKey() {
+        // Pinned panels stay open across focus changes.
+        guard dismissOnResignKey, !isPinned else {
+            return
+        }
+        // The panel lost focus (user clicked elsewhere): close it. close()
+        // funnels through onPanelHidden so the controller cancels the active
+        // expanded session (→ didEnd). No delay, no event monitor — just close
+        // on focus loss, the standard accessory-app dismissal.
+        close()
     }
 
     private func makePanel() -> NSPanel {
@@ -77,12 +155,25 @@ final class QuickPanelCoordinator: ObservableObject {
         panel.hasShadow = true
         panel.isMovableByWindowBackground = true
         panel.isFloatingPanel = true
-        panel.hidesOnDeactivate = true
+        panel.hidesOnDeactivate = panelHidesOnDeactivate
         panel.level = .floating
         panel.collectionBehavior = [.moveToActiveSpace, .transient, .ignoresCycle]
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
         panel.standardWindowButton(.closeButton)?.isHidden = true
+        // Install the resignKey observer exactly once, tied to this panel's
+        // creation. The block captures self weakly (no retain cycle) and no-ops
+        // after the coordinator is deallocated; the panel lives for the app's
+        // lifetime, so explicit removal is unnecessary.
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didResignKeyNotification,
+            object: panel,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.handlePanelResignedKey()
+            }
+        }
         return panel
     }
 

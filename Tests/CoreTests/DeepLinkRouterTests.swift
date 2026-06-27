@@ -24,12 +24,6 @@ final class DeepLinkRouterTests: XCTestCase {
         XCTAssertNil(DeepLinkRouter.parse(URL(string: "glyphbar://app/unknown")!))
     }
 
-    func testStatusClickRoutingSeparatesLeftAndRightClick() {
-        XCTAssertEqual(StatusItemClickRouter.action(for: .leftMouseUp), .togglePanel)
-        XCTAssertEqual(StatusItemClickRouter.action(for: .rightMouseUp), .openContextMenu)
-        XCTAssertEqual(StatusItemClickRouter.action(for: nil), .togglePanel)
-    }
-
     func testDockVisibilityPersists() {
         let defaults = UserDefaults(suiteName: "DeepLinkRouterTests.\(UUID().uuidString)")!
         var store: AppSettingsStore? = AppSettingsStore(defaults: defaults)

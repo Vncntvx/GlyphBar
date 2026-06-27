@@ -10,7 +10,7 @@
 		B00000000000000000000101 /* GlyphBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000101 /* GlyphBarApp.swift */; };
 		B00000000000000000000102 /* App/AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000102 /* App/AppDelegate.swift */; };
 		B00000000000000000000103 /* App/AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000103 /* App/AppEnvironment.swift */; };
-		B00000000000000000000104 /* App/StatusBar/StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000104 /* App/StatusBar/StatusBarController.swift */; };
+		B00000000000000000000104 /* App/StatusBar/StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000104 /* App/StatusBar/StatusItemController.swift */; };
 		B00000000000000000000105 /* App/Panel/QuickPanelCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000105 /* App/Panel/QuickPanelCoordinator.swift */; };
 		B00000000000000000000106 /* App/Panel/QuickPanelRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000106 /* App/Panel/QuickPanelRootView.swift */; };
 		B00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift */; };
@@ -103,7 +103,7 @@
 		A00000000000000000000101 /* GlyphBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlyphBarApp.swift; sourceTree = "<group>"; };
 		A00000000000000000000102 /* App/AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppDelegate.swift; sourceTree = "<group>"; };
 		A00000000000000000000103 /* App/AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppEnvironment.swift; sourceTree = "<group>"; };
-		A00000000000000000000104 /* App/StatusBar/StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/StatusBar/StatusBarController.swift; sourceTree = "<group>"; };
+		A00000000000000000000104 /* App/StatusBar/StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/StatusBar/StatusItemController.swift; sourceTree = "<group>"; };
 		A00000000000000000000105 /* App/Panel/QuickPanelCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Panel/QuickPanelCoordinator.swift; sourceTree = "<group>"; };
 		A00000000000000000000106 /* App/Panel/QuickPanelRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Panel/QuickPanelRootView.swift; sourceTree = "<group>"; };
 		A00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Menu/AppMenuCoordinator.swift; sourceTree = "<group>"; };
@@ -208,7 +208,7 @@
 				A00000000000000000000101 /* GlyphBarApp.swift */,
 				A00000000000000000000102 /* App/AppDelegate.swift */,
 				A00000000000000000000103 /* App/AppEnvironment.swift */,
-				A00000000000000000000104 /* App/StatusBar/StatusBarController.swift */,
+				A00000000000000000000104 /* App/StatusBar/StatusItemController.swift */,
 				A00000000000000000000105 /* App/Panel/QuickPanelCoordinator.swift */,
 				A00000000000000000000106 /* App/Panel/QuickPanelRootView.swift */,
 				A00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift */,
@@ -403,7 +403,7 @@
 				B00000000000000000000101 /* GlyphBarApp.swift in Sources */,
 				B00000000000000000000102 /* App/AppDelegate.swift in Sources */,
 				B00000000000000000000103 /* App/AppEnvironment.swift in Sources */,
-				B00000000000000000000104 /* App/StatusBar/StatusBarController.swift in Sources */,
+				B00000000000000000000104 /* App/StatusBar/StatusItemController.swift in Sources */,
 				B00000000000000000000105 /* App/Panel/QuickPanelCoordinator.swift in Sources */,
 				B00000000000000000000106 /* App/Panel/QuickPanelRootView.swift in Sources */,
 				B00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift in Sources */,
