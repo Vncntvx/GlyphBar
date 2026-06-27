@@ -38,3 +38,16 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild -projec
 To run manually in Xcode, open `GlyphBar.xcodeproj`, select the `GlyphBar` scheme, choose `My Mac`, and run. For signed widget/App Group development, select an Apple Developer Team for both `GlyphBar` and `GlyphBarWidgets`.
 
 The default bundle IDs are `com.wenjiexu.GlyphBar` and `com.wenjiexu.GlyphBar.widgets`. App Group support uses `group.com.wenjiexu.GlyphBar`; local unsigned builds fall back to standard `UserDefaults` for widget cache APIs.
+
+## Third-Party Modules
+
+GlyphBar supports built-in modules and imported declarative third-party module packages. Third-party packages are copied into GlyphBar's Application Support modules directory, validated, and rendered by the host without loading arbitrary native code.
+
+Start here:
+
+- `docs/ModuleDevelopment.md`
+- `docs/ModuleManifest.md`
+- `docs/DeepLinks.md`
+- `docs/WidgetIntegration.md`
+- `docs/SecurityAndPermissions.md`
+- `examples/ExampleStatus.glyphbarmodule`
