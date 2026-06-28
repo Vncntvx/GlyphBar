@@ -293,6 +293,8 @@ private struct DeepSeekConfigSection: View {
             apiKeyRow
             Divider()
             loginRow
+            Divider()
+            exportRow
         }
         .sheet(isPresented: $showLoginSheet) {
             LoginSheet { cookie in
@@ -312,6 +314,30 @@ private struct DeepSeekConfigSection: View {
     private func refreshState() {
         hasApiKey = secureStore.secret(for: apiKeyName)?.isEmpty == false
         hasCookie = UserDefaults.standard.string(forKey: cookieKey)?.isEmpty == false
+    }
+
+    private func triggerExport() {
+        Task {
+            let svc = UsageExportService()
+            do {
+                let items = try await svc.export()
+                await MainActor.run {
+                    if let ds = AppEnvironment.shared.runtime.modules["deepseek"] as? DeepSeekModule {
+                        ds.importExportedItems(items)
+                    }
+                    let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cache/GlyphBar/deepseek-exports")
+                    let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path))?.filter { !$0.hasPrefix(".") } ?? []
+                    let latest = files.sorted().last ?? "?"
+                    exportStatus = "✓ \(items.count) records → ~/.cache/GlyphBar/deepseek-exports/\(latest)"
+                    isExportingUsage = false
+                }
+            } catch {
+                await MainActor.run {
+                    exportStatus = "✗ \(error.localizedDescription)"
+                    isExportingUsage = false
+                }
+            }
+        }
     }
 
     // MARK: API Key
@@ -396,8 +422,43 @@ private struct DeepSeekConfigSection: View {
             }
         }
     }
-}
 
+    // MARK: Export
+
+    @State private var isExportingUsage = false
+    @State private var exportStatus: String?
+
+    private var exportRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Label("Auto Usage Export", systemImage: "arrow.down.doc").font(.callout.weight(.medium))
+                Spacer()
+                if isExportingUsage {
+                    ProgressView().scaleEffect(0.7)
+                    Text("Exporting…").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Button("Export") { isExportingUsage = true; exportStatus = nil; triggerExport() }
+                        .buttonStyle(.borderedProminent).controlSize(.small)
+                        .disabled(!hasCookie)
+                }
+            }
+            if let s = exportStatus {
+                HStack(spacing: 4) {
+                    Image(systemName: s.hasPrefix("✓") ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundStyle(s.hasPrefix("✓") ? .green : .red).font(.caption)
+                    Text(s).font(.caption).foregroundStyle(.secondary)
+                }
+            } else if !hasCookie {
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle").foregroundStyle(.secondary).font(.caption)
+                    Text("Login first to export usage data").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+
+}
 private struct FlowLayout<Data: RandomAccessCollection, Content: View>: View where Data.Element: Hashable {
     let items: Data
     let content: (Data.Element) -> Content

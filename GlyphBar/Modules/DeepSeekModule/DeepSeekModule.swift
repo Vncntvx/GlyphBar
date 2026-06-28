@@ -1,6 +1,9 @@
 import Foundation
 import SwiftUI
 import AppKit
+import OSLog
+
+private let log = Logger(subsystem: "com.wenjiexu.GlyphBar", category: "DeepSeek")
 
 // MARK: - API Models
 
@@ -22,10 +25,10 @@ private struct BalanceResponse: Codable {
 private struct CachedData: Codable {
     let totalBalance: Double; let grantedBalance: Double; let toppedUpBalance: Double
     let isAvailable: Bool
-    var dailyCost: Double; var monthlyCost: Double
-    var totalTokens: Int; var dailyTokens: Int
-    var modelV4FlashTokens: Int; var modelV4FlashCost: Double
-    var modelV4ProTokens: Int; var modelV4ProCost: Double
+    var todayCost: Double; var monthlyCost: Double
+    var totalTokens: Int; var totalCacheHit: Int; var totalRequests: Int
+    var modelV4FlashTokens: Int; var modelV4FlashCost: Double; var modelV4FlashCacheHit: Int; var modelV4FlashCacheMiss: Int
+    var modelV4ProTokens: Int; var modelV4ProCost: Double; var modelV4ProCacheHit: Int; var modelV4ProCacheMiss: Int
     var dailyItems: [DailyItem]; var lastUpdated: Date; var hasPlatformData: Bool
     struct DailyItem: Codable {
         let date: String; var tokens: Int; var cost: Double
@@ -54,9 +57,7 @@ final class DeepSeekModule: StatusModule {
             systemImage: "brain.head.profile", version: "1.2.0", author: "Wenjie Xu",
             capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
             permissions: [], defaultRefreshPolicy: .interval(seconds: 300),
-            actions: [ModuleAction(id: "fetchUsage", title: "Fetch Usage", systemImage: "arrow.down.doc"),
-                      ModuleAction(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh),
-                      ModuleAction(id: "openPlatform", title: "Dashboard", systemImage: "safari")], widgets: [])
+            actions: [ModuleAction(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh)], widgets: [])
     }
 
     func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
@@ -74,15 +75,22 @@ final class DeepSeekModule: StatusModule {
         cached = CachedData(
             totalBalance: totalBal, grantedBalance: granted, toppedUpBalance: topped,
             isAvailable: balance?.isAvailable ?? false,
-            dailyCost: existing?.dailyCost ?? 0, monthlyCost: existing?.monthlyCost ?? 0,
-            totalTokens: existing?.totalTokens ?? 0, dailyTokens: existing?.dailyTokens ?? 0,
+            todayCost: existing?.todayCost ?? 0, monthlyCost: existing?.monthlyCost ?? 0,
+            totalTokens: existing?.totalTokens ?? 0, totalCacheHit: existing?.totalCacheHit ?? 0, totalRequests: existing?.totalRequests ?? 0,
             modelV4FlashTokens: existing?.modelV4FlashTokens ?? 0, modelV4FlashCost: existing?.modelV4FlashCost ?? 0,
+            modelV4FlashCacheHit: existing?.modelV4FlashCacheHit ?? 0, modelV4FlashCacheMiss: existing?.modelV4FlashCacheMiss ?? 0,
             modelV4ProTokens: existing?.modelV4ProTokens ?? 0, modelV4ProCost: existing?.modelV4ProCost ?? 0,
+            modelV4ProCacheHit: existing?.modelV4ProCacheHit ?? 0, modelV4ProCacheMiss: existing?.modelV4ProCacheMiss ?? 0,
             dailyItems: existing?.dailyItems ?? [], lastUpdated: Date(),
             hasPlatformData: existing?.hasPlatformData ?? false
         )
-        persistCache()
-        return buildSnapshot()
+	        persistCache()
+
+	        // Auto-export usage on refresh when logged in (non-blocking)
+	        if !isExporting, let cookie = platformCookie, !cookie.isEmpty {
+	            Task { await fetchUsageExport() }
+	        }
+	        return buildSnapshot()
     }
 
     /// Trigger WKWebView export to fetch usage data
@@ -120,15 +128,30 @@ final class DeepSeekModule: StatusModule {
         lastErrorMessage = nil
     }
 
+    /// Public method for Settings export to apply items directly
+    func importExportedItems(_ items: [ParsedUsageItem]) {
+        applyExportedItems(items)
+        persistCache()
+    }
+
     private func applyExportedItems(_ items: [ParsedUsageItem]) {
+        log.info("applyExportedItems: \(items.count, privacy: .public) items, models: \(Set(items.map(\.model)), privacy: .public), dates: \(Set(items.map(\.date)), privacy: .public)")
         let flashItems = items.filter { $0.model == "deepseek-v4-flash" || $0.model == "deepseek-chat" }
         let proItems = items.filter { $0.model == "deepseek-v4-pro" || $0.model == "deepseek-reasoner" }
 
         let flashTokens = flashItems.reduce(0) { $0 + $1.totalTokens }
         let flashCost = flashItems.reduce(0.0) { $0 + $1.cost }
+        let flashCacheHit = flashItems.reduce(0) { $0 + $1.inputCacheHitTokens }
+        let flashCacheMiss = flashItems.reduce(0) { $0 + $1.inputCacheMissTokens }
+        let flashRequests = flashItems.reduce(0) { $0 + $1.requestCount }
         let proTokens = proItems.reduce(0) { $0 + $1.totalTokens }
         let proCost = proItems.reduce(0.0) { $0 + $1.cost }
+        let proCacheHit = proItems.reduce(0) { $0 + $1.inputCacheHitTokens }
+        let proCacheMiss = proItems.reduce(0) { $0 + $1.inputCacheMissTokens }
+        let proRequests = proItems.reduce(0) { $0 + $1.requestCount }
         let totalT = flashTokens + proTokens
+        let totalCH = flashCacheHit + proCacheHit
+        let totalReq = flashRequests + proRequests
 
         var dailyMap: [String: (t: Int, c: Double, ft: Int, pt: Int, fc: Double, pc: Double)] = [:]
         for item in items {
@@ -147,25 +170,25 @@ final class DeepSeekModule: StatusModule {
         let dailyT = items.filter { $0.date == dailies.last?.date }.reduce(0) { $0 + $1.totalTokens }
         let dailyC = dailies.last?.cost ?? 0
         let monthlyC = dailies.reduce(0) { $0 + $1.cost }
+        log.info("Dailies: \(dailies.count, privacy: .public) days, monthlyCost=\(String(format: "%.2f", monthlyC), privacy: .public), flash=\(flashTokens, privacy: .public)/¥\(String(format: "%.2f", flashCost), privacy: .public), pro=\(proTokens, privacy: .public)/¥\(String(format: "%.2f", proCost), privacy: .public)")
+        for d in dailies { log.info("  \(d.date, privacy: .public): t=\(d.tokens, privacy: .public) c=\(String(format: "%.2f", d.cost), privacy: .public)") }
 
         cached = CachedData(
             totalBalance: cached?.totalBalance ?? 0, grantedBalance: cached?.grantedBalance ?? 0,
             toppedUpBalance: cached?.toppedUpBalance ?? 0, isAvailable: cached?.isAvailable ?? false,
-            dailyCost: dailyC, monthlyCost: monthlyC,
-            totalTokens: totalT, dailyTokens: dailyT,
+            todayCost: dailyC, monthlyCost: monthlyC,
+            totalTokens: totalT, totalCacheHit: totalCH, totalRequests: totalReq,
             modelV4FlashTokens: flashTokens, modelV4FlashCost: flashCost,
+            modelV4FlashCacheHit: flashCacheHit, modelV4FlashCacheMiss: flashCacheMiss,
             modelV4ProTokens: proTokens, modelV4ProCost: proCost,
+            modelV4ProCacheHit: proCacheHit, modelV4ProCacheMiss: proCacheMiss,
             dailyItems: dailies, lastUpdated: Date(), hasPlatformData: true
         )
     }
 
     func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
         switch action.id {
-        case "fetchUsage":
-            Task { await fetchUsageExport() }
-            return .refreshRequested(manifest.id)
         case "refresh": return .refreshRequested(manifest.id)
-        case "openPlatform": NSWorkspace.shared.open(URL(string: "https://platform.deepseek.com/usage")!); return .none
         default: return .none
         }
     }
@@ -215,9 +238,9 @@ final class DeepSeekModule: StatusModule {
         if !c.isAvailable { sigs.append(StatusSignal(id: "ds.unav", title: "Account Issue", message: "Account unavailable.", systemImage: "exclamationmark.triangle", severity: .warning, priority: 90)) }
         if cookieExpired { sigs.append(StatusSignal(id: "ds.cookie", title: "Session Expired", message: "Re-login needed.", systemImage: "person.badge.key", severity: .warning, priority: 80)) }
         return ModuleSnapshot(id: manifest.id, title: String(format: "¥%.2f", c.totalBalance),
-            subtitle: c.hasPlatformData ? "Today ¥\(String(format: "%.2f", c.dailyCost))" : "Tap Fetch Usage for stats",
+            subtitle: c.hasPlatformData ? "Today ¥\(String(format: "%.2f", c.todayCost))" : "Export usage from Settings",
             systemImage: manifest.systemImage, signals: sigs,
-            metrics: ["totalBalance": c.totalBalance, "dailyCost": c.dailyCost, "monthlyCost": c.monthlyCost])
+            metrics: ["totalBalance": c.totalBalance, "todayCost": c.todayCost, "monthlyCost": c.monthlyCost])
     }
 
     private static let cacheKey = "deepseek.cache"
@@ -268,10 +291,25 @@ private struct DeepSeekPanel: View {
     private func connectedView(data: CachedData) -> some View {
         VStack(spacing: 12) {
             overviewCard(data: data)
-            if data.hasPlatformData { modelCards(data: data) }
-            else { fetchPromptCard }
-            trendCard(data: data)
+            if data.hasPlatformData {
+                modelCards(data: data)
+                trendCard(data: data)
+            } else {
+                noDataPrompt
+            }
             footerBar
+        }
+    }
+
+    private var noDataPrompt: some View {
+        GlyphCard {
+            VStack(spacing: 10) {
+                Image(systemName: "tray.and.arrow.down").font(.system(size: 28)).symbolRenderingMode(.hierarchical).foregroundStyle(.secondary)
+                Text("No Usage Data").font(.callout.weight(.semibold))
+                Text("Login and export usage data in Settings → Modules → DeepSeek → Configuration.")
+                    .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 8)
         }
     }
 
@@ -288,12 +326,12 @@ private struct DeepSeekPanel: View {
                         .font(.system(size: 32, weight: .bold, design: .rounded).monospacedDigit())
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Month").font(.caption2).foregroundStyle(.secondary)
+                            Text("This Month").font(.caption2).foregroundStyle(.secondary)
                             Text("¥\(String(format: "%.2f", data.monthlyCost))").font(.callout.monospacedDigit())
                         }
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Today").font(.caption2).foregroundStyle(.secondary)
-                            Text("¥\(String(format: "%.2f", data.dailyCost))").font(.callout.monospacedDigit())
+                            Text("¥\(String(format: "%.2f", data.todayCost))").font(.callout.monospacedDigit())
                         }
                     }
                     if !data.isAvailable {
@@ -312,12 +350,12 @@ private struct DeepSeekPanel: View {
                         .font(.system(size: 32, weight: .bold, design: .rounded).monospacedDigit())
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Today").font(.caption2).foregroundStyle(.secondary)
-                            Text(fmtTokens(data.dailyTokens)).font(.callout.monospacedDigit())
+                            Text("Cache Hit").font(.caption2).foregroundStyle(.secondary)
+                            Text(fmtTokens(data.totalCacheHit)).font(.callout.monospacedDigit())
                         }
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Requests").font(.caption2).foregroundStyle(.secondary)
-                            Text("\(data.modelV4FlashTokens / max(data.dailyItems.last?.tokens ?? 1, 1))").font(.callout.monospacedDigit())
+                            Text(fmtTokens(data.totalRequests)).font(.callout.monospacedDigit())
                         }
                     }
                 }
@@ -329,37 +367,25 @@ private struct DeepSeekPanel: View {
     // MARK: Layer 2 - Model Detail Cards
 
     private func modelCards(data: CachedData) -> some View {
-        let maxT = max(data.modelV4FlashTokens, data.modelV4ProTokens, 1)
-        return VStack(spacing: 8) {
-            // Summary label
+        VStack(spacing: 8) {
             HStack(spacing: 16) {
-                let totalT = Double(maxT > 0 ? maxT : 1)
-                let flashPct = Int(Double(data.modelV4FlashTokens) / totalT * 100)
-                let proPct = 100 - flashPct
-                Text("Flash \(flashPct)% · Pro \(proPct)%").font(.caption).foregroundStyle(.secondary)
+                Text("Flash \(Int(ratio(data.modelV4FlashTokens, data.totalTokens)))% · Pro \(Int(ratio(data.modelV4ProTokens, data.totalTokens)))%").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Text("Total \(fmtTokens(data.totalTokens))").font(.caption).foregroundStyle(.secondary)
             }
-
-            // Flash card
-            modelDetailCard(
-                name: "V4 Flash", icon: "bolt.fill", color: .blue,
+            modelDetailCard(name: "V4 Flash", icon: "bolt.fill", color: .blue,
                 tokens: data.modelV4FlashTokens, cost: data.modelV4FlashCost,
-                maxTokens: maxT,
-                cacheHit: data.modelV4FlashTokens, cacheMiss: 0, completion: 0
-            )
-            // Pro card
-            modelDetailCard(
-                name: "V4 Pro", icon: "brain.fill", color: .purple,
+                cacheHit: data.modelV4FlashCacheHit, cacheMiss: data.modelV4FlashCacheMiss)
+            modelDetailCard(name: "V4 Pro", icon: "brain.fill", color: .purple,
                 tokens: data.modelV4ProTokens, cost: data.modelV4ProCost,
-                maxTokens: maxT,
-                cacheHit: data.modelV4ProTokens, cacheMiss: 0, completion: 0
-            )
+                cacheHit: data.modelV4ProCacheHit, cacheMiss: data.modelV4ProCacheMiss)
         }
     }
 
-    private func modelDetailCard(name: String, icon: String, color: Color, tokens: Int, cost: Double, maxTokens: Int, cacheHit: Int, cacheMiss: Int, completion: Int) -> some View {
-        let pct = maxTokens > 0 ? Int(Double(tokens) / Double(maxTokens) * 100) : 0
+    private func modelDetailCard(name: String, icon: String, color: Color, tokens: Int, cost: Double, cacheHit: Int, cacheMiss: Int) -> some View {
+        let input = cacheHit + cacheMiss
+        let hitRatio = input > 0 ? Double(cacheHit) / Double(input) : 0
+        let pct = Int(hitRatio * 100)
         let unitCost = tokens > 0 ? cost / Double(tokens) * 1_000_000 : 0
         return GlyphCard {
             VStack(spacing: 8) {
@@ -367,28 +393,32 @@ private struct DeepSeekPanel: View {
                     HStack(spacing: 4) { Image(systemName: icon).foregroundStyle(color); Text(name).font(.callout.weight(.medium)) }
                     Spacer()
                     Text(String(format: "¥%.2f", cost)).font(.callout.monospacedDigit()).foregroundStyle(.secondary)
-                    Text("\(pct)%").font(.caption).foregroundStyle(.secondary).frame(width: 36, alignment: .trailing)
                 }
-
-                // Progress bar
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 3).fill(.quaternary).frame(height: 6)
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(LinearGradient(colors: [color, color.opacity(0.6)], startPoint: .leading, endPoint: .trailing))
-                            .frame(width: max(CGFloat(tokens) / CGFloat(maxTokens) * geo.size.width, 2), height: 6)
-                            .animation(.easeInOut(duration: 0.4), value: tokens)
-                    }
-                }.frame(height: 6)
-
+                // Cache hit ratio progress bar
+                HStack(spacing: 6) {
+                    Text("Cache hit").font(.caption2).foregroundStyle(.secondary)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3).fill(.quaternary).frame(height: 6)
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(LinearGradient(colors: [.green, .green.opacity(0.6)], startPoint: .leading, endPoint: .trailing))
+                                .frame(width: max(CGFloat(hitRatio) * geo.size.width, 2), height: 6)
+                                .animation(.easeInOut(duration: 0.4), value: hitRatio)
+                        }
+                    }.frame(height: 6)
+                    Text("\(pct)%").font(.caption2.monospacedDigit()).foregroundStyle(.secondary).frame(width: 32, alignment: .trailing)
+                }
                 HStack(spacing: 12) {
                     Text(fmtTokens(tokens) + " tokens").font(.caption).foregroundStyle(.secondary)
                     Spacer()
-                    Text(String(format: "¥%.4f/M tokens", unitCost)).font(.caption2).foregroundStyle(.secondary)
+                    if cacheMiss > 0 { Text("miss \(fmtTokens(cacheMiss))").font(.caption2).foregroundStyle(.orange) }
+                    Text(String(format: "¥%.4f/M", unitCost)).font(.caption2).foregroundStyle(.secondary)
                 }
             }
         }
     }
+
+    private func ratio(_ a: Int, _ b: Int) -> Double { b > 0 ? Double(a) / Double(b) * 100 : 0 }
 
     // MARK: Layer 3 - Trend Chart
 
@@ -402,44 +432,13 @@ private struct DeepSeekPanel: View {
                     Picker("Metric", selection: $trendMetric) { Text("Tokens").tag(0); Text("Cost").tag(1) }.pickerStyle(.segmented).controlSize(.small).frame(width: 110)
                 }
 
-                if data.dailyItems.isEmpty {
-                    GlyphEmptyStateView(title: "No Trend Data", subtitle: "Usage trend will appear after fetching data.", systemImage: "chart.bar.xaxis").frame(height: 100)
-                } else {
-                    let filtered = data.dailyItems.filter { day in
-                        let v: Double = trendMetric == 0
-                            ? (trendMode == 0 ? Double(day.tokens) : trendMode == 1 ? Double(day.flashTokens) : Double(day.proTokens))
-                            : (trendMode == 0 ? day.cost : trendMode == 1 ? day.flashCost : day.proCost)
-                        return v > 0
-                    }
-                    if filtered.isEmpty {
-                        Text("No data for selected view").font(.caption).foregroundStyle(.secondary).frame(height: 60)
-                    } else {
-                        let maxV = filtered.map { d -> Double in
-                            trendMetric == 0 ? (trendMode == 0 ? Double(d.tokens) : trendMode == 1 ? Double(d.flashTokens) : Double(d.proTokens))
-                                           : (trendMode == 0 ? d.cost : trendMode == 1 ? d.flashCost : d.proCost)
-                        }.max() ?? 1
-                        HStack(alignment: .bottom, spacing: 4) {
-                            ForEach(Array(filtered.enumerated()), id: \.offset) { idx, d in
-                                let val: Double = trendMetric == 0
-                                    ? (trendMode == 0 ? Double(d.tokens) : trendMode == 1 ? Double(d.flashTokens) : Double(d.proTokens))
-                                    : (trendMode == 0 ? d.cost : trendMode == 1 ? d.flashCost : d.proCost)
-                                let isLast = d.date == data.dailyItems.last?.date
-                                VStack(spacing: 2) {
-                                    if val > 0 { Text(trendMetric == 0 ? shortNum(val) : String(format: "%.2f", val)).font(.system(size: 8, weight: .medium)).foregroundStyle(.secondary) }
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(isLast ? Color.accentColor : Color.secondary.opacity(0.35))
-                                        .frame(width: 20, height: max(CGFloat(val) / CGFloat(maxV) * 70, 2))
-                                    Text(shortDate(d.date)).font(.system(size: 7)).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
+                TrendBars(items: data.dailyItems, mode: trendMode, metric: trendMetric)
+                    .frame(height: 72)
 
                 let total7d = data.dailyItems.reduce(0.0) { $0 + (trendMetric == 0 ? Double($1.tokens) : $1.cost) }
                 HStack {
                     Spacer()
-                    Text("7d: \(trendMetric == 0 ? fmtTokens(Int(total7d)) : String(format: "¥%.2f", total7d))")
+                    Text("Total: \(trendMetric == 0 ? fmtTokens(Int(total7d)) : String(format: "¥%.2f", total7d))")
                         .font(.caption2).foregroundStyle(.secondary)
                 }
             }
@@ -471,15 +470,12 @@ private struct DeepSeekPanel: View {
         }
     }
 
-    private var footerBar: some View {
-        HStack(spacing: 12) {
-            Button(action: onRefresh) { Label("Refresh", systemImage: "arrow.clockwise") }.buttonStyle(.bordered).controlSize(.small)
-            if !hasCookie { Button("Login") { showLoginSheet = true }.buttonStyle(.bordered).controlSize(.small) }
-            Button(action: { showKeyField = true }) { Label("Change Key", systemImage: "key") }.buttonStyle(.bordered).controlSize(.small)
-            Button(action: onImportCSV) { Label("Import CSV", systemImage: "doc.text") }.buttonStyle(.bordered).controlSize(.small)
-            Spacer(); if let d = cached?.lastUpdated { Text("Updated \(rel(d))").font(.caption2).foregroundStyle(.secondary) }
-        }
-    }
+	    private var footerBar: some View {
+	        HStack(spacing: 12) {
+	            Button(action: onRefresh) { Label("Refresh", systemImage: "arrow.clockwise") }.buttonStyle(.bordered).controlSize(.small)
+	            Spacer(); if let d = cached?.lastUpdated { Text("Updated \(rel(d))").font(.caption2).foregroundStyle(.secondary) }
+	        }
+	    }
 
     private func errorView(message: String) -> some View {
         VStack(spacing: 16) {
@@ -490,7 +486,60 @@ private struct DeepSeekPanel: View {
     }
 
     private func fmtTokens(_ t: Int) -> String { t >= 1_000_000 ? String(format: "%.1fM", Double(t)/1_000_000) : t >= 1_000 ? String(format: "%.1fK", Double(t)/1_000) : "\(t)" }
-    private func shortDate(_ s: String) -> String { let f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate]; guard let d = f.date(from: s) else { return s }; let df = DateFormatter(); df.dateFormat = "M/d"; return df.string(from: d) }
-    private func shortNum(_ v: Double) -> String { v >= 1_000_000 ? String(format: "%.1fM", v/1_000_000) : v >= 1_000 ? String(format: "%.1fK", v/1_000) : String(format: "%.0f", v) }
     private func rel(_ d: Date) -> String { let f = RelativeDateTimeFormatter(); f.unitsStyle = .abbreviated; return f.localizedString(for: d, relativeTo: Date()) }
+}
+
+private func shortNum(_ v: Double) -> String { v >= 1_000_000 ? String(format: "%.1fM", v/1_000_000) : v >= 1_000 ? String(format: "%.1fK", v/1_000) : String(format: "%.0f", v) }
+private func shortDate(_ s: String) -> String { let f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate]; guard let d = f.date(from: s) else { return s }; let df = DateFormatter(); df.dateFormat = "M/d"; return df.string(from: d) }
+
+private struct TrendBars: View {
+    let items: [CachedData.DailyItem]; let mode: Int; let metric: Int
+
+    private func tv(_ d: CachedData.DailyItem) -> Double {
+        if metric == 0 {
+            switch mode { case 1: return Double(d.flashTokens); case 2: return Double(d.proTokens); default: return Double(d.tokens) }
+        } else {
+            switch mode { case 1: return d.flashCost; case 2: return d.proCost; default: return d.cost }
+        }
+    }
+
+    private func filled10() -> [CachedData.DailyItem] {
+        let fmt = ISO8601DateFormatter(); fmt.formatOptions = [.withFullDate]; let cal = Calendar.current
+        var r = items; let ex = Set(items.map(\.date)); var d = cal.startOfDay(for: Date())
+        for _ in 0..<10 {
+            let ds = fmt.string(from: d)
+            if !ex.contains(ds) { r.append(CachedData.DailyItem(date: ds, tokens: 0, cost: 0, flashTokens: 0, proTokens: 0, flashCost: 0, proCost: 0)) }
+            d = cal.date(byAdding: .day, value: -1, to: d)!
+        }
+        return r.sorted { $0.date < $1.date }.suffix(10)
+    }
+
+    private func todayKey() -> String { let f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate]; return f.string(from: Date()) }
+
+    var body: some View {
+        let all = filled10()
+        let maxV = all.map { tv($0) }.max() ?? 1
+        let today = todayKey()
+        GeometryReader { geo in
+            let w = max((geo.size.width - CGFloat(all.count - 1) * 4) / CGFloat(all.count), 8)
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(0..<all.count, id: \.self) { idx in
+                    let d = all[idx]
+                    let val = tv(d)
+                    let isToday = d.date == today
+                    let fill: Color = isToday ? .accentColor : val > 0 ? Color.secondary.opacity(0.45) : Color.primary.opacity(0.06)
+                    let h = val > 0 ? max(sqrt(max(val, 0)) / sqrt(max(maxV, 1)) * 60, 4) : 3.0
+                    VStack(spacing: 2) {
+                        if val > 0 {
+                            Text(metric == 0 ? shortNum(val) : String(format: "%.2f", val))
+                                .font(.system(size: 7, weight: .medium)).foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        RoundedRectangle(cornerRadius: 2).fill(fill).frame(width: w, height: h)
+                        Text(shortDate(d.date)).font(.system(size: 6)).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
 }

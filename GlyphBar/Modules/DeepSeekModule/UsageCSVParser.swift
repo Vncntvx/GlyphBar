@@ -32,7 +32,9 @@ enum UsageCSVParser {
         let header = parseCSVLine(lines[0])
 
         // Determine format
-        if header.contains("type") && header.contains("amount") {
+        if header.contains("cost") && header.contains("currency") && !header.contains("type") {
+            return parseCostFormat(lines: lines, header: header)
+        } else if header.contains("type") && header.contains("amount") {
             return parseAmountFormat(lines: lines, header: header)
         } else {
             return parseGeneralFormat(lines: lines, header: header)
@@ -120,6 +122,34 @@ enum UsageCSVParser {
         }
     }
 
+    // MARK: - Cost format (utc_date, model, cost, currency)
+
+    private static func parseCostFormat(lines: [String], header: [String]) -> [ParsedUsageItem] {
+        let dateIdx = header.firstIndex(where: lowerMatches("utc_date", "date"))
+        let modelIdx = header.firstIndex(where: lowerMatches("model"))
+        let costIdx = header.firstIndex(where: lowerMatches("cost", "amount", "price"))
+
+        var groups: [String: (Double, Int)] = [:] // key "date|model" -> (cost, count)
+        for line in lines.dropFirst() {
+            let cols = parseCSVLine(line)
+            guard cols.count > max(dateIdx ?? 0, modelIdx ?? 0, costIdx ?? 0) else { continue }
+            let date = normalizeDate(dateIdx.map { cols[$0] } ?? "")
+            let model = normalizeModel(modelIdx.map { cols[$0] } ?? "")
+            let cost = costIdx.flatMap { Double(cols[$0]) } ?? 0
+            guard !date.isEmpty, !model.isEmpty else { continue }
+            let key = "\(date)|\(model)"
+            let (prevCost, prevCount) = groups[key] ?? (0, 0)
+            groups[key] = (prevCost + cost, prevCount + 1)
+        }
+        return groups.map { key, val in
+            let parts = key.components(separatedBy: "|")
+            return ParsedUsageItem(date: parts[0], model: parts.count > 1 ? parts[1] : "",
+                totalTokens: 0, promptTokens: 0, completionTokens: 0,
+                inputCacheHitTokens: 0, inputCacheMissTokens: 0,
+                cost: val.0, requestCount: 0)
+        }.sorted { ($0.date, $0.model) < ($1.date, $1.model) }
+    }
+
     // MARK: - Helpers
 
     private static func parseCSVLine(_ line: String) -> [String] {
@@ -178,12 +208,10 @@ enum UsageCSVParser {
 
     private static func normalizeModel(_ raw: String) -> String {
         let lower = raw.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        if lower.contains("reasoner") || lower.contains("pro") || lower.contains("r1") {
-            return "deepseek-reasoner"
-        }
-        if lower.contains("chat") || lower.contains("flash") || lower.contains("v3") {
-            return "deepseek-chat"
-        }
+        // Keep new model names as-is (deepseek-v4-flash, deepseek-v4-pro)
+        if lower.contains("v4-flash") || lower.contains("flash") { return "deepseek-v4-flash" }
+        if lower.contains("v4-pro") || lower.contains("reasoner") || lower.contains("pro") || lower.contains("r1") { return "deepseek-v4-pro" }
+        if lower.contains("chat") || lower.contains("v3") { return "deepseek-v4-flash" }
         return lower
     }
 

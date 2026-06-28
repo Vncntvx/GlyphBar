@@ -1,121 +1,362 @@
 import Foundation
+import WebKit
 import OSLog
 
 private let log = Logger(subsystem: "com.wenjiexu.GlyphBar", category: "UsageExport")
 
 @MainActor
-final class UsageExportService {
-    private let platformBase = "https://platform.deepseek.com"
+final class UsageExportService: NSObject {
+    private var webView: WKWebView?
+    private var continuation: CheckedContinuation<[ParsedUsageItem], Error>?
+    private var timeoutTask: Task<Void, Never>?
+    private var clickAttempts = 0
+    private let maxRetries = 3
+    private var exportTriggerTime: Date?
+    private var isLoggedIn = false
+
+    private var exportsDir: URL {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let dir = home.appendingPathComponent(".cache/GlyphBar/deepseek-exports")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    private func pruneExports() {
+        guard let files = try? FileManager.default.contentsOfDirectory(at: exportsDir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return }
+        let sorted = files.sorted { f1, f2 in
+            let d1 = (try? f1.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? Date.distantPast
+            let d2 = (try? f2.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? Date.distantPast
+            return d1 > d2
+        }
+        if sorted.count > 5 {
+            for f in sorted[5...] { try? FileManager.default.removeItem(at: f) }
+        }
+    }
 
     func export() async throws -> [ParsedUsageItem] {
         guard let cookieStr = UserDefaults.standard.string(forKey: "deepseek.platformCookie"),
               let tokenPart = cookieStr.components(separatedBy: "; ").first(where: { $0.hasPrefix("authToken=") }) else {
-            log.info("No authToken. Cookie length: \(UserDefaults.standard.string(forKey: "deepseek.platformCookie")?.count ?? 0)")
             throw ExportError.notLoggedIn
         }
         let token = String(tokenPart.dropFirst("authToken=".count))
-        log.info("authToken: \(token.prefix(20), privacy: .public)...")
         guard !token.isEmpty else { throw ExportError.notLoggedIn }
+        log.info("Export starting, token: \(token.prefix(20), privacy: .public)...")
 
-        let cal = Calendar.current
-        let year = cal.component(.year, from: Date())
-        let month = cal.component(.month, from: Date())
-        
-        // Fetch token counts
-        let tokenItems = try await fetchAPI(token: token, path: "/api/v0/usage/amount", year: year, month: month, isCost: false)
-        // Fetch cost data  
-        let costItems = try await fetchAPI(token: token, path: "/api/v0/usage/cost", year: year, month: month, isCost: true)
+        cleanup()
+        clickAttempts = 0; isLoggedIn = false
+        pruneExports()
+        // Clear old export files for polling
+        try? FileManager.default.contentsOfDirectory(at: exportsDir, includingPropertiesForKeys: nil).forEach {
+            try? FileManager.default.removeItem(at: $0)
+        }
 
-        // Merge: token items provide token counts, cost items provide yuan costs
-        var merged: [String: ParsedUsageItem] = [:]
-        for item in tokenItems { merged[item.model] = item }
-        for item in costItems {
-            if var existing = merged[item.model] {
-                existing.cost = item.cost
-                merged[item.model] = existing
+        return try await withCheckedThrowingContinuation { cont in
+            self.continuation = cont
+            let config = WKWebViewConfiguration()
+            config.websiteDataStore = .default()
+
+            // Inject raw userToken JSON (platform expects full JSON structure like {"value":"..."})
+            let rawToken = UserDefaults.standard.string(forKey: "deepseek.rawUserToken") ?? ""
+            let tokenJS: String
+            if !rawToken.isEmpty {
+                let escaped = rawToken.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
+                tokenJS = "localStorage.setItem('userToken', '\(escaped)');"
+                log.info("Injecting raw userToken JSON")
             } else {
-                merged[item.model] = item
+                tokenJS = "localStorage.setItem('userToken', '\(token)');"
+                log.info("Injecting plain token (no rawToken saved)")
+            }
+            let tokenScript = WKUserScript(source: tokenJS, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            let interceptScript = WKUserScript(source: Self.interceptJS, injectionTime: .atDocumentStart, forMainFrameOnly: false)
+
+            let uc = WKUserContentController()
+            uc.addUserScript(tokenScript)
+            uc.addUserScript(interceptScript)
+            uc.add(self, name: "usageExport")
+            config.userContentController = uc
+
+            let wv = WKWebView(frame: NSRect(x: 0, y: 0, width: 1200, height: 800), configuration: config)
+            wv.navigationDelegate = self
+            wv.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"
+            self.webView = wv
+            wv.load(URLRequest(url: URL(string: "https://platform.deepseek.com/usage")!))
+
+            self.timeoutTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 45_000_000_000)
+                guard let self, self.continuation != nil else { return }
+                log.info("Export timed out after 45s")
+                self.continuation?.resume(throwing: ExportError.timeout)
+                self.continuation = nil; self.cleanup()
             }
         }
-        let result = Array(merged.values)
-        log.info("Merged \(result.count, privacy: .public) models")
-        guard !result.isEmpty else { throw ExportError.noData }
-        return result
     }
 
-    private func fetchAPI(token: String, path: String, year: Int, month: Int, isCost: Bool) async throws -> [ParsedUsageItem] {
-        var comps = URLComponents(string: "\(platformBase)\(path)")!
-        comps.queryItems = [URLQueryItem(name: "year", value: "\(year)"), URLQueryItem(name: "month", value: "\(month)")]
-        guard let url = comps.url else { return [] }
-        var req = URLRequest(url: url)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
-        req.timeoutInterval = 15
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        guard let http = resp as? HTTPURLResponse else { return [] }
-        log.info("\(path): HTTP \(http.statusCode)")
-        let body = String(data: data, encoding: .utf8) ?? ""
-        if body.contains("\"code\":40003") || http.statusCode == 401 || http.statusCode == 403 { throw ExportError.authFailed }
-        guard http.statusCode == 200 else { log.info("Response: \(body.prefix(200), privacy: .public)"); return [] }
-        log.info("Success: \(body.prefix(80), privacy: .public)...")
-        let items = parsePlatformNested(data: data, isCost: isCost)
-        log.info("Parsed \(items.count, privacy: .public) items (\(isCost ? "cost" : "tokens"))")
-        return items
+    private func cleanup() {
+        timeoutTask?.cancel(); timeoutTask = nil
+        webView?.stopLoading(); webView = nil; continuation = nil
     }
 
-    private func parsePlatformNested(data: Data, isCost: Bool) -> [ParsedUsageItem] {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let dataObj = json["data"] as? [String: Any] else { return [] }
-        // biz_data can be {total:[...]} or [{total:[...]}]
-        let models: [[String: Any]]
-        if let bizObj = dataObj["biz_data"] as? [String: Any],
-           let total = bizObj["total"] as? [[String: Any]] {
-            models = total
-        } else if let bizArr = dataObj["biz_data"] as? [[String: Any]],
-                  let first = bizArr.first,
-                  let total = first["total"] as? [[String: Any]] {
-            models = total
-        } else { return [] }
-        let today = ISO8601DateFormatter(); today.formatOptions = [.withFullDate]
-        let dateStr = today.string(from: Date())
-        var items: [ParsedUsageItem] = []
-        for modelObj in models {
-            guard let modelName = modelObj["model"] as? String,
-                  let usages = modelObj["usage"] as? [[String: Any]] else { continue }
-            var total = 0, prompt = 0, completion = 0, cacheHit = 0, cacheMiss = 0, requests = 0, cost = 0.0
-            for u in usages {
-                guard let type = u["type"] as? String, let amountStr = u["amount"] as? String else { continue }
-                if isCost {
-                    let d = Double(amountStr) ?? 0
-                    switch type {
-                    case "PROMPT_TOKEN": cost += d
-                    case "PROMPT_CACHE_HIT_TOKEN": cost += d
-                    case "PROMPT_CACHE_MISS_TOKEN": cost += d
-                    case "RESPONSE_TOKEN": cost += d
-                    default: break
+    // MARK: - Click Attempt
+
+    private func attemptClick() {
+        guard let wv = webView, continuation != nil, exportTriggerTime == nil else { return }
+        guard isLoggedIn else { log.info("Not logged in, skipping click"); return }
+        clickAttempts += 1
+        log.info("Click \(self.clickAttempts)/\(self.maxRetries)")
+        wv.evaluateJavaScript(Self.clickJS) { [weak self] result, error in
+            guard let self, self.continuation != nil else { return }
+            let msg = (result as? String) ?? "nil"
+            log.info("Click: \(msg, privacy: .public)")
+            if msg.hasPrefix("react_") || msg.hasPrefix("dom_clicked") || msg.hasPrefix("pending_") {
+                self.exportTriggerTime = Date()
+                // Follow-up click after 1s
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    wv.evaluateJavaScript(Self.clickJS) { r, _ in
+                        log.info("FollowUp: \(String(describing: r), privacy: .public)")
                     }
-                } else {
-                    let v = Int(amountStr) ?? 0
-                    switch type {
-                    case "PROMPT_TOKEN": prompt += v; total += v
-                    case "PROMPT_CACHE_HIT_TOKEN": cacheHit += v; total += v
-                    case "PROMPT_CACHE_MISS_TOKEN": cacheMiss += v; total += v
-                    case "RESPONSE_TOKEN": completion += v; total += v
-                    case "REQUEST": requests += v
-                    default: break
+                }
+                // Start polling for downloaded files
+                self.pollForFile(retries: 16)
+            } else if self.clickAttempts < self.maxRetries {
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 1_200_000_000)
+                    self.attemptClick()
+                }
+            } else {
+                log.info("Failed to find button after \(self.maxRetries) retries")
+            }
+        }
+    }
+
+    private func pollForFile(retries: Int) {
+        guard retries > 0, let cont = continuation else { return }
+        // Check if any new file appeared
+        if let file = newestExportFile(), file.modifiedAt >= (exportTriggerTime ?? Date()).addingTimeInterval(-2) {
+            log.info("Download detected: \(file.name, privacy: .public)")
+            do {
+                let data = try Data(contentsOf: file.url)
+                let items = parseFile(data: data)
+                log.info("Parsed \(items.count, privacy: .public) items")
+                cont.resume(returning: items)
+                self.continuation = nil; cleanup()
+                return
+            } catch {
+                log.info("Parse error: \(error.localizedDescription)")
+            }
+        }
+        // Retry on 2nd and 5th poll
+        if retries == 14 || retries == 11, let wv = webView {
+            log.info("Retry click at poll \(16 - retries)")
+            wv.evaluateJavaScript(Self.clickJS, completionHandler: nil)
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            self.pollForFile(retries: retries - 1)
+        }
+    }
+
+    private func newestExportFile() -> (url: URL, name: String, modifiedAt: Date)? {
+        guard let files = try? FileManager.default.contentsOfDirectory(at: exportsDir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return nil }
+        let sorted = files.compactMap { url -> (URL, String, Date)? in
+            guard let attrs = try? url.resourceValues(forKeys: [.contentModificationDateKey]),
+                  let mod = attrs.contentModificationDate else { return nil }
+            return (url, url.lastPathComponent, mod)
+        }.sorted { $0.2 > $1.2 }
+        return sorted.first
+    }
+
+    private func parseFile(data: Data) -> [ParsedUsageItem] {
+        if data.starts(with: [0x50, 0x4B]) {
+            return unzipAndMerge(data)
+        } else {
+            let csv = String(data: data, encoding: .utf8) ?? ""
+            log.info("CSV (\(csv.count) chars): \(csv.prefix(200), privacy: .public)")
+            return UsageCSVParser.parse(csvData: data)
+        }
+    }
+
+    /// Extract ZIP and merge data from all CSVs (tokens + costs typically in separate files)
+    private func unzipAndMerge(_ zipData: Data) -> [ParsedUsageItem] {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("glyph-zip-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        do {
+            try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+            let zp = tmp.appendingPathComponent("e.zip")
+            try zipData.write(to: zp)
+            let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+            p.arguments = ["-x", "-k", zp.path, tmp.path]; try p.run(); p.waitUntilExit()
+
+            let files = (try? FileManager.default.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil)) ?? []
+            var allItems: [ParsedUsageItem] = []
+            for f in files {
+                if let d = try? Data(contentsOf: f) {
+                    let items = UsageCSVParser.parse(csvData: d)
+                    if !items.isEmpty {
+                        log.info("Parsed \(items.count) items from \(f.lastPathComponent, privacy: .public)")
+                        allItems.append(contentsOf: items)
                     }
                 }
             }
-            if total > 0 || requests > 0 || cost > 0 {
-                items.append(ParsedUsageItem(date: dateStr, model: modelName,
-                    totalTokens: total, promptTokens: prompt, completionTokens: completion,
-                    inputCacheHitTokens: cacheHit, inputCacheMissTokens: cacheMiss,
-                    cost: cost, requestCount: requests))
+            if !allItems.isEmpty {
+                // Merge by date+model: sum tokens, max cost
+                var merged: [String: ParsedUsageItem] = [:]
+                for item in allItems {
+                    let key = "\(item.date)|\(item.model)"
+                    if var existing = merged[key] {
+                        existing.totalTokens = max(existing.totalTokens, item.totalTokens)
+                        existing.promptTokens = max(existing.promptTokens, item.promptTokens)
+                        existing.completionTokens = max(existing.completionTokens, item.completionTokens)
+                        existing.inputCacheHitTokens = max(existing.inputCacheHitTokens, item.inputCacheHitTokens)
+                        existing.inputCacheMissTokens = max(existing.inputCacheMissTokens, item.inputCacheMissTokens)
+                        existing.cost = max(existing.cost, item.cost)
+                        existing.requestCount = max(existing.requestCount, item.requestCount)
+                        merged[key] = existing
+                    } else {
+                        merged[key] = item
+                    }
+                }
+                return Array(merged.values).sorted { ($0.date, $0.model) < ($1.date, $1.model) }
+            }
+        } catch {}
+        return UsageCSVParser.parse(csvData: zipData)
+    }
+
+    // MARK: - WKScriptMessageHandler (JS bridge)
+
+    func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "usageExport", continuation != nil else { return }
+
+        let csvData: Data
+        if let dict = message.body as? [String: String], let dataUrl = dict["dataURL"] ?? dict["dataUrl"] {
+            log.info("JS bridge: \(dict["filename"] ?? "?", privacy: .public)")
+            if let comma = dataUrl.firstIndex(of: ",") {
+                csvData = Data(base64Encoded: String(dataUrl[dataUrl.index(after: comma)...])) ?? Data()
+            } else { csvData = Data() }
+        } else if let base64 = message.body as? String {
+            if base64.hasPrefix("data:"), let comma = base64.firstIndex(of: ",") {
+                csvData = Data(base64Encoded: String(base64[base64.index(after: comma)...])) ?? Data()
+            } else {
+                csvData = Data(base64Encoded: base64) ?? Data()
+            }
+        } else { return }
+
+        guard !csvData.isEmpty else { return }
+        // Save to file (so polling finds it)
+        let filename = "export-\(Date().timeIntervalSince1970).csv"
+        let fileURL = exportsDir.appendingPathComponent(filename)
+        try? csvData.write(to: fileURL)
+        log.info("Saved bridged download: \(filename, privacy: .public) (\(csvData.count) bytes)")
+    }
+
+    // MARK: - WKNavigationDelegate
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        let url = webView.url?.absoluteString ?? ""
+        log.info("Page loaded: \(url.prefix(80), privacy: .public)")
+
+        if url.contains("sign_in") || url.contains("login") {
+            log.info("Login page detected - not logged in")
+            isLoggedIn = false
+            return
+        }
+        if url.contains("/usage") || url.contains("platform.deepseek.com") {
+            isLoggedIn = true
+            log.info("Logged in, scheduling click...")
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run { self.attemptClick() }
             }
         }
-        return items
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        log.info("Nav fail: \(error.localizedDescription, privacy: .public)")
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation: WKNavigation!, withError error: Error) {
+        guard let cont = continuation else { return }
+        cont.resume(throwing: error); self.continuation = nil; cleanup()
+    }
+
+    // MARK: - WKDownloadDelegate (native download capture)
+
+    func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+        log.info("Navigation became download")
+        download.delegate = self
+    }
+
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        log.info("Response became download")
+        download.delegate = self
+    }
+
+    // MARK: - JS Scripts
+
+    private static let interceptJS = """
+    (function(){if(window.__gh)return;window.__gh=true;
+    const post=(f,d)=>{window.webkit.messageHandlers.usageExport.postMessage({filename:f,dataURL:d})};
+    const oc=URL.createObjectURL;URL.createObjectURL=function(b){const r=new FileReader();
+    r.onload=()=>post('export.csv',r.result);r.readAsDataURL(b);return oc.call(URL,b)};
+    const of=window.fetch;window.fetch=function(...a){return of.apply(this,a).then(r=>{
+    const ct=(r.headers.get('content-type')||'').toLowerCase();
+    const cd=(r.headers.get('content-disposition')||'').toLowerCase();
+    if(ct.includes('zip')||ct.includes('csv')||ct.includes('octet')||ct.includes('excel')||
+    cd.includes('attachment')||cd.includes('export')||cd.includes('usage')){
+    r.clone().blob().then(b=>{const rr=new FileReader();rr.onload=()=>post('export.csv',rr.result);rr.readAsDataURL(b)})}return r})};
+    const OX=window.XMLHttpRequest;window.XMLHttpRequest=function(){const x=new OX();let u='';
+    const oo=x.open;x.open=function(m,url,...r){u=url;return oo.call(this,m,url,...r)};
+    x.addEventListener('load',function(){const ct=(x.getResponseHeader('content-type')||'').toLowerCase();
+    if(ct.includes('csv')||ct.includes('zip')||u.includes('export')||u.includes('download')){
+    let b='';const by=new Uint8Array(x.response||x.responseText||'');
+    for(let i=0;i<by.length;i++)b+=String.fromCharCode(by[i]);
+    post('export.csv','data:text/csv;base64,'+btoa(b))}});return x};
+    document.addEventListener('click',function(e){const a=e.target.closest('a');
+    if(a&&(a.download||/\\.(csv|zip)/i.test(a.href||''))){e.preventDefault();
+    fetch(a.href).then(r=>r.blob()).then(b=>{const rr=new FileReader();
+    rr.onload=()=>post(a.download||'export.csv',rr.result);rr.readAsDataURL(b)})}},true)})();
+    """
+
+    private static let clickJS = """
+    (function(){const btns=document.querySelectorAll('div.ds-button[role="button"]');let t=null;
+    btns.forEach(e=>{if((e.textContent||'').trim()==='导出')t=e});
+    if(!t){const all=document.querySelectorAll('[role="button"],button,a');
+    for(const e of all){if((e.textContent||'').trim().includes('导出')){t=e;break}}}
+    if(!t)return'no_button';
+    const rk=Object.keys(t).find(k=>k.startsWith('__reactFiber$')||k.startsWith('__reactInternalInstance$'));
+    if(rk){const f=t[rk];let c=f;
+    for(let i=0;i<15&&c;i++){if(c.memoizedProps&&typeof c.memoizedProps.onClick==='function'){
+    c.memoizedProps.onClick({preventDefault:()=>{},stopPropagation:()=>{},nativeEvent:{}});return'react_'+i}
+    if(c.pendingProps&&typeof c.pendingProps.onClick==='function'){
+    c.pendingProps.onClick({preventDefault:()=>{},stopPropagation:()=>{},nativeEvent:{}});return'pending_'+i}
+    c=c.return}}
+    t.scrollIntoView({block:'center'});
+    ['pointerover','mouseover','pointerenter','mouseenter','pointerdown','mousedown','pointerup','mouseup','click'].forEach(n=>t.dispatchEvent(new MouseEvent(n,{bubbles:true,cancelable:true})));
+    if(t.click)t.click();return'dom_clicked'})();
+    """
+}
+
+// MARK: - WKDownloadDelegate
+
+extension UsageExportService: WKDownloadDelegate {
+    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String) async -> URL {
+        let filename = suggestedFilename.isEmpty ? "export-\(Date().timeIntervalSince1970).csv" : suggestedFilename
+        let dest = exportsDir.appendingPathComponent(filename)
+        try? FileManager.default.removeItem(at: dest) // overwrite
+        log.info("Download to: \(filename, privacy: .public)")
+        return dest
+    }
+
+    func downloadDidFinish(_ download: WKDownload) {
+        log.info("WKDownload finished")
+    }
+
+    func download(_ download: WKDownload, didFailWithError error: Error, resumeData: Data?) {
+        log.info("WKDownload failed: \(error.localizedDescription)")
     }
 }
+
+extension UsageExportService: WKScriptMessageHandler, WKNavigationDelegate {}
 
 enum ExportError: LocalizedError {
     case notLoggedIn, authFailed, noData, timeout
@@ -123,8 +364,8 @@ enum ExportError: LocalizedError {
         switch self {
         case .notLoggedIn: "Not logged in to DeepSeek platform."
         case .authFailed: "Session expired — please re-login."
-        case .noData: "No usage data available."
-        case .timeout: "Request timed out."
+        case .noData: "No usage data found in export."
+        case .timeout: "Export timed out. Try again."
         }
     }
 }

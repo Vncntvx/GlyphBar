@@ -56,6 +56,8 @@ struct LoginWebView: NSViewRepresentable {
                     log.info("localStorage keys: \(dict.keys.sorted().joined(separator: ", "), privacy: .public)")
                     for key in ["userToken","token","authToken","accessToken","access_token","jwt","auth_token","session_token"] {
                         guard let raw = dict[key] else { continue }
+                        // Save raw value for WKWebView injection
+                        if key == "userToken" { UserDefaults.standard.set(raw, forKey: "deepseek.rawUserToken") }
                         // Try nested JSON {value:"..."}
                         if let vd = raw.data(using: .utf8),
                            let vDict = try? JSONSerialization.jsonObject(with: vd) as? [String: String],
@@ -90,6 +92,10 @@ struct LoginWebView: NSViewRepresentable {
                 var parts: [String] = []
                 if let t = token { parts.append("authToken=\(t)"); log.info("Captured authToken") }
                 else { log.info("No auth token - cookies only") }
+                // Also save raw userToken JSON from localStorage (for WKWebView injection)
+                if let rawToken = UserDefaults.standard.string(forKey: "deepseek.rawUserToken") {
+                    parts.append("rawUserToken=\(rawToken)")
+                }
                 for c in cookies where !c.name.hasPrefix("_ga") && !c.name.hasPrefix("_gid") && !c.name.hasPrefix("_hj") {
                     parts.append("\(c.name)=\(c.value)")
                 }
