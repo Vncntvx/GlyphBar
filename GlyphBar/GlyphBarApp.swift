@@ -35,12 +35,6 @@ struct GlyphBarApp: App {
                     environment.importModuleFromPanel()
                 }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
-
-                Divider()
-
-                Button("Open Full Window") {
-                    environment.mainWindowCoordinator.openModuleWindow()
-                }
             }
         }
     }

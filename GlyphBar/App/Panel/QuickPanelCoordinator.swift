@@ -7,7 +7,6 @@ final class QuickPanelCoordinator: ObservableObject {
     private let runtime: ModuleRuntime
     private let menuCoordinator: AppMenuCoordinator
     private let settingsStore: AppSettingsStore
-    private let openFullWindowAction: () -> Void
     private var panel: NSPanel?
     private weak var lastStatusItem: NSStatusItem?
 
@@ -28,13 +27,11 @@ final class QuickPanelCoordinator: ObservableObject {
     init(
         runtime: ModuleRuntime,
         menuCoordinator: AppMenuCoordinator,
-        settingsStore: AppSettingsStore,
-        openFullWindow: @escaping () -> Void = {}
+        settingsStore: AppSettingsStore
     ) {
         self.runtime = runtime
         self.menuCoordinator = menuCoordinator
         self.settingsStore = settingsStore
-        self.openFullWindowAction = openFullWindow
         // Propagate settingsStore changes so views observing coordinator refresh.
         settingsStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
@@ -105,11 +102,6 @@ final class QuickPanelCoordinator: ObservableObject {
         f.origin.y += f.size.height - newHeight
         f.size.height = newHeight
         panel.setFrame(f, display: false, animate: false)
-    }
-
-    func openFullWindow() {
-        close()
-        openFullWindowAction()
     }
 
     func openSettings() {

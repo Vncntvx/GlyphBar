@@ -43,7 +43,6 @@ final class AppEnvironment: ObservableObject {
     let quickPanelCoordinator: QuickPanelCoordinator
     let appMenuCoordinator: AppMenuCoordinator
     let statusItemController: StatusItemController
-    let mainWindowCoordinator: MainWindowCoordinator
     let logsWindowCoordinator: LogsWindowCoordinator
     let router: DeepLinkRouter
 
@@ -75,15 +74,11 @@ final class AppEnvironment: ObservableObject {
         registry.register { NetworkMockModule() }
 
         let runtime = ModuleRuntime(registry: registry, context: context, settingsStore: settingsStore)
-        let mainWindowCoordinator = MainWindowCoordinator(runtime: runtime, settingsStore: settingsStore)
         let appMenuCoordinator = AppMenuCoordinator(runtime: runtime, platformActions: platformActions)
         let quickPanelCoordinator = QuickPanelCoordinator(
             runtime: runtime,
             menuCoordinator: appMenuCoordinator,
-            settingsStore: settingsStore,
-            openFullWindow: {
-                mainWindowCoordinator.openModuleWindow()
-            }
+            settingsStore: settingsStore
         )
         let statusItemController = StatusItemController(
             runtime: runtime,
@@ -119,7 +114,6 @@ final class AppEnvironment: ObservableObject {
         self.runtime = runtime
         self.settingsNavigation = settingsNavigation
         self.quickPanelCoordinator = quickPanelCoordinator
-        self.mainWindowCoordinator = mainWindowCoordinator
         self.logsWindowCoordinator = logsWindowCoordinator
         self.appMenuCoordinator = appMenuCoordinator
         self.statusItemController = statusItemController
