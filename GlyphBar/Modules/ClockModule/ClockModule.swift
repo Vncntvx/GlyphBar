@@ -192,10 +192,9 @@ private struct ClockPanel: View {
     @State private var showTimezonePicker = false
 
     var body: some View {
-        GlyphSurface {
-            VStack(spacing: 20) {
-                // Local time display
-                VStack(spacing: 4) {
+        VStack(spacing: 20) {
+            // Local time display
+            VStack(spacing: 4) {
                     Text(snapshot?.title ?? "--:--")
                         .font(.system(size: 48, weight: .semibold, design: .rounded).monospacedDigit())
                         .contentTransition(.numericText())
@@ -297,7 +296,7 @@ private struct ClockPanel: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .center)
-        }
+            .padding(14)
     }
 
     private func worldTimeText(for tzID: String) -> String {

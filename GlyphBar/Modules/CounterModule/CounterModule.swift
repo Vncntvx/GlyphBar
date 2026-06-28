@@ -217,8 +217,7 @@ private struct CounterPanel: View {
     private let stepOptions = [1, 5, 10, 100]
 
     var body: some View {
-        GlyphSurface {
-            VStack(spacing: 20) {
+        VStack(spacing: 20) {
                 // Large count with color
                 Text("\(count)")
                     .font(.system(size: 72, weight: .bold, design: .rounded).monospacedDigit())
@@ -312,7 +311,7 @@ private struct CounterPanel: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .center)
-        }
+            .padding(14)
     }
 
     private var countColor: Color {

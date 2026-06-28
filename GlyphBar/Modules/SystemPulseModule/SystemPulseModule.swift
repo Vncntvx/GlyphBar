@@ -165,8 +165,7 @@ private struct SystemPulsePanel: View {
     let snapshot: ModuleSnapshot?
 
     var body: some View {
-        GlyphSurface {
-            VStack(spacing: 20) {
+        VStack(spacing: 20) {
                 // Main metrics ring charts
                 HStack(alignment: .top, spacing: 16) {
                     MetricRing(
@@ -235,7 +234,7 @@ private struct SystemPulsePanel: View {
                     }
                 }
             }
-        }
+            .padding(14)
     }
 
     // MARK: - Colors

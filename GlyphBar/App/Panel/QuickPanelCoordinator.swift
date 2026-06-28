@@ -55,7 +55,7 @@ final class QuickPanelCoordinator: ObservableObject {
         self.panel = panel
         panel.contentView = NSHostingView(
             rootView: QuickPanelRootView(runtime: runtime, coordinator: self)
-                .frame(width: 404, height: 500)
+                .frame(width: 404)
                 .preferredColorScheme(ColorSchemeOption(rawValue: settingsStore.colorScheme)?.colorScheme)
         )
         position(panel, relativeTo: statusItem)
@@ -85,6 +85,16 @@ final class QuickPanelCoordinator: ObservableObject {
     /// Apply the persisted pin preference to the live panel (called from Settings).
     func applyPinPreference() {
         panel?.hidesOnDeactivate = panelHidesOnDeactivate && !settingsStore.pinPanel
+    }
+
+    func resizePanel(to size: CGSize) {
+        guard let panel, panel.isVisible else { return }
+        var f = panel.frame
+        let newHeight = min(max(size.height + 16, 200), 750)
+        guard abs(f.size.height - newHeight) > 4 else { return }
+        f.origin.y += f.size.height - newHeight
+        f.size.height = newHeight
+        panel.setFrame(f, display: true, animate: true)
     }
 
     func openFullWindow() {
@@ -126,7 +136,7 @@ final class QuickPanelCoordinator: ObservableObject {
 
     private func makePanel() -> NSPanel {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 404, height: 500),
+            contentRect: NSRect(x: 0, y: 0, width: 404, height: 200),
             styleMask: [.titled, .fullSizeContentView, .utilityWindow],
             backing: .buffered,
             defer: true
@@ -182,5 +192,31 @@ final class QuickPanelCoordinator: ObservableObject {
         }
 
         panel.setFrame(frame, display: true)
+    }
+}
+
+// MARK: - Adaptive Panel Height
+
+private struct HeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+private struct ResizeModifier: ViewModifier {
+    let onResize: (CGSize) -> Void
+    func body(content: Content) -> some View {
+        content
+            .background(GeometryReader { geo in
+                Color.clear.preference(key: HeightKey.self, value: geo.size.height)
+            })
+            .onPreferenceChange(HeightKey.self) { height in
+                if height > 0 { onResize(CGSize(width: 404, height: height)) }
+            }
+    }
+}
+
+extension View {
+    func onResize(_ action: @escaping (CGSize) -> Void) -> some View {
+        modifier(ResizeModifier(onResize: action))
     }
 }

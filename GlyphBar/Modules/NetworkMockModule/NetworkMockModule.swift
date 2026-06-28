@@ -214,8 +214,7 @@ private struct NetworkPanel: View {
     @Binding var useMockMode: Bool
 
     var body: some View {
-        GlyphSurface {
-            VStack(spacing: 16) {
+        VStack(spacing: 16) {
                 // Status indicator
                 HStack(spacing: 12) {
                     Image(systemName: snapshot?.systemImage ?? "questionmark.circle")
@@ -281,7 +280,7 @@ private struct NetworkPanel: View {
                 .toggleStyle(.switch)
                 .font(.callout)
             }
-        }
+            .padding(14)
     }
 
     private var statusColor: Color {

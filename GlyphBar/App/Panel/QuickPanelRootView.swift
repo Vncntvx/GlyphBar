@@ -359,6 +359,7 @@ private struct ModuleSwitchButton: View {
 private struct PanelModuleContent: View {
     @ObservedObject var runtime: ModuleRuntime
     var coordinator: QuickPanelCoordinator?
+    @State private var contentSize: CGSize = .zero
 
     var body: some View {
         Group {
@@ -367,7 +368,11 @@ private struct PanelModuleContent: View {
                 CompactModuleView(
                     runtime: runtime,
                     module: module,
-                    snapshot: runtime.snapshots[moduleID]
+                    snapshot: runtime.snapshots[moduleID],
+                    onResize: { size in
+                        contentSize = size
+                        coordinator?.resizePanel(to: size)
+                    }
                 )
             } else {
                 GlyphEmptyStateView(
@@ -392,13 +397,17 @@ private struct CompactModuleView: View {
     @ObservedObject var runtime: ModuleRuntime
     let module: any StatusModule
     let snapshot: ModuleSnapshot?
+    var onResize: ((CGSize) -> Void)?
 
     var body: some View {
-        ScrollView {
-            module.makePanelView(context: runtime.context, snapshot: snapshot)
-                .frame(minHeight: 300)
-        }
-        .background(.regularMaterial)
+        module.makePanelView(context: runtime.context, snapshot: snapshot)
+            .background(GeometryReader { geo in
+                Color.clear.onAppear {
+                    onResize?(geo.size)
+                }.onChange(of: geo.size) { newSize in
+                    onResize?(newSize)
+                }
+            })
     }
 }
 
