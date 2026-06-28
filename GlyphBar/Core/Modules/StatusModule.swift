@@ -9,6 +9,8 @@ struct ModuleContext {
     let settingsStore: AppSettingsStore
     let platformActions: PlatformActions
     let widgetBridge: WidgetDataBridge
+    /// Called by modules to publish updated snapshots to the status bar / widgets.
+    var publishSnapshot: ((ModuleSnapshot) -> Void)?
 }
 
 @MainActor

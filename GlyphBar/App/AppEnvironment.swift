@@ -56,7 +56,7 @@ final class AppEnvironment: ObservableObject {
         let platformActions = PlatformActions()
         let widgetBridge = WidgetDataBridge()
         let settingsNavigation = SettingsNavigationState()
-        let context = ModuleContext(
+        var context = ModuleContext(
             logger: logger,
             cacheStore: cacheStore,
             secureStore: secureStore,
@@ -74,6 +74,9 @@ final class AppEnvironment: ObservableObject {
         registry.register { NetworkMockModule() }
 
         let runtime = ModuleRuntime(registry: registry, context: context, settingsStore: settingsStore)
+        context.publishSnapshot = { [weak runtime] snapshot in
+            runtime?.publishSnapshot(snapshot)
+        }
         let appMenuCoordinator = AppMenuCoordinator(runtime: runtime, platformActions: platformActions)
         let quickPanelCoordinator = QuickPanelCoordinator(
             runtime: runtime,

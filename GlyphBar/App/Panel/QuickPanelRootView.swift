@@ -338,7 +338,8 @@ private struct PanelModuleContent: View {
     var body: some View {
         Group {
             if let moduleID = runtime.selectedModuleID,
-               let module = runtime.modules[moduleID] {
+               let module = runtime.modules[moduleID],
+               runtime.enabledModuleIDs.contains(moduleID) {
                 CompactModuleView(
                     runtime: runtime,
                     module: module,
@@ -347,9 +348,13 @@ private struct PanelModuleContent: View {
                 .frame(maxWidth: .infinity)
             } else {
                 GlyphEmptyStateView(
-                    title: "No Module Selected",
-                    subtitle: "Enable a module in Settings.",
-                    systemImage: "square.grid.2x2"
+                    title: runtime.enabledModuleIDs.isEmpty
+                        ? "No Modules Enabled" : "No Module Selected",
+                    subtitle: runtime.enabledModuleIDs.isEmpty
+                        ? "Enable a module in Settings to get started."
+                        : "Choose a module from the tab bar or enable one in Settings.",
+                    systemImage: runtime.enabledModuleIDs.isEmpty
+                        ? "square.dashed" : "square.grid.2x2"
                 )
                 .overlay(alignment: .bottom) {
                     Button("Open Settings") {

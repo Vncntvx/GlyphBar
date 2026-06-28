@@ -71,7 +71,7 @@ final class AppSettingsStore: ObservableObject {
         }
 
         if enabledModuleIDs.isEmpty {
-            enabledModuleIDs = Set(ids)
+            // Don't auto-enable all modules — user enables them explicitly in Settings.
         } else {
             let newIDs = ids.filter { !enabledModuleIDs.contains($0) }
             if !newIDs.isEmpty {

@@ -273,7 +273,7 @@ final class DeepSeekModule: StatusModule {
             onSetKey: { context.secureStore.setSecret($0, for: "deepseek.apiKey") },
             onClearKey: { [weak self] in self?.cached = nil; self?.lastErrorMessage = nil; context.secureStore.setSecret(nil, for: "deepseek.apiKey") },
             onRefresh: { [weak self] in Task { guard let self else { return }
-                do { let s = try await self.refresh(context: context); context.cacheStore.save(s) }
+                do { let s = try await self.refresh(context: context); context.cacheStore.save(s); context.publishSnapshot?(s) }
                 catch { self.lastErrorMessage = error.localizedDescription } } },
             onFetchUsage: { [weak self] in Task { await self?.fetchUsageExport() } },
             onImportCSV: { [weak self] in self?.openCSVPanel() }

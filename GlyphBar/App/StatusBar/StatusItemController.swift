@@ -218,6 +218,13 @@ final class StatusItemController: NSObject {
                 self?.scheduleRender()
             }
             .store(in: &cancellables)
+
+        settingsStore.$enabledModuleIDs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.scheduleRender()
+            }
+            .store(in: &cancellables)
     }
 
     private func scheduleRender() {
@@ -232,8 +239,9 @@ final class StatusItemController: NSObject {
     }
 
     private func render() {
+        let enabledSnapshots = runtime.snapshots.filter { runtime.settingsStore.isEnabled($0.key) }
         let presentation = composer.compose(
-            snapshots: runtime.snapshots,
+            snapshots: enabledSnapshots,
             primaryModuleID: settingsStore.primaryModuleID
         )
 

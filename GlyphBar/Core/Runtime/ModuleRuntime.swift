@@ -132,6 +132,11 @@ final class ModuleRuntime: ObservableObject {
         selectedModuleID = moduleID
     }
 
+    func publishSnapshot(_ snapshot: ModuleSnapshot) {
+        snapshots[snapshot.id] = snapshot
+        context.widgetBridge.publish(snapshot)
+    }
+
     func record(for moduleID: ModuleID) -> ModuleRecord? {
         moduleRecords[moduleID]
     }
