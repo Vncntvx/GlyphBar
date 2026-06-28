@@ -21,13 +21,13 @@ struct QuickPanelRootView: View {
                 Divider()
 
                 PanelModuleContent(runtime: runtime, coordinator: coordinator)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 Divider()
 
                 PanelFooter(runtime: runtime, coordinator: coordinator)
             }
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .onResize { coordinator?.resizePanel(to: $0) }
         }
         .task {
             if runtime.selectedModuleID == nil {
@@ -53,7 +53,7 @@ private struct PanelMaterialBackground: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(.quaternary, lineWidth: 1)
             }
-            .shadow(color: .black.opacity(reduceTransparency ? 0.14 : 0.22), radius: 18, y: 10)
+            .shadow(color: .black.opacity(reduceTransparency ? 0.14 : 0.22), radius: 14, y: 8)
     }
 }
 
@@ -98,7 +98,7 @@ private struct PanelHeader: View {
             }
         }
         .padding(.horizontal, 14)
-        .padding(.top, 13)
+        .padding(.top, 4)
         .padding(.bottom, 10)
     }
 
@@ -359,7 +359,6 @@ private struct ModuleSwitchButton: View {
 private struct PanelModuleContent: View {
     @ObservedObject var runtime: ModuleRuntime
     var coordinator: QuickPanelCoordinator?
-    @State private var contentSize: CGSize = .zero
 
     var body: some View {
         Group {
@@ -368,12 +367,9 @@ private struct PanelModuleContent: View {
                 CompactModuleView(
                     runtime: runtime,
                     module: module,
-                    snapshot: runtime.snapshots[moduleID],
-                    onResize: { size in
-                        contentSize = size
-                        coordinator?.resizePanel(to: size)
-                    }
+                    snapshot: runtime.snapshots[moduleID]
                 )
+                .frame(maxWidth: .infinity)
             } else {
                 GlyphEmptyStateView(
                     title: "No Module Selected",
@@ -397,17 +393,9 @@ private struct CompactModuleView: View {
     @ObservedObject var runtime: ModuleRuntime
     let module: any StatusModule
     let snapshot: ModuleSnapshot?
-    var onResize: ((CGSize) -> Void)?
 
     var body: some View {
         module.makePanelView(context: runtime.context, snapshot: snapshot)
-            .background(GeometryReader { geo in
-                Color.clear.onAppear {
-                    onResize?(geo.size)
-                }.onChange(of: geo.size) { newSize in
-                    onResize?(newSize)
-                }
-            })
     }
 }
 

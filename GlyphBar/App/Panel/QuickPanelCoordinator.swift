@@ -90,7 +90,7 @@ final class QuickPanelCoordinator: ObservableObject {
     func resizePanel(to size: CGSize) {
         guard let panel, panel.isVisible else { return }
         var f = panel.frame
-        let newHeight = min(max(size.height + 16, 200), 750)
+        let newHeight = min(max(size.height, 200), 750)
         guard abs(f.size.height - newHeight) > 4 else { return }
         f.origin.y += f.size.height - newHeight
         f.size.height = newHeight
@@ -136,17 +136,14 @@ final class QuickPanelCoordinator: ObservableObject {
 
     private func makePanel() -> NSPanel {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 404, height: 200),
-            styleMask: [.titled, .fullSizeContentView, .utilityWindow],
+            contentRect: NSRect(x: 0, y: 0, width: 404, height: 400),
+            styleMask: [.borderless],
             backing: .buffered,
             defer: true
         )
-        panel.title = "GlyphBar"
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.isMovableByWindowBackground = true
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = panelHidesOnDeactivate && !settingsStore.pinPanel
@@ -173,25 +170,27 @@ final class QuickPanelCoordinator: ObservableObject {
 
     private func position(_ panel: NSPanel, relativeTo statusItem: NSStatusItem?) {
         guard let button = statusItem?.button,
-              let window = button.window else {
+              let window = button.window,
+              let screen = window.screen else {
             panel.center()
             return
         }
 
         let buttonFrameInWindow = button.convert(button.bounds, to: nil)
         let buttonFrame = window.convertToScreen(buttonFrameInWindow)
-        var frame = panel.frame
-        let verticalGap: CGFloat = 2
-        frame.origin.x = buttonFrame.midX - frame.width / 2
-        frame.origin.y = buttonFrame.minY - frame.height - verticalGap
+        let visible = screen.visibleFrame
+        let panelWidth = panel.frame.width
+        let panelHeight = panel.frame.height
 
-        if let screen = window.screen {
-            let visible = screen.visibleFrame
-            frame.origin.x = min(max(frame.origin.x, visible.minX + 12), visible.maxX - frame.width - 12)
-            frame.origin.y = max(frame.origin.y, visible.minY + 12)
-        }
+        let originX = min(max(buttonFrame.midX - panelWidth / 2, visible.minX + 12), visible.maxX - panelWidth - 12)
+        let originY = visible.maxY - panelHeight
 
-        panel.setFrame(frame, display: true)
+        AppEnvironment.shared.logger.statusItem("panel position intent: visible.maxY=\(visible.maxY), height=\(panelHeight), originY=\(originY), top=\(originY + panelHeight)")
+
+        panel.setFrame(NSRect(x: originX, y: originY, width: panelWidth, height: panelHeight), display: false)
+
+        let actual = panel.frame
+        AppEnvironment.shared.logger.statusItem("panel position actual: frame=\(actual), top=\(actual.maxY), contentFrame=\(panel.contentView?.frame ?? .zero)")
     }
 }
 
