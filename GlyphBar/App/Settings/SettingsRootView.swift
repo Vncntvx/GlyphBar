@@ -12,7 +12,7 @@ struct SettingsRootView: View {
     }
 
     var body: some View {
-        TabView(selection: selectedSectionBinding) {
+        TabView(selection: $navigation.selectedSection) {
             Tab("General", systemImage: "gearshape", value: SettingsSection.general) {
                 GeneralSettingsView(environment: environment)
             }
@@ -35,12 +35,5 @@ struct SettingsRootView: View {
         .tabViewStyle(.sidebarAdaptable)
         .frame(width: 880, height: 580)
         .preferredColorScheme(ColorSchemeOption(rawValue: settingsStore.colorScheme)?.colorScheme)
-    }
-
-    private var selectedSectionBinding: Binding<SettingsSection> {
-        Binding(
-            get: { navigation.selectedSection },
-            set: { navigation.selectedSection = $0 }
-        )
     }
 }

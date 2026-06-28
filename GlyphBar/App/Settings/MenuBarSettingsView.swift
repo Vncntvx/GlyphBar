@@ -14,9 +14,9 @@ struct MenuBarSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Dynamic Content Rotation", isOn: rotationEnabledBinding)
+                Toggle("Dynamic Content Rotation", isOn: $settingsStore.statusRotationEnabled)
                 if settingsStore.statusRotationEnabled {
-                    Picker("Rotation Interval", selection: rotationIntervalBinding) {
+                    Picker("Rotation Interval", selection: $settingsStore.statusRotationInterval) {
                         Text("Every 3 seconds").tag(3)
                         Text("Every 5 seconds").tag(5)
                         Text("Every 10 seconds").tag(10)
@@ -30,7 +30,7 @@ struct MenuBarSettingsView: View {
             }
 
             Section("Primary Module") {
-                Picker("Primary Module", selection: primaryModuleBinding) {
+                Picker("Primary Module", selection: $settingsStore.primaryModuleID) {
                     ForEach(runtime.orderedModuleIDs, id: \.self) { moduleID in
                         Text(runtime.modules[moduleID]?.manifest.displayName ?? moduleID)
                             .tag(Optional(moduleID))
@@ -38,7 +38,10 @@ struct MenuBarSettingsView: View {
                 }
             }
             Section {
-                Toggle("Keep Panel Visible", isOn: pinPanelBinding)
+                Toggle("Keep Panel Visible", isOn: $settingsStore.pinPanel)
+                    .onChange(of: settingsStore.pinPanel) { _, _ in
+                        environment.quickPanelCoordinator.applyPinPreference()
+                    }
             } header: {
                 Text("Quick Panel")
             } footer: {
@@ -46,30 +49,5 @@ struct MenuBarSettingsView: View {
             }
         }
         .formStyle(.grouped)
-    }
-
-    private var rotationEnabledBinding: Binding<Bool> {
-        Binding(get: { settingsStore.statusRotationEnabled },
-                set: { settingsStore.statusRotationEnabled = $0 })
-    }
-
-    private var rotationIntervalBinding: Binding<Int> {
-        Binding(get: { settingsStore.statusRotationInterval },
-                set: { settingsStore.statusRotationInterval = $0 })
-    }
-
-    private var primaryModuleBinding: Binding<ModuleID?> {
-        Binding(get: { settingsStore.primaryModuleID },
-                set: { settingsStore.primaryModuleID = $0 })
-    }
-
-    private var pinPanelBinding: Binding<Bool> {
-        Binding(
-            get: { settingsStore.pinPanel },
-            set: {
-                settingsStore.pinPanel = $0
-                environment.quickPanelCoordinator.applyPinPreference()
-            }
-        )
     }
 }

@@ -35,7 +35,7 @@ struct ModuleManagementView: View {
             Divider()
 
             HStack(spacing: 0) {
-                List(selection: selectedModuleBinding) {
+                List(selection: $navigation.selectedModuleID) {
                     Section("Built-in") {
                         ForEach(runtime.builtInModuleIDs, id: \.self) { moduleID in
                             moduleRow(moduleID: moduleID)
@@ -97,12 +97,6 @@ struct ModuleManagementView: View {
         }
     }
 
-    private var selectedModuleBinding: Binding<ModuleID?> {
-        Binding(
-            get: { navigation.selectedModuleID },
-            set: { navigation.selectedModuleID = $0 }
-        )
-    }
 }
 
 private struct ModuleManagementDetailView: View {

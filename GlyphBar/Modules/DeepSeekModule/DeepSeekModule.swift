@@ -379,7 +379,7 @@ private struct DeepSeekPanel: View {
             if !hasApiKey || showKeyField { setupView }
             else if let c = cached { connectedView(data: c) }
             else if let err = lastErrorMessage { errorView(message: err) }
-            else { GlyphLoadingView().frame(height: 200).onAppear { onRefresh() } }
+            else { GlyphLoadingView().frame(height: 200).task { onRefresh() } }
         }
         .padding(14)
         .sheet(isPresented: $showLoginSheet) { LoginSheet { cookie in

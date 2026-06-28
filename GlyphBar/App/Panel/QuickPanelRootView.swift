@@ -502,7 +502,7 @@ private struct CompactSnapshotDetails: View {
             }
             .padding(.trailing, 4)
         }
-        .scrollIndicators(.never)
+        .scrollIndicators(.hidden)
     }
 
     private var metricPairs: [(key: String, value: Double)] {
