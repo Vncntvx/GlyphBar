@@ -106,6 +106,17 @@ final class AppSettingsStore: ObservableObject {
         for manifest in manifests where refreshPolicies[manifest.id] == nil {
             refreshPolicies[manifest.id] = manifest.defaultRefreshPolicy
         }
+
+        // Auto-populate rotation defaults for new modules
+        if rotationModuleIDs.isEmpty {
+            rotationModuleIDs = Set(ids)
+        } else {
+            let newIDs = ids.filter { !rotationModuleIDs.contains($0) }
+            if !newIDs.isEmpty { rotationModuleIDs.formUnion(newIDs) }
+        }
+        for id in ids where rotationItemIDs[id] == nil {
+            rotationItemIDs[id] = ["default"]
+        }
     }
 
     func isEnabled(_ moduleID: ModuleID) -> Bool {

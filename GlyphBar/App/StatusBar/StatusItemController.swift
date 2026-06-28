@@ -301,12 +301,12 @@ final class StatusItemController: NSObject {
     private func render() {
         let enabledSnapshots = runtime.snapshots.filter { runtime.settingsStore.isEnabled($0.key) }
 
-        // Check for critical/warning signals first — always show these regardless of rotation
+        // Critical signals always take priority over rotation
         let signals = enabledSnapshots.values.flatMap(\.signals)
-        let hasAlert = signals.contains(where: { $0.severity >= .warning })
+        let hasCritical = signals.contains(where: { $0.severity == .critical })
 
         let presentation: StatusItemPresentation
-        if hasAlert {
+        if hasCritical {
             // Signals take priority over rotation
             presentation = composer.compose(
                 snapshots: enabledSnapshots,

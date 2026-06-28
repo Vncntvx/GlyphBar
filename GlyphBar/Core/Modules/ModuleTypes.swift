@@ -221,7 +221,7 @@ struct ModuleSnapshot: Identifiable, Codable, Hashable, Sendable {
             title: "Stale",
             message: reason,
             systemImage: "clock.badge.exclamationmark",
-            severity: .warning,
+            severity: .info,
             priority: 10
         ))
         return copy

@@ -164,6 +164,44 @@ final class DeepSeekModule: StatusModule {
             actions: [ModuleAction(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh)], widgets: [])
     }
 
+    func statusBarRotationItems(snapshot: ModuleSnapshot) -> [RotationItemDescriptor] {
+        guard let c = cached, c.totalBalance > 0 else {
+            return [RotationItemDescriptor(id: "balance", title: snapshot.title,
+                systemImage: snapshot.systemImage, tooltip: snapshot.subtitle)]
+        }
+        var items: [RotationItemDescriptor] = [
+            RotationItemDescriptor(id: "balance", title: String(format: "¥%.2f", c.totalBalance),
+                systemImage: "creditcard", tooltip: "Balance: ¥\(String(format: "%.2f", c.totalBalance))"),
+            RotationItemDescriptor(id: "todayCost", title: "¥\(String(format: "%.2f", c.todayCost))",
+                systemImage: "calendar", tooltip: "Today: ¥\(String(format: "%.2f", c.todayCost))"),
+        ]
+        if c.hasPlatformData {
+            items.append(contentsOf: [
+                RotationItemDescriptor(id: "monthlyCost", title: "¥\(String(format: "%.2f", c.monthlyCost))/mo",
+                    systemImage: "chart.bar", tooltip: "Month: ¥\(String(format: "%.2f", c.monthlyCost))"),
+                RotationItemDescriptor(id: "totalTokens", title: "\(fmtTokens(c.totalTokens)) tok",
+                    systemImage: "text.word.spacing", tooltip: "Tokens: \(c.totalTokens)"),
+            ])
+            let hitInput = c.modelV4FlashCacheHit + c.modelV4ProCacheHit
+            let missInput = c.modelV4FlashCacheMiss + c.modelV4ProCacheMiss
+            let total = hitInput + missInput
+            if total > 0 {
+                let pct = Int(Double(hitInput) / Double(total) * 100)
+                items.append(RotationItemDescriptor(id: "cacheHitRate", title: "Cache \(pct)%",
+                    systemImage: "arrow.trianglehead.capsulepath", tooltip: "Cache hit: \(pct)%"))
+            }
+            items.append(RotationItemDescriptor(id: "totalRequests", title: "\(c.totalRequests) req",
+                systemImage: "arrow.up.doc", tooltip: "Requests: \(c.totalRequests)"))
+        }
+        return items
+    }
+
+    private func fmtTokens(_ t: Int) -> String {
+        if t >= 1_000_000 { return String(format: "%.1fM", Double(t) / 1_000_000) }
+        if t >= 1_000 { return String(format: "%.1fK", Double(t) / 1_000) }
+        return "\(t)"
+    }
+
     func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
         lastErrorMessage = nil; cookieExpired = false
         platformCookie = context.secureStore.secret(for: "deepseek.platformCookie")

@@ -22,8 +22,13 @@ final class StatusRotationEngine {
                   let module = modules[id],
                   let snap = snapshots[id] else { continue }
             let descriptors = module.statusBarRotationItems(snapshot: snap)
-            let selectedIDs = rotationItemIDs[id] ?? Set(descriptors.prefix(1).map(\.id))
-            for desc in descriptors where selectedIDs.contains(desc.id) {
+            let selectedIDs = rotationItemIDs[id]
+            let filtered = descriptors.filter { desc in
+                if let sel = selectedIDs { return sel.contains(desc.id) }
+                return true // no stored preference → show all
+            }
+            let toAdd = filtered.isEmpty ? descriptors.prefix(1) : filtered[...]
+            for desc in toAdd {
                 items.append(RotationItem(
                     moduleID: id,
                     title: desc.title,
