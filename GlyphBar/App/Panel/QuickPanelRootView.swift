@@ -116,24 +116,16 @@ private struct PanelHeader: View {
 // MARK: - Module Switcher Scroller (AppKit bridge for thin scrollbar + scroll wheel support)
 
 private struct ModuleSwitcherScroller: NSViewRepresentable {
-    struct Item {
-        let id: ModuleID
-        let title: String
-        let systemImage: String
-        let isSelected: Bool
-        let severity: Severity
-    }
-
-    let items: [Item]
+    let moduleIDs: [ModuleID]
+    let runtime: ModuleRuntime
     let scrollToIndex: Int?
-    let onSelect: (ModuleID) -> Void
 
     func makeNSView(context: Context) -> HScrollScrollView {
         let scrollView = HScrollScrollView()
         let stack = NSStackView()
         stack.orientation = .horizontal
         stack.spacing = 6
-        stack.edgeInsets = NSEdgeInsets(top: 2, left: 4, bottom: 12, right: 4)
+        stack.edgeInsets = NSEdgeInsets(top: 2, left: 4, bottom: 4, right: 4)
         stack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.documentView = stack
         stack.heightAnchor.constraint(equalTo: scrollView.contentView.heightAnchor).isActive = true
@@ -144,42 +136,26 @@ private struct ModuleSwitcherScroller: NSViewRepresentable {
 
     func updateNSView(_ nsView: HScrollScrollView, context: Context) {
         guard let stack = nsView.documentView as? NSStackView else { return }
-        let newIDs = items.map(\.id)
-        if context.coordinator.currentIDs != newIDs {
+        if context.coordinator.currentIDs != moduleIDs {
             rebuild(stack, context: context)
-            context.coordinator.currentIDs = newIDs
-        } else {
-            for (i, item) in items.enumerated() {
-                guard i < stack.arrangedSubviews.count else { break }
-                if let host = stack.arrangedSubviews[i] as? NSHostingView<AnyView> {
-                    host.rootView = AnyView(buttonView(for: item))
-                }
-            }
+            context.coordinator.currentIDs = moduleIDs
         }
-        if let scrollToIndex, scrollToIndex != context.coordinator.lastScrollIndex {
-            context.coordinator.lastScrollIndex = scrollToIndex
-            DispatchQueue.main.async { nsView.scrollToIndex(scrollToIndex) }
+        // Selection/severity changes are handled by each button's own
+        // @ObservedObject runtime — no rootView replacement needed.
+        if let idx = scrollToIndex, idx != context.coordinator.lastScrollIndex {
+            context.coordinator.lastScrollIndex = idx
+            nsView.scrollToIndex(idx)
         }
     }
 
     private func rebuild(_ stack: NSStackView, context: Context) {
         stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        for item in items {
-            let host = NSHostingView(rootView: AnyView(buttonView(for: item)))
+        for moduleID in moduleIDs {
+            let host = NSHostingView(rootView: ModuleTabButtonHost(moduleID: moduleID, runtime: runtime))
             host.setContentHuggingPriority(.required, for: .horizontal)
             host.setContentHuggingPriority(.required, for: .vertical)
             stack.addArrangedSubview(host)
         }
-    }
-
-    private func buttonView(for item: Item) -> some View {
-        ModuleSwitchButton(
-            title: item.title,
-            systemImage: item.systemImage,
-            isSelected: item.isSelected,
-            severity: item.severity,
-            action: { onSelect(item.id) }
-        )
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -219,6 +195,20 @@ private final class HScrollScrollView: NSScrollView {
         contentView.drawsBackground = false
     }
 
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // Let the scroller handle hits in its area; otherwise bypass
+        // NSScrollView's drag-start detection and deliver directly to
+        // the button (NSHostingView) under the cursor.
+        if let scrollerHit = horizontalScroller?.hitTest(point) {
+            return scrollerHit
+        }
+        if let docView = documentView {
+            let docPoint = convert(point, to: docView)
+            return docView.hitTest(docPoint) ?? super.hitTest(point)
+        }
+        return super.hitTest(point)
+    }
+
     override func scrollWheel(with event: NSEvent) {
         if event.scrollingDeltaX == 0 && event.scrollingDeltaY != 0 {
             let clip = contentView
@@ -240,11 +230,7 @@ private final class HScrollScrollView: NSScrollView {
         let targetOrigin = max(0, frame.midX - contentView.bounds.width / 2)
         let maxOrigin = max(0, (documentView?.frame.width ?? 0) - contentView.bounds.width)
         let clamped = min(targetOrigin, maxOrigin)
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.16
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            contentView.animator().setBoundsOrigin(NSPoint(x: clamped, y: 0))
-        }
+        contentView.setBoundsOrigin(NSPoint(x: clamped, y: 0))
         reflectScrolledClipView(contentView)
     }
 }
@@ -273,40 +259,33 @@ private struct ModuleSwitcher: View {
 
     var body: some View {
         ModuleSwitcherScroller(
-            items: moduleItems,
-            scrollToIndex: scrollTargetIndex,
-            onSelect: { moduleID in
-                runtime.setSelectedModule(moduleID)
-            }
+            moduleIDs: runtime.enabledModuleIDs,
+            runtime: runtime,
+            scrollToIndex: runtime.enabledModuleIDs.firstIndex(of: runtime.selectedModuleID ?? "")
         )
         .padding(.horizontal, 8)
         .frame(height: 42)
     }
+}
 
-    private var moduleItems: [ModuleSwitcherScroller.Item] {
-        enabledIDs.map { id in
-            ModuleSwitcherScroller.Item(
-                id: id,
-                title: runtime.modules[id]?.manifest.displayName ?? "",
-                systemImage: runtime.modules[id]?.manifest.systemImage ?? "questionmark",
-                isSelected: runtime.selectedModuleID == id,
-                severity: severity(for: id)
-            )
-        }
-    }
+// MARK: - Module Tab Button (self-observing, stable identity)
 
-    private var scrollTargetIndex: Int? {
-        guard let selectedID = runtime.selectedModuleID,
-              let index = enabledIDs.firstIndex(of: selectedID) else { return nil }
-        return index
-    }
+private struct ModuleTabButtonHost: View {
+    let moduleID: ModuleID
+    @ObservedObject var runtime: ModuleRuntime
 
-    private var enabledIDs: [ModuleID] {
-        runtime.enabledModuleIDs
-    }
+    var body: some View {
+        let manifest = runtime.modules[moduleID]?.manifest
+        let isSelected = runtime.selectedModuleID == moduleID
+        let severity = runtime.snapshots[moduleID]?.signals.map(\.severity).max() ?? .normal
 
-    private func severity(for moduleID: ModuleID) -> Severity {
-        runtime.snapshots[moduleID]?.signals.map(\.severity).max() ?? .normal
+        ModuleSwitchButton(
+            title: manifest?.displayName ?? "",
+            systemImage: manifest?.systemImage ?? "questionmark",
+            isSelected: isSelected,
+            severity: severity,
+            action: { runtime.setSelectedModule(moduleID) }
+        )
     }
 }
 
@@ -318,38 +297,37 @@ private struct ModuleSwitchButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: systemImage)
-                    .symbolRenderingMode(.hierarchical)
-                Text(title)
-                    .lineLimit(1)
-            }
-            .font(.caption.weight(isSelected ? .semibold : .regular))
-            .padding(.horizontal, 9)
-            .frame(height: 28)
-            .background(background, in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(isSelected ? Color.accentColor.opacity(0.36) : Color.clear, lineWidth: 1)
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+            Text(title)
+                .lineLimit(1)
+            if !isSelected, severity >= .warning {
+                Circle()
+                    .fill(severity == .critical ? Color.red : Color.orange)
+                    .frame(width: 5, height: 5)
             }
         }
-        .buttonStyle(.plain)
+        .font(.caption.weight(isSelected ? .semibold : .regular))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .foregroundStyle(isSelected ? .primary : .secondary)
+        .background(background, in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(borderColor, lineWidth: 1)
+        }
+        .contentShape(.interaction, Capsule())
+        .onTapGesture { action() }
         .help(title)
     }
 
     private var background: Color {
-        if isSelected {
-            return Color.accentColor.opacity(0.16)
-        }
+        isSelected ? Color.accentColor.opacity(0.16) : .clear
+    }
 
-        switch severity {
-        case .warning: return .orange.opacity(0.10)
-        case .critical: return .red.opacity(0.12)
-        case .info: return .blue.opacity(0.10)
-        case .normal: return .clear
-        }
+    private var borderColor: Color {
+        isSelected ? Color.accentColor.opacity(0.36) : Color.primary.opacity(0.08)
     }
 }
 
