@@ -74,6 +74,10 @@
 		B9AB32F8FB56640F4B5DDCA6 /* App/Settings/AboutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22D343E5522A4BD0A3337A9 /* App/Settings/AboutSettingsView.swift */; };
 		B320177F2AE2345FF9853167 /* App/Settings/LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D76B73A1CF44B03B29ED64 /* App/Settings/LogsView.swift */; };
 		BFB039805179844118448B23 /* App/Windows/LogsWindowCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE68FD1ED5C0844FD9A613AC /* App/Windows/LogsWindowCoordinator.swift */; };
+		BD629F6CC3FDA441DA9768FF /* Modules/DeepSeekModule/DeepSeekModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A99DB91499E99424FAC2F40E /* Modules/DeepSeekModule/DeepSeekModule.swift */; };
+		B2CEFB3A8DAF5437EA078FAF /* Modules/DeepSeekModule/LoginWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40D0A29C4B64E53A58ECBA /* Modules/DeepSeekModule/LoginWebView.swift */; };
+		B2E63DE050D64432E811F3D8 /* Modules/DeepSeekModule/UsageCSVParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6CAC4233ED648FF99E0E4C /* Modules/DeepSeekModule/UsageCSVParser.swift */; };
+		BA037834C051D44CFB213F9F /* Modules/DeepSeekModule/UsageExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A877ACBB40B714CAFBC4398F /* Modules/DeepSeekModule/UsageExportService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -177,6 +181,10 @@
 		A22D343E5522A4BD0A3337A9 /* App/Settings/AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/AboutSettingsView.swift; sourceTree = "<group>"; };
 		A9D76B73A1CF44B03B29ED64 /* App/Settings/LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/LogsView.swift; sourceTree = "<group>"; };
 		AE68FD1ED5C0844FD9A613AC /* App/Windows/LogsWindowCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Windows/LogsWindowCoordinator.swift; sourceTree = "<group>"; };
+		A99DB91499E99424FAC2F40E /* Modules/DeepSeekModule/DeepSeekModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/DeepSeekModule.swift; sourceTree = "<group>"; };
+		AB40D0A29C4B64E53A58ECBA /* Modules/DeepSeekModule/LoginWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/LoginWebView.swift; sourceTree = "<group>"; };
+		AE6CAC4233ED648FF99E0E4C /* Modules/DeepSeekModule/UsageCSVParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/UsageCSVParser.swift; sourceTree = "<group>"; };
+		A877ACBB40B714CAFBC4398F /* Modules/DeepSeekModule/UsageExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/UsageExportService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -263,6 +271,10 @@
 				A00000000000000000000119 /* DesignSystem/GlyphControls.swift */,
 				A0000000000000000000011A /* DesignSystem/GlyphStates.swift */,
 				A0000000000000000000011B /* Modules/ClockModule/ClockModule.swift */,
+				A99DB91499E99424FAC2F40E /* Modules/DeepSeekModule/DeepSeekModule.swift */,
+				A877ACBB40B714CAFBC4398F /* Modules/DeepSeekModule/UsageExportService.swift */,
+				AE6CAC4233ED648FF99E0E4C /* Modules/DeepSeekModule/UsageCSVParser.swift */,
+				AB40D0A29C4B64E53A58ECBA /* Modules/DeepSeekModule/LoginWebView.swift */,
 				A0000000000000000000011C /* Modules/SystemPulseModule/SystemPulseModule.swift */,
 				A0000000000000000000011D /* Modules/NotesQuickModule/NotesQuickModule.swift */,
 				A0000000000000000000011E /* Modules/CounterModule/CounterModule.swift */,
@@ -470,6 +482,10 @@
 				B00000000000000000000119 /* DesignSystem/GlyphControls.swift in Sources */,
 				B0000000000000000000011A /* DesignSystem/GlyphStates.swift in Sources */,
 				B0000000000000000000011B /* Modules/ClockModule/ClockModule.swift in Sources */,
+				BD629F6CC3FDA441DA9768FF /* Modules/DeepSeekModule/DeepSeekModule.swift in Sources */,
+				BA037834C051D44CFB213F9F /* Modules/DeepSeekModule/UsageExportService.swift in Sources */,
+				B2E63DE050D64432E811F3D8 /* Modules/DeepSeekModule/UsageCSVParser.swift in Sources */,
+				B2CEFB3A8DAF5437EA078FAF /* Modules/DeepSeekModule/LoginWebView.swift in Sources */,
 				B0000000000000000000011C /* Modules/SystemPulseModule/SystemPulseModule.swift in Sources */,
 				B0000000000000000000011D /* Modules/NotesQuickModule/NotesQuickModule.swift in Sources */,
 				B0000000000000000000011E /* Modules/CounterModule/CounterModule.swift in Sources */,

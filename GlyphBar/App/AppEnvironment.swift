@@ -67,6 +67,7 @@ final class AppEnvironment: ObservableObject {
             widgetBridge: widgetBridge
         )
         let registry = ModuleRegistry()
+        registry.register { DeepSeekModule() }
         registry.register { ClockModule() }
         registry.register { SystemPulseModule() }
         registry.register { NotesQuickModule() }
@@ -123,6 +124,11 @@ final class AppEnvironment: ObservableObject {
         self.appMenuCoordinator = appMenuCoordinator
         self.statusItemController = statusItemController
         self.router = router
+
+        // Ensure DeepSeek is first in module order
+        var order = settingsStore.moduleOrder
+        order.removeAll { $0 == "deepseek" }
+        settingsStore.moduleOrder = ["deepseek"] + order
     }
 
     func start() {

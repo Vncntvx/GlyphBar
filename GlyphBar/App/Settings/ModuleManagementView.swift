@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 struct ModuleManagementView: View {
     @ObservedObject var environment: AppEnvironment
@@ -63,6 +64,7 @@ struct ModuleManagementView: View {
                     runtime: runtime,
                     settingsStore: settingsStore,
                     cacheStore: cacheStore,
+                    environment: environment,
                     selectedModuleID: navigation.selectedModuleID
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -107,6 +109,7 @@ private struct ModuleManagementDetailView: View {
     @ObservedObject var runtime: ModuleRuntime
     @ObservedObject var settingsStore: AppSettingsStore
     let cacheStore: CacheStore
+    let environment: AppEnvironment
     let selectedModuleID: ModuleID?
 
     var body: some View {
@@ -137,6 +140,15 @@ private struct ModuleManagementDetailView: View {
                         Text("Refresh")
                     } footer: {
                         Text("Controls how often this module publishes a fresh snapshot.")
+                    }
+                    if selectedModuleID == "deepseek" {
+                        Section {
+                            DeepSeekConfigSection(secureStore: environment.secureStore)
+                        } header: {
+                            Text("Configuration")
+                        } footer: {
+                            Text("API key + platform login for full usage tracking.")
+                        }
                     }
                     Section("Controls") {
                         Toggle("Enabled", isOn: enabledBinding(module.manifest.id))
@@ -259,6 +271,129 @@ private struct ModuleManagementDetailView: View {
             try runtime.removeThirdPartyModule(moduleID: moduleID)
         } catch {
             runtime.userNotice = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - DeepSeek Configuration Section
+
+private struct DeepSeekConfigSection: View {
+    let secureStore: SecureStore
+    @State private var keyInput: String = ""
+    @State private var isEditingKey = false
+    @State private var showLoginSheet = false
+    @State private var hasCookie = false
+    @State private var hasApiKey = false
+
+    private let apiKeyName = "deepseek.apiKey"
+    private let cookieKey = "deepseek.platformCookie"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            apiKeyRow
+            Divider()
+            loginRow
+        }
+        .sheet(isPresented: $showLoginSheet) {
+            LoginSheet { cookie in
+                UserDefaults.standard.set(cookie, forKey: cookieKey)
+                hasCookie = true
+                showLoginSheet = false
+            }
+        }
+        .onAppear {
+            refreshState()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+            refreshState()
+        }
+    }
+
+    private func refreshState() {
+        hasApiKey = secureStore.secret(for: apiKeyName)?.isEmpty == false
+        hasCookie = UserDefaults.standard.string(forKey: cookieKey)?.isEmpty == false
+    }
+
+    // MARK: API Key
+
+    private var apiKeyRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Label("API Key", systemImage: "key.fill").font(.callout.weight(.medium))
+                Spacer()
+                if isEditingKey {
+                    Button("Cancel") { isEditingKey = false }.buttonStyle(.bordered).controlSize(.small)
+                } else if hasApiKey {
+                    Button("Change") { keyInput = secureStore.secret(for: apiKeyName) ?? ""; isEditingKey = true }
+                        .buttonStyle(.bordered).controlSize(.small)
+                    Button("Remove") { secureStore.setSecret(nil, for: apiKeyName) }.buttonStyle(.bordered).controlSize(.small)
+                }
+            }
+
+            if isEditingKey {
+                HStack {
+                    SecureField("sk-...", text: $keyInput).textFieldStyle(.roundedBorder)
+                    Button("Save") {
+                        let k = keyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !k.isEmpty { secureStore.setSecret(k, for: apiKeyName) }
+                        isEditingKey = false
+                    }
+                    .buttonStyle(.borderedProminent).controlSize(.small)
+                }
+            } else if hasApiKey {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption)
+                    Text("Configured").font(.caption).foregroundStyle(.secondary)
+                }
+            } else {
+                HStack(spacing: 4) {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.red).font(.caption)
+                    Text("Not configured").font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Add Key") { keyInput = ""; isEditingKey = true }.buttonStyle(.bordered).controlSize(.small)
+                }
+            }
+        }
+    }
+
+    // MARK: Platform Login
+
+    private var loginRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Label("Platform Login", systemImage: "person.badge.key").font(.callout.weight(.medium))
+                Spacer()
+                if hasCookie {
+                    Button("Re-login") { showLoginSheet = true }.buttonStyle(.bordered).controlSize(.small)
+                    Button("Logout") {
+                        // Clear cookie from storage
+                        UserDefaults.standard.removeObject(forKey: cookieKey)
+                        // Clear WKWebView cookies so next login starts fresh
+                        WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                            for c in cookies {
+                                WKWebsiteDataStore.default().httpCookieStore.delete(c)
+                            }
+                        }
+                        // Clear cached platform usage data
+                        UserDefaults.standard.removeObject(forKey: "deepseek.cache")
+                        hasCookie = false
+                    }
+                    .buttonStyle(.bordered).controlSize(.small)
+                }
+            }
+            if hasCookie {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption)
+                    Text("Session active — usage tracking enabled").font(.caption).foregroundStyle(.secondary)
+                }
+            } else {
+                HStack(spacing: 4) {
+                    Image(systemName: "circle").foregroundStyle(.secondary).font(.caption)
+                    Text("Login to unlock detailed usage statistics").font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Login") { showLoginSheet = true }.buttonStyle(.borderedProminent).controlSize(.small)
+                }
+            }
         }
     }
 }

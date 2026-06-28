@@ -394,17 +394,11 @@ private struct CompactModuleView: View {
     let snapshot: ModuleSnapshot?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ModuleSummaryBlock(module: module, snapshot: snapshot)
-
-            CompactSnapshotDetails(snapshot: snapshot)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Spacer(minLength: 0)
-
-            ModuleActionStrip(runtime: runtime, module: module)
+        ScrollView {
+            module.makePanelView(context: runtime.context, snapshot: snapshot)
+                .frame(minHeight: 300)
         }
-        .padding(14)
+        .background(.regularMaterial)
     }
 }
 
