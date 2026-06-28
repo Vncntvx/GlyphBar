@@ -20,7 +20,96 @@ private struct BalanceResponse: Codable {
     enum CodingKeys: String, CodingKey { case isAvailable = "is_available", balanceInfos = "balance_infos" }
 }
 
-// MARK: - Cache
+// MARK: - Usage Record Store
+
+private struct UsageRecord: Codable {
+    var date: String; var model: String
+    var totalTokens: Int; var promptTokens: Int; var completionTokens: Int
+    var inputCacheHitTokens: Int; var inputCacheMissTokens: Int
+    var cost: Double; var requestCount: Int
+}
+
+private final class UsageRecordStore {
+    private let url: URL
+    private var records: [String: UsageRecord] = [:] // key = "date|model"
+
+    init() {
+        let cacheDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cache/GlyphBar")
+        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        url = cacheDir.appendingPathComponent("deepseek-usage.json")
+        load()
+    }
+
+    func upsert(_ items: [ParsedUsageItem]) {
+        for item in items {
+            let key = "\(item.date)|\(item.model)"
+            records[key] = UsageRecord(
+                date: item.date, model: item.model,
+                totalTokens: item.totalTokens, promptTokens: item.promptTokens,
+                completionTokens: item.completionTokens,
+                inputCacheHitTokens: item.inputCacheHitTokens,
+                inputCacheMissTokens: item.inputCacheMissTokens,
+                cost: item.cost, requestCount: item.requestCount
+            )
+        }
+        save()
+    }
+
+    func dailyItems(days: Int) -> [CachedData.DailyItem] {
+        let all = records.values.sorted { $0.date < $1.date }
+        let recent = Array(all.suffix(days))
+        var map: [String: (t: Int, c: Double, ft: Int, pt: Int, fc: Double, pc: Double)] = [:]
+        for r in recent {
+            let isFlash = r.model.contains("flash") || r.model.contains("chat")
+            var e = map[r.date] ?? (0, 0, 0, 0, 0, 0)
+            e.t += r.totalTokens; e.c += r.cost
+            if isFlash { e.ft += r.totalTokens; e.fc += r.cost }
+            else { e.pt += r.totalTokens; e.pc += r.cost }
+            map[r.date] = e
+        }
+        return map.map { CachedData.DailyItem(date: $0.key, tokens: $0.value.t, cost: $0.value.c,
+            flashTokens: $0.value.ft, proTokens: $0.value.pt, flashCost: $0.value.fc, proCost: $0.value.pc) }
+            .sorted { $0.date < $1.date }
+    }
+
+    var totalTokens: Int { records.values.reduce(0) { $0 + $1.totalTokens } }
+    var totalCacheHit: Int { records.values.reduce(0) { $0 + $1.inputCacheHitTokens } }
+    var totalRequests: Int { records.values.reduce(0) { $0 + $1.requestCount } }
+    var hasData: Bool { !records.isEmpty }
+
+    func flashTokens() -> Int { records.values.filter { $0.model.contains("flash") || $0.model.contains("chat") }.reduce(0) { $0 + $1.totalTokens } }
+    func flashCost() -> Double { records.values.filter { $0.model.contains("flash") || $0.model.contains("chat") }.reduce(0) { $0 + $1.cost } }
+    func flashCacheHit() -> Int { records.values.filter { $0.model.contains("flash") || $0.model.contains("chat") }.reduce(0) { $0 + $1.inputCacheHitTokens } }
+    func flashCacheMiss() -> Int { records.values.filter { $0.model.contains("flash") || $0.model.contains("chat") }.reduce(0) { $0 + $1.inputCacheMissTokens } }
+    func proTokens() -> Int { records.values.filter { $0.model.contains("pro") || $0.model.contains("reasoner") }.reduce(0) { $0 + $1.totalTokens } }
+    func proCost() -> Double { records.values.filter { $0.model.contains("pro") || $0.model.contains("reasoner") }.reduce(0) { $0 + $1.cost } }
+    func proCacheHit() -> Int { records.values.filter { $0.model.contains("pro") || $0.model.contains("reasoner") }.reduce(0) { $0 + $1.inputCacheHitTokens } }
+    func proCacheMiss() -> Int { records.values.filter { $0.model.contains("pro") || $0.model.contains("reasoner") }.reduce(0) { $0 + $1.inputCacheMissTokens } }
+
+    func todayCost() -> Double {
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate]; let today = f.string(from: Date())
+        return records.values.filter { $0.date == today }.reduce(0) { $0 + $1.cost }
+    }
+
+    func monthlyCost() -> Double {
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate]
+        let cal = Calendar.current; let today = Date()
+        let monthStart = f.string(from: cal.date(from: cal.dateComponents([.year, .month], from: today))!)
+        return records.values.filter { $0.date >= monthStart }.reduce(0) { $0 + $1.cost }
+    }
+
+    private func load() {
+        guard let data = try? Data(contentsOf: url),
+              let arr = try? JSONDecoder().decode([UsageRecord].self, from: data) else { return }
+        for r in arr { records["\(r.date)|\(r.model)"] = r }
+    }
+
+    private func save() {
+        let arr = Array(records.values)
+        guard let data = try? JSONEncoder().encode(arr) else { return }
+        try? data.write(to: url)
+    }
+}
 
 private struct CachedData: Codable {
     let totalBalance: Double; let grantedBalance: Double; let toppedUpBalance: Double
@@ -49,6 +138,7 @@ final class DeepSeekModule: StatusModule {
     private let apiBase = "https://api.deepseek.com"
     private let defaults = UserDefaults.standard
     private let exportService = UsageExportService()
+    private let store = UsageRecordStore()
 
     init() { loadState(); platformCookie = defaults.string(forKey: "deepseek.platformCookie") }
 
@@ -135,55 +225,22 @@ final class DeepSeekModule: StatusModule {
     }
 
     private func applyExportedItems(_ items: [ParsedUsageItem]) {
-        log.info("applyExportedItems: \(items.count, privacy: .public) items, models: \(Set(items.map(\.model)), privacy: .public), dates: \(Set(items.map(\.date)), privacy: .public)")
-        let flashItems = items.filter { $0.model == "deepseek-v4-flash" || $0.model == "deepseek-chat" }
-        let proItems = items.filter { $0.model == "deepseek-v4-pro" || $0.model == "deepseek-reasoner" }
+        log.info("Upserting \(items.count, privacy: .public) items into store")
+        self.store.upsert(items)
 
-        let flashTokens = flashItems.reduce(0) { $0 + $1.totalTokens }
-        let flashCost = flashItems.reduce(0.0) { $0 + $1.cost }
-        let flashCacheHit = flashItems.reduce(0) { $0 + $1.inputCacheHitTokens }
-        let flashCacheMiss = flashItems.reduce(0) { $0 + $1.inputCacheMissTokens }
-        let flashRequests = flashItems.reduce(0) { $0 + $1.requestCount }
-        let proTokens = proItems.reduce(0) { $0 + $1.totalTokens }
-        let proCost = proItems.reduce(0.0) { $0 + $1.cost }
-        let proCacheHit = proItems.reduce(0) { $0 + $1.inputCacheHitTokens }
-        let proCacheMiss = proItems.reduce(0) { $0 + $1.inputCacheMissTokens }
-        let proRequests = proItems.reduce(0) { $0 + $1.requestCount }
-        let totalT = flashTokens + proTokens
-        let totalCH = flashCacheHit + proCacheHit
-        let totalReq = flashRequests + proRequests
-
-        var dailyMap: [String: (t: Int, c: Double, ft: Int, pt: Int, fc: Double, pc: Double)] = [:]
-        for item in items {
-            let isFlash = item.model == "deepseek-v4-flash" || item.model == "deepseek-chat"
-            var e = dailyMap[item.date] ?? (0, 0, 0, 0, 0, 0)
-            e.t += item.totalTokens; e.c += item.cost
-            if isFlash { e.ft += item.totalTokens; e.fc += item.cost }
-            else { e.pt += item.totalTokens; e.pc += item.cost }
-            dailyMap[item.date] = e
-        }
-        let sortedDates = dailyMap.keys.sorted().suffix(7)
-        let dailies: [CachedData.DailyItem] = sortedDates.map { d in
-            let v = dailyMap[d] ?? (0, 0, 0, 0, 0, 0)
-            return CachedData.DailyItem(date: d, tokens: v.t, cost: v.c, flashTokens: v.ft, proTokens: v.pt, flashCost: v.fc, proCost: v.pc)
-        }
-        let dailyT = items.filter { $0.date == dailies.last?.date }.reduce(0) { $0 + $1.totalTokens }
-        let dailyC = dailies.last?.cost ?? 0
-        let monthlyC = dailies.reduce(0) { $0 + $1.cost }
-        log.info("Dailies: \(dailies.count, privacy: .public) days, monthlyCost=\(String(format: "%.2f", monthlyC), privacy: .public), flash=\(flashTokens, privacy: .public)/¥\(String(format: "%.2f", flashCost), privacy: .public), pro=\(proTokens, privacy: .public)/¥\(String(format: "%.2f", proCost), privacy: .public)")
-        for d in dailies { log.info("  \(d.date, privacy: .public): t=\(d.tokens, privacy: .public) c=\(String(format: "%.2f", d.cost), privacy: .public)") }
-
+        let dailies = self.store.dailyItems(days: 10)
         cached = CachedData(
             totalBalance: cached?.totalBalance ?? 0, grantedBalance: cached?.grantedBalance ?? 0,
             toppedUpBalance: cached?.toppedUpBalance ?? 0, isAvailable: cached?.isAvailable ?? false,
-            todayCost: dailyC, monthlyCost: monthlyC,
-            totalTokens: totalT, totalCacheHit: totalCH, totalRequests: totalReq,
-            modelV4FlashTokens: flashTokens, modelV4FlashCost: flashCost,
-            modelV4FlashCacheHit: flashCacheHit, modelV4FlashCacheMiss: flashCacheMiss,
-            modelV4ProTokens: proTokens, modelV4ProCost: proCost,
-            modelV4ProCacheHit: proCacheHit, modelV4ProCacheMiss: proCacheMiss,
-            dailyItems: dailies, lastUpdated: Date(), hasPlatformData: true
+            todayCost: self.store.todayCost(), monthlyCost: self.store.monthlyCost(),
+            totalTokens: self.store.totalTokens, totalCacheHit: self.store.totalCacheHit, totalRequests: self.store.totalRequests,
+            modelV4FlashTokens: self.store.flashTokens(), modelV4FlashCost: self.store.flashCost(),
+            modelV4FlashCacheHit: self.store.flashCacheHit(), modelV4FlashCacheMiss: self.store.flashCacheMiss(),
+            modelV4ProTokens: self.store.proTokens(), modelV4ProCost: self.store.proCost(),
+            modelV4ProCacheHit: self.store.proCacheHit(), modelV4ProCacheMiss: self.store.proCacheMiss(),
+            dailyItems: dailies, lastUpdated: Date(), hasPlatformData: self.store.hasData
         )
+        log.info("Store has \(dailies.count, privacy: .public) daily groups, monthly=¥\(String(format: "%.2f", self.store.monthlyCost()), privacy: .public)")
     }
 
     func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
