@@ -29,23 +29,17 @@ struct LoginWebView: NSViewRepresentable {
 
         init(onCookiesCaptured: @escaping (String) -> Void) { self.onCookiesCaptured = onCookiesCaptured }
 
+        /// Manual capture — only triggered when user clicks "Detect Login"
         func captureCookies(from webView: WKWebView) {
-            guard !didCapture else { return }
-            log.info("Manual capture triggered")
+            if didCapture {
+                log.info("Already captured, resetting for retry")
+                didCapture = false
+            }
+            log.info("Manual capture triggered by user")
             extractAuthData(from: webView)
         }
 
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            log.info("didFinish")
-            guard !didCapture else { return }
-            for delay in [2.0, 5.0, 10.0, 20.0] {
-                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, weak webView] in
-                    guard let self, let wv = webView, !self.didCapture else { return }
-                    log.info("Auto-extract at +\(delay)s")
-                    self.extractAuthData(from: wv)
-                }
-            }
-        }
+        // No auto-extraction — user must explicitly click "Detect Login"
 
         private func extractAuthData(from webView: WKWebView) {
             webView.evaluateJavaScript("JSON.stringify(window.localStorage)") { [weak self] result, error in
@@ -88,10 +82,10 @@ struct LoginWebView: NSViewRepresentable {
             webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
                 guard let self, !self.didCapture else { return }
                 self.didCapture = true
-                log.info("Cookies: \(cookies.count)")
+                log.info("Cookies: \(cookies.count), hasToken: \(token != nil)")
                 var parts: [String] = []
                 if let t = token { parts.append("authToken=\(t)"); log.info("Captured authToken") }
-                else { log.info("No auth token - cookies only") }
+                else { log.info("No auth token - capturing cookies only") }
                 // Also save raw userToken JSON from localStorage (for WKWebView injection)
                 if let rawToken = UserDefaults.standard.string(forKey: "deepseek.rawUserToken") {
                     parts.append("rawUserToken=\(rawToken)")
@@ -100,7 +94,7 @@ struct LoginWebView: NSViewRepresentable {
                     parts.append("\(c.name)=\(c.value)")
                 }
                 let cs = parts.joined(separator: "; ")
-                log.info("Final: \(cs.count) chars")
+                log.info("Final: \(cs.count) chars, hasAuthToken: \(token != nil)")
                 DispatchQueue.main.async { self.onCookiesCaptured(cs) }
             }
         }
@@ -112,6 +106,13 @@ struct LoginSheet: View {
     var onLogin: (String) -> Void
     @State private var showWebView = false
     @State private var webView: WKWebView?
+    @State private var isDetecting = false
+    @State private var detectionResult: DetectionResult?
+
+    private enum DetectionResult {
+        case success(tokenPreview: String)
+        case noSession
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -119,29 +120,98 @@ struct LoginSheet: View {
                 Label("DeepSeek Login", systemImage: "brain.head.profile").font(.headline)
                 Spacer()
                 if showWebView {
-                    Button("Detect Login") {
-                        if let wv = webView, let coord = wv.navigationDelegate as? LoginWebView.Coordinator {
-                            coord.captureCookies(from: wv)
+                    if isDetecting {
+                        ProgressView().scaleEffect(0.7)
+                    } else if case .success = detectionResult {
+                        Button("Done") { dismiss() }
+                            .buttonStyle(.borderedProminent).controlSize(.small)
+                    } else {
+                        Button("Detect Login") {
+                            detectLogin()
                         }
-                    }.buttonStyle(.borderedProminent).controlSize(.small)
+                        .buttonStyle(.borderedProminent).controlSize(.small)
+                    }
                 }
                 Button("Cancel") { dismiss() }.buttonStyle(.bordered).controlSize(.small)
             }.padding(12).background(.thinMaterial)
             Divider()
             if showWebView {
-                LoginWebView(url: URL(string: "https://platform.deepseek.com")!,
-                    onCookiesCaptured: { c in onLogin(c); dismiss() },
-                    onWebViewCreated: { wv in webView = wv })
+                ZStack(alignment: .bottom) {
+                    LoginWebView(url: URL(string: "https://platform.deepseek.com")!,
+                        onCookiesCaptured: { cookieString in
+                            handleCaptureResult(cookieString)
+                        },
+                        onWebViewCreated: { wv in webView = wv })
+
+                    // Detection status overlay
+                    if let result = detectionResult {
+                        detectionBanner(result)
+                    }
+                }
             } else {
                 VStack(spacing: 24) {
                     Image(systemName: "safari").font(.system(size: 40)).symbolRenderingMode(.hierarchical).foregroundStyle(.blue)
                     Text("Login to DeepSeek Platform").font(.title3.weight(.semibold))
-                    Text("After logging in, click Detect Login.").font(.callout).foregroundStyle(.secondary)
+                    Text("Log in with your credentials on the web page,\nthen click Detect Login to capture your session.").font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                     Button { showWebView = true } label: {
                         Label("Open Login Page", systemImage: "safari").frame(width: 180)
                     }.buttonStyle(.borderedProminent)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity).padding()
             }
         }.frame(width: 680, height: 520)
+    }
+
+    private func detectLogin() {
+        guard let wv = webView, let coord = wv.navigationDelegate as? LoginWebView.Coordinator else { return }
+        isDetecting = true
+        detectionResult = nil
+        coord.captureCookies(from: wv)
+        // After 3 seconds, if no result captured, show guidance
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [self] in
+            if isDetecting {
+                isDetecting = false
+                detectionResult = .noSession
+            }
+        }
+    }
+
+    private func handleCaptureResult(_ cookieString: String) {
+        isDetecting = false
+        let hasAuthToken = cookieString.contains("authToken=")
+        if hasAuthToken {
+            let preview: String
+            if let range = cookieString.range(of: "authToken=") {
+                let start = range.upperBound
+                let tokenStr = String(cookieString[start...])
+                let end = tokenStr.firstIndex(of: ";") ?? tokenStr.endIndex
+                let token = String(tokenStr[..<end])
+                preview = String(token.prefix(12)) + "..." + String(token.suffix(8))
+            } else {
+                preview = "detected"
+            }
+            detectionResult = .success(tokenPreview: preview)
+            onLogin(cookieString)
+        } else {
+            detectionResult = .noSession
+        }
+    }
+
+    @ViewBuilder
+    private func detectionBanner(_ result: DetectionResult) -> some View {
+        HStack(spacing: 8) {
+            switch result {
+            case .success(let preview):
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                Text("Session detected — \(preview)").font(.caption).foregroundStyle(.primary)
+            case .noSession:
+                Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+                Text("No session found. Please log in on the page first, then click Detect Login again.")
+                    .font(.caption).foregroundStyle(.red)
+            }
+        }
+        .padding(12)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(12)
     }
 }

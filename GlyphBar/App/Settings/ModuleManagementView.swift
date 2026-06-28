@@ -277,16 +277,18 @@ private struct ModuleManagementDetailView: View {
 
 // MARK: - DeepSeek Configuration Section
 
-private struct DeepSeekConfigSection: View {
-    let secureStore: SecureStore
-    @State private var keyInput: String = ""
-    @State private var isEditingKey = false
-    @State private var showLoginSheet = false
-    @State private var hasCookie = false
-    @State private var hasApiKey = false
+	private struct DeepSeekConfigSection: View {
+	    let secureStore: SecureStore
+	    @State private var keyInput: String = ""
+	    @State private var isEditingKey = false
+	    @State private var isValidatingKey = false
+	    @State private var keyValidationError: String?
+	    @State private var showLoginSheet = false
+	    @State private var hasCookie = false
+	    @State private var hasApiKey = false
 
-    private let apiKeyName = "deepseek.apiKey"
-    private let cookieKey = "deepseek.platformCookie"
+	    private let apiKeyName = "deepseek.apiKey"
+	    private let cookieKey = "deepseek.platformCookie"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -299,8 +301,7 @@ private struct DeepSeekConfigSection: View {
         .sheet(isPresented: $showLoginSheet) {
             LoginSheet { cookie in
                 UserDefaults.standard.set(cookie, forKey: cookieKey)
-                hasCookie = true
-                showLoginSheet = false
+                refreshState()
             }
         }
         .onAppear {
@@ -314,6 +315,28 @@ private struct DeepSeekConfigSection: View {
     private func refreshState() {
         hasApiKey = secureStore.secret(for: apiKeyName)?.isEmpty == false
         hasCookie = UserDefaults.standard.string(forKey: cookieKey)?.isEmpty == false
+    }
+
+    private func validateAndSave(_ key: String) {
+        isValidatingKey = true
+        keyValidationError = nil
+        Task {
+            do {
+                try await DeepSeekModule.validateApiKey(key)
+                await MainActor.run {
+                    secureStore.setSecret(key, for: apiKeyName)
+                    isValidatingKey = false
+                    isEditingKey = false
+                    keyValidationError = nil
+                    refreshState()
+                }
+            } catch {
+                await MainActor.run {
+                    isValidatingKey = false
+                    keyValidationError = error.localizedDescription
+                }
+            }
+        }
     }
 
     private func triggerExport() {
@@ -348,23 +371,41 @@ private struct DeepSeekConfigSection: View {
                 Label("API Key", systemImage: "key.fill").font(.callout.weight(.medium))
                 Spacer()
                 if isEditingKey {
-                    Button("Cancel") { isEditingKey = false }.buttonStyle(.bordered).controlSize(.small)
+                    Button("Cancel") {
+                        isEditingKey = false
+                        keyValidationError = nil
+                    }
+                    .buttonStyle(.bordered).controlSize(.small)
+                    .disabled(isValidatingKey)
                 } else if hasApiKey {
-                    Button("Change") { keyInput = secureStore.secret(for: apiKeyName) ?? ""; isEditingKey = true }
+                    Button("Change") { keyInput = secureStore.secret(for: apiKeyName) ?? ""; isEditingKey = true; keyValidationError = nil }
                         .buttonStyle(.bordered).controlSize(.small)
-                    Button("Remove") { secureStore.setSecret(nil, for: apiKeyName) }.buttonStyle(.bordered).controlSize(.small)
+                    Button("Remove") { secureStore.setSecret(nil, for: apiKeyName); refreshState() }
+                        .buttonStyle(.bordered).controlSize(.small)
                 }
             }
 
             if isEditingKey {
                 HStack {
-                    SecureField("sk-...", text: $keyInput).textFieldStyle(.roundedBorder)
+                    SecureField("sk-...", text: $keyInput)
+                        .textFieldStyle(.roundedBorder)
+                        .disabled(isValidatingKey)
+                    if isValidatingKey {
+                        ProgressView().scaleEffect(0.7).frame(width: 20)
+                    }
                     Button("Save") {
                         let k = keyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !k.isEmpty { secureStore.setSecret(k, for: apiKeyName) }
-                        isEditingKey = false
+                        guard !k.isEmpty else { return }
+                        validateAndSave(k)
                     }
                     .buttonStyle(.borderedProminent).controlSize(.small)
+                    .disabled(isValidatingKey || keyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                if let error = keyValidationError {
+                    HStack(spacing: 4) {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.red).font(.caption)
+                        Text(error).font(.caption).foregroundStyle(.red)
+                    }
                 }
             } else if hasApiKey {
                 HStack(spacing: 4) {
@@ -376,7 +417,8 @@ private struct DeepSeekConfigSection: View {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.red).font(.caption)
                     Text("Not configured").font(.caption).foregroundStyle(.secondary)
                     Spacer()
-                    Button("Add Key") { keyInput = ""; isEditingKey = true }.buttonStyle(.bordered).controlSize(.small)
+                    Button("Add Key") { keyInput = ""; isEditingKey = true; keyValidationError = nil }
+                        .buttonStyle(.bordered).controlSize(.small)
                 }
             }
         }

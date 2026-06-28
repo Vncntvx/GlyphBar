@@ -142,6 +142,20 @@ final class DeepSeekModule: StatusModule {
 
     init() { loadState(); platformCookie = defaults.string(forKey: "deepseek.platformCookie") }
 
+    /// Validates an API key by calling the /user/balance endpoint. Throws on failure.
+    static func validateApiKey(_ key: String) async throws {
+        let apiBase = "https://api.deepseek.com"
+        var req = URLRequest(url: URL(string: "\(apiBase)/user/balance")!)
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (_, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw DeepSeekError.networkError("Invalid response") }
+        if http.statusCode == 401 { throw DeepSeekError.invalidKey }
+        if http.statusCode == 403 { throw DeepSeekError.forbidden }
+        if http.statusCode == 429 { throw DeepSeekError.rateLimited }
+        if http.statusCode != 200 { throw DeepSeekError.apiError(http.statusCode, "") }
+    }
+
     var manifest: ModuleManifest {
         ModuleManifest(id: "deepseek", displayName: "DeepSeek", subtitle: "API balance & usage tracker",
             systemImage: "brain.head.profile", version: "1.2.0", author: "Wenjie Xu",
