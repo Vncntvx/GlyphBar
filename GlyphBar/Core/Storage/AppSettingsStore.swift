@@ -21,8 +21,20 @@ final class AppSettingsStore: ObservableObject {
         didSet { defaults.set(launchAtLogin, forKey: Keys.launchAtLogin) }
     }
 
-    @Published var compactStatusTitle: Bool {
-        didSet { defaults.set(compactStatusTitle, forKey: Keys.compactStatusTitle) }
+    @Published var statusRotationEnabled: Bool {
+        didSet { defaults.set(statusRotationEnabled, forKey: Keys.statusRotationEnabled) }
+    }
+
+    @Published var statusRotationInterval: Int {
+        didSet { defaults.set(statusRotationInterval, forKey: Keys.statusRotationInterval) }
+    }
+
+    @Published var rotationModuleIDs: Set<ModuleID> {
+        didSet { defaults.set(Array(rotationModuleIDs).sorted(), forKey: Keys.rotationModuleIDs) }
+    }
+
+    @Published var rotationItemIDs: [ModuleID: Set<String>] {
+        didSet { persistRotationItems() }
     }
 
     @Published var showDockIcon: Bool {
@@ -47,7 +59,15 @@ final class AppSettingsStore: ObservableObject {
         moduleOrder = defaults.stringArray(forKey: Keys.moduleOrder) ?? []
         primaryModuleID = defaults.string(forKey: Keys.primaryModuleID)
         launchAtLogin = defaults.bool(forKey: Keys.launchAtLogin)
-        compactStatusTitle = defaults.object(forKey: Keys.compactStatusTitle) as? Bool ?? false
+        statusRotationEnabled = defaults.object(forKey: Keys.statusRotationEnabled) as? Bool ?? false
+        statusRotationInterval = defaults.object(forKey: Keys.statusRotationInterval) as? Int ?? 5
+        rotationModuleIDs = Set(defaults.stringArray(forKey: Keys.rotationModuleIDs) ?? [])
+        if let data = defaults.data(forKey: Keys.rotationItemIDs),
+           let items = try? decoder.decode([ModuleID: Set<String>].self, from: data) {
+            rotationItemIDs = items
+        } else {
+            rotationItemIDs = [:]
+        }
         showDockIcon = defaults.object(forKey: Keys.showDockIcon) as? Bool ?? true
         colorScheme = defaults.string(forKey: Keys.colorScheme) ?? "system"
         pinPanel = defaults.object(forKey: Keys.pinPanel) as? Bool ?? false
@@ -149,13 +169,22 @@ final class AppSettingsStore: ObservableObject {
         defaults.set(data, forKey: Keys.refreshPolicies)
     }
 
+    private func persistRotationItems() {
+        if let data = try? encoder.encode(rotationItemIDs) {
+            defaults.set(data, forKey: Keys.rotationItemIDs)
+        }
+    }
+
     private enum Keys {
         static let enabledModuleIDs = "settings.enabledModuleIDs"
         static let moduleOrder = "settings.moduleOrder"
         static let primaryModuleID = "settings.primaryModuleID"
         static let refreshPolicies = "settings.refreshPolicies"
         static let launchAtLogin = "settings.launchAtLogin"
-        static let compactStatusTitle = "settings.compactStatusTitle"
+        static let statusRotationEnabled = "settings.statusRotationEnabled"
+        static let statusRotationInterval = "settings.statusRotationInterval"
+        static let rotationModuleIDs = "settings.rotationModuleIDs"
+        static let rotationItemIDs = "settings.rotationItemIDs"
         static let showDockIcon = "settings.showDockIcon"
         static let colorScheme = "settings.colorScheme"
         static let pinPanel = "settings.pinPanel"

@@ -150,6 +150,20 @@ private struct ModuleManagementDetailView: View {
                             Text("API key + platform login for full usage tracking.")
                         }
                     }
+                    Section {
+                        Toggle("Include in Status Bar Rotation", isOn: rotationModuleBinding(module.manifest.id))
+                        let snap = runtime.snapshots[module.manifest.id]
+                        let items = module.statusBarRotationItems(snapshot: snap ?? ModuleSnapshot(id: module.manifest.id, title: "", subtitle: "", systemImage: module.manifest.systemImage))
+                        if !items.isEmpty && (settingsStore.rotationModuleIDs.contains(module.manifest.id)) {
+                            ForEach(items) { item in
+                                Toggle(item.title, isOn: rotationItemBinding(moduleID: module.manifest.id, itemID: item.id))
+                            }
+                        }
+                    } header: {
+                        Text("Status Bar Rotation")
+                    } footer: {
+                        Text("Choose which information to show when cycling through modules in the status bar.")
+                    }
                     Section("Controls") {
                         Toggle("Enabled", isOn: enabledBinding(module.manifest.id))
                         HStack {
@@ -263,6 +277,36 @@ private struct ModuleManagementDetailView: View {
         Binding(
             get: { settingsStore.isEnabled(moduleID) },
             set: { settingsStore.setEnabled($0, moduleID: moduleID) }
+        )
+    }
+
+    private func rotationModuleBinding(_ moduleID: ModuleID) -> Binding<Bool> {
+        Binding(
+            get: { settingsStore.rotationModuleIDs.contains(moduleID) },
+            set: { enabled in
+                if enabled {
+                    settingsStore.rotationModuleIDs.insert(moduleID)
+                } else {
+                    settingsStore.rotationModuleIDs.remove(moduleID)
+                }
+            }
+        )
+    }
+
+    private func rotationItemBinding(moduleID: ModuleID, itemID: String) -> Binding<Bool> {
+        Binding(
+            get: {
+                settingsStore.rotationItemIDs[moduleID]?.contains(itemID) ?? false
+            },
+            set: { enabled in
+                var items = settingsStore.rotationItemIDs[moduleID] ?? []
+                if enabled {
+                    items.insert(itemID)
+                } else {
+                    items.remove(itemID)
+                }
+                settingsStore.rotationItemIDs[moduleID] = items
+            }
         )
     }
 

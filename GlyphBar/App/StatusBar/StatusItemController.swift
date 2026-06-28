@@ -36,6 +36,8 @@ final class StatusItemController: NSObject {
     private let menuCoordinator: AppMenuCoordinator
     private let logger: GlyphLogger
     private let composer = StatusComposer()
+    private let rotationEngine = StatusRotationEngine()
+    private var rotationTimer: Timer?
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private var cancellables: Set<AnyCancellable> = []
     private var pendingRender: DispatchWorkItem?
@@ -65,6 +67,8 @@ final class StatusItemController: NSObject {
         configureAppearance()
         configureInteraction()
         observeRuntime()
+        rebuildRotation()
+        updateRotationTimer()
         render()
     }
 
@@ -209,6 +213,7 @@ final class StatusItemController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.scheduleRender()
+                self?.rebuildRotation()
             }
             .store(in: &cancellables)
 
@@ -223,8 +228,63 @@ final class StatusItemController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.scheduleRender()
+                self?.rebuildRotation()
             }
             .store(in: &cancellables)
+
+        settingsStore.$statusRotationEnabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateRotationTimer()
+                self?.scheduleRender()
+            }
+            .store(in: &cancellables)
+
+        settingsStore.$statusRotationInterval
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateRotationTimer()
+            }
+            .store(in: &cancellables)
+
+        settingsStore.$rotationModuleIDs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.rebuildRotation()
+                self?.updateRotationTimer()
+                self?.scheduleRender()
+            }
+            .store(in: &cancellables)
+
+        settingsStore.$rotationItemIDs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.rebuildRotation()
+                self?.scheduleRender()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func rebuildRotation() {
+        rotationEngine.rebuild(
+            modules: runtime.modules,
+            snapshots: runtime.snapshots.filter { settingsStore.isEnabled($0.key) },
+            enabledIDs: settingsStore.enabledModuleIDs,
+            rotationModuleIDs: settingsStore.rotationModuleIDs,
+            rotationItemIDs: settingsStore.rotationItemIDs
+        )
+    }
+
+    private func updateRotationTimer() {
+        rotationTimer?.invalidate()
+        rotationTimer = nil
+        guard settingsStore.statusRotationEnabled, rotationEngine.count > 0 else { return }
+        let interval = TimeInterval(settingsStore.statusRotationInterval)
+        rotationTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.scheduleRender()
+            }
+        }
     }
 
     private func scheduleRender() {
@@ -240,16 +300,32 @@ final class StatusItemController: NSObject {
 
     private func render() {
         let enabledSnapshots = runtime.snapshots.filter { runtime.settingsStore.isEnabled($0.key) }
-        let presentation = composer.compose(
-            snapshots: enabledSnapshots,
-            primaryModuleID: settingsStore.primaryModuleID
-        )
+
+        // Check for critical/warning signals first — always show these regardless of rotation
+        let signals = enabledSnapshots.values.flatMap(\.signals)
+        let hasAlert = signals.contains(where: { $0.severity >= .warning })
+
+        let presentation: StatusItemPresentation
+        if hasAlert {
+            // Signals take priority over rotation
+            presentation = composer.compose(
+                snapshots: enabledSnapshots,
+                primaryModuleID: settingsStore.primaryModuleID
+            )
+        } else if settingsStore.statusRotationEnabled, let rotated = rotationEngine.tick() {
+            presentation = rotated
+        } else {
+            presentation = composer.compose(
+                snapshots: enabledSnapshots,
+                primaryModuleID: settingsStore.primaryModuleID
+            )
+        }
 
         guard let button = statusItem.button else {
             return
         }
 
-        button.title = settingsStore.compactStatusTitle ? "" : " \(presentation.title)"
+        button.title = " \(presentation.title)"
         button.image = NSImage(
             systemSymbolName: presentation.systemImage,
             accessibilityDescription: presentation.title

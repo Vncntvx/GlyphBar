@@ -13,9 +13,22 @@ struct MenuBarSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Status") {
-                Toggle("Compact Status Title", isOn: compactBinding)
+            Section {
+                Toggle("Dynamic Content Rotation", isOn: rotationEnabledBinding)
+                if settingsStore.statusRotationEnabled {
+                    Picker("Rotation Interval", selection: rotationIntervalBinding) {
+                        Text("Every 3 seconds").tag(3)
+                        Text("Every 5 seconds").tag(5)
+                        Text("Every 10 seconds").tag(10)
+                        Text("Every 15 seconds").tag(15)
+                    }
+                }
+            } header: {
+                Text("Status Bar Rotation")
+            } footer: {
+                Text("Enable per-module rotation items in Modules → select a module → Status Bar Rotation.")
             }
+
             Section("Primary Module") {
                 Picker("Primary Module", selection: primaryModuleBinding) {
                     ForEach(runtime.orderedModuleIDs, id: \.self) { moduleID in
@@ -35,9 +48,14 @@ struct MenuBarSettingsView: View {
         .formStyle(.grouped)
     }
 
-    private var compactBinding: Binding<Bool> {
-        Binding(get: { settingsStore.compactStatusTitle },
-                set: { settingsStore.compactStatusTitle = $0 })
+    private var rotationEnabledBinding: Binding<Bool> {
+        Binding(get: { settingsStore.statusRotationEnabled },
+                set: { settingsStore.statusRotationEnabled = $0 })
+    }
+
+    private var rotationIntervalBinding: Binding<Int> {
+        Binding(get: { settingsStore.statusRotationInterval },
+                set: { settingsStore.statusRotationInterval = $0 })
     }
 
     private var primaryModuleBinding: Binding<ModuleID?> {

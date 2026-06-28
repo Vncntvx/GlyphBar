@@ -22,6 +22,8 @@
 		B0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */; };
 		B0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */; };
 		B00000000000000000000110 /* Core/Status/StatusComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000110 /* Core/Status/StatusComposer.swift */; };
+		B0000000000000000000020B /* Core/Status/StatusRotationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000210 /* Core/Status/StatusRotationEngine.swift */; };
+
 		B00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift */; };
 		B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */; };
 		B00000000000000000000113 /* Core/Storage/AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */; };
@@ -129,6 +131,8 @@
 		A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ModuleRegistry.swift; sourceTree = "<group>"; };
 		A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ModuleRuntime.swift; sourceTree = "<group>"; };
 		A00000000000000000000110 /* Core/Status/StatusComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Status/StatusComposer.swift; sourceTree = "<group>"; };
+		A00000000000000000000210 /* Core/Status/StatusRotationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Status/StatusRotationEngine.swift; sourceTree = "<group>"; };
+
 		A00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Refresh/RefreshScheduler.swift; sourceTree = "<group>"; };
 		A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Permissions/PermissionCenter.swift; sourceTree = "<group>"; };
 		A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Storage/AppSettingsStore.swift; sourceTree = "<group>"; };
@@ -257,6 +261,7 @@
 				A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */,
 				A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */,
 				A00000000000000000000110 /* Core/Status/StatusComposer.swift */,
+				A00000000000000000000210 /* Core/Status/StatusRotationEngine.swift */,
 				A00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift */,
 				A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */,
 				A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */,
@@ -467,6 +472,7 @@
 				B0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift in Sources */,
 				B0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift in Sources */,
 				B00000000000000000000110 /* Core/Status/StatusComposer.swift in Sources */,
+				B0000000000000000000020B /* Core/Status/StatusRotationEngine.swift in Sources */,
 				B00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift in Sources */,
 				B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */,
 				B00000000000000000000113 /* Core/Storage/AppSettingsStore.swift in Sources */,
