@@ -72,6 +72,11 @@ final class AppSettingsStore: ObservableObject {
 
         if enabledModuleIDs.isEmpty {
             enabledModuleIDs = Set(ids)
+        } else {
+            let newIDs = ids.filter { !enabledModuleIDs.contains($0) }
+            if !newIDs.isEmpty {
+                enabledModuleIDs.formUnion(newIDs)
+            }
         }
 
         if primaryModuleID == nil {
