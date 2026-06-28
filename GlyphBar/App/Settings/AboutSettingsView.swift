@@ -2,13 +2,17 @@ import SwiftUI
 
 struct AboutSettingsView: View {
     var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "sparkles")
-                .font(.largeTitle)
-                .symbolRenderingMode(.hierarchical)
+        VStack(spacing: 12) {
+            if let appIcon = NSApp.applicationIconImage {
+                Image(nsImage: appIcon)
+                    .resizable()
+                    .frame(width: 80, height: 80)
+            }
             Text("GlyphBar").font(.title2.weight(.semibold))
-            Text("Wenjie Xu")
-            Text("wenjie.xu.cn@outlook.com").foregroundStyle(.secondary)
+            Text("Developer: Wenjie Xu")
+                .font(.body)
+            Text("wenjie.xu.cn@outlook.com")
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
