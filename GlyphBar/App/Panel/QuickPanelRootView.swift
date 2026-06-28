@@ -605,24 +605,35 @@ private struct ModuleActionStrip: View {
 private struct PanelFooter: View {
     @ObservedObject var runtime: ModuleRuntime
     var coordinator: QuickPanelCoordinator?
+    @State private var isPinned = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Image(systemName: record?.sourceKind == .thirdParty ? "shippingbox" : "checkmark.seal")
+                .font(.caption)
+                .imageScale(.small)
                 .foregroundStyle(.secondary)
+                .frame(width: 14)
             Text(footerText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            GlyphToolbarButton(systemImage: "pin", help: "Keep Panel Open") {
+            GlyphToolbarButton(
+                systemImage: isPinned ? "pin.fill" : "pin",
+                help: isPinned ? "Unpin Panel" : "Keep Panel Open"
+            ) {
                 coordinator?.pin()
+                isPinned.toggle()
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.vertical, 8)
+        .onAppear {
+            isPinned = coordinator?.isPinned ?? false
+        }
     }
 
     private var record: ModuleRecord? {

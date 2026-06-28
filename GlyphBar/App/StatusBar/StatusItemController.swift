@@ -278,6 +278,10 @@ extension StatusItemController: NSStatusItemExpandedInterfaceDelegate {
             logger.statusItem("expanded session end (animated: \(animated))")
             isEndingExpandedSession = true
             defer { isEndingExpandedSession = false }
+            guard !settingsStore.pinPanel else {
+                logger.statusItem("panel pinned — keeping open")
+                return
+            }
             panelCoordinator.close()
         }
     }

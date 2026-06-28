@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 @MainActor
 final class QuickPanelCoordinator: ObservableObject {
@@ -12,6 +13,9 @@ final class QuickPanelCoordinator: ObservableObject {
 
     var onPanelHidden: (() -> Void)?
     var dismissOnResignKey = false
+
+    /// Reflects pinPanel from settings store for view binding.
+    var isPinned: Bool { settingsStore.pinPanel }
 
     /// Base value for the panel's hidesOnDeactivate. Defaults to true (macOS 26
     /// and earlier: auto-hide on app deactivation). Set to false on macOS 27,
@@ -31,7 +35,13 @@ final class QuickPanelCoordinator: ObservableObject {
         self.menuCoordinator = menuCoordinator
         self.settingsStore = settingsStore
         self.openFullWindowAction = openFullWindow
+        // Propagate settingsStore changes so views observing coordinator refresh.
+        settingsStore.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }.store(in: &cancellables)
     }
+
+    private var cancellables = Set<AnyCancellable>()
 
     func toggle(relativeTo statusItem: NSStatusItem) {
         lastStatusItem = statusItem
@@ -88,13 +98,13 @@ final class QuickPanelCoordinator: ObservableObject {
     }
 
     func resizePanel(to size: CGSize) {
-        guard let panel, panel.isVisible else { return }
+        guard let panel else { return }
         var f = panel.frame
         let newHeight = min(max(size.height, 200), 750)
         guard abs(f.size.height - newHeight) > 4 else { return }
         f.origin.y += f.size.height - newHeight
         f.size.height = newHeight
-        panel.setFrame(f, display: true, animate: true)
+        panel.setFrame(f, display: false, animate: false)
     }
 
     func openFullWindow() {

@@ -93,6 +93,8 @@ struct GlyphToolbarButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
+                .font(.body)
+                .imageScale(.medium)
                 .frame(width: 22, height: 22)
         }
         .buttonStyle(.borderless)
