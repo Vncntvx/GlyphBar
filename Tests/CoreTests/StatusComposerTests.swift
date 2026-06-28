@@ -1,8 +1,8 @@
-import XCTest
+import Testing
 @testable import GlyphBar
 
-final class StatusComposerTests: XCTestCase {
-    func testCriticalSignalOverridesPrimaryModule() {
+struct StatusComposerTests {
+    @Test func criticalSignalOverridesPrimaryModule() {
         let composer = StatusComposer()
         let primary = ModuleSnapshot(id: "clock", title: "12:00", subtitle: "Today", systemImage: "clock")
         let failing = ModuleSnapshot(
@@ -15,11 +15,11 @@ final class StatusComposerTests: XCTestCase {
 
         let presentation = composer.compose(snapshots: ["clock": primary, "networkMock": failing], primaryModuleID: "clock")
 
-        XCTAssertEqual(presentation.title, "Network Down")
-        XCTAssertEqual(presentation.severity, .critical)
+        #expect(presentation.title == "Network Down")
+        #expect(presentation.severity == .critical)
     }
 
-    func testWarningAggregationBeatsPrimaryModule() {
+    @Test func warningAggregationBeatsPrimaryModule() {
         let composer = StatusComposer()
         let first = ModuleSnapshot(
             id: "a",
@@ -38,7 +38,7 @@ final class StatusComposerTests: XCTestCase {
 
         let presentation = composer.compose(snapshots: ["a": first, "b": second], primaryModuleID: "a")
 
-        XCTAssertEqual(presentation.title, "2 warnings")
-        XCTAssertEqual(presentation.severity, .warning)
+        #expect(presentation.title == "2 warnings")
+        #expect(presentation.severity == .warning)
     }
 }

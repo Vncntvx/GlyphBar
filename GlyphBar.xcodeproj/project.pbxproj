@@ -61,6 +61,7 @@
 		B00000000000000000000322 /* WidgetShared/WidgetDataBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000122 /* WidgetShared/WidgetDataBridge.swift */; };
 		B00000000000000000000362 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000262 /* Assets.xcassets */; };
 		B00000000000000000000401 /* CoreTests/StatusComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000301 /* CoreTests/StatusComposerTests.swift */; };
+		B00000000000000000000410 /* CoreTests/StatusRotationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000310 /* CoreTests/StatusRotationEngineTests.swift */; };
 		B00000000000000000000402 /* CoreTests/DeepLinkRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000302 /* CoreTests/DeepLinkRouterTests.swift */; };
 		B00000000000000000000403 /* CoreTests/RefreshSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */; };
 		B00000000000000000000404 /* CoreTests/WidgetDataBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */; };
@@ -169,6 +170,7 @@
 		A00000000000000000000261 /* GlyphBarWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GlyphBarWidgets.entitlements; sourceTree = "<group>"; };
 		A00000000000000000000262 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A00000000000000000000301 /* CoreTests/StatusComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/StatusComposerTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000310 /* CoreTests/StatusRotationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/StatusRotationEngineTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000302 /* CoreTests/DeepLinkRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/DeepLinkRouterTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/RefreshSchedulerTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/WidgetDataBridgeTests.swift; sourceTree = "<group>"; };
@@ -316,6 +318,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000301 /* CoreTests/StatusComposerTests.swift */,
+				A00000000000000000000310 /* CoreTests/StatusRotationEngineTests.swift */,
 				A00000000000000000000302 /* CoreTests/DeepLinkRouterTests.swift */,
 				A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */,
 				A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */,
@@ -524,6 +527,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000401 /* CoreTests/StatusComposerTests.swift in Sources */,
+				B00000000000000000000410 /* CoreTests/StatusRotationEngineTests.swift in Sources */,
 				B00000000000000000000402 /* CoreTests/DeepLinkRouterTests.swift in Sources */,
 				B52A7A82D25D74065B4B38EF /* CoreTests/SettingsOverhaulTests.swift in Sources */,
 				B00000000000000000000403 /* CoreTests/RefreshSchedulerTests.swift in Sources */,

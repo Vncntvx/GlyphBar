@@ -1,37 +1,32 @@
-import XCTest
+import Foundation
+import Testing
 @testable import GlyphBar
 
 @MainActor
-final class TemplateModuleTests: XCTestCase {
-    func testCounterActionsUpdateSnapshot() async throws {
-        // Reset persisted counter state so the test starts from 0.
+struct TemplateModuleTests {
+    @Test func counterActionsUpdateSnapshot() async throws {
         UserDefaults.standard.removeObject(forKey: "counter.moduleState")
         let context = makeContext()
         let module = CounterModule()
-        let action = module.manifest.actions.first { $0.id == "increment" }!
+        let action = try #require(module.manifest.actions.first { $0.id == "increment" })
 
         let event = try await module.handle(action: action, context: context)
 
         guard case .didUpdateSnapshot(let snapshot) = event else {
-            return XCTFail("Expected updated snapshot")
+            Issue.record("Expected updated snapshot")
+            return
         }
-        XCTAssertEqual(snapshot.metrics["count"], 1)
+        #expect(snapshot.metrics["count"] == 1)
     }
 
-    func testNetworkMockModuleRefreshSucceeds() async throws {
+    @Test func networkMockModuleRefreshSucceeds() async throws {
         let module = NetworkMockModule()
-        // NOTE: NetworkMockModule.init() takes no arguments. Mock mode
-        // is toggled via the panel UI binding (useMockMode). In real mode
-        // the module uses NWPathMonitor for actual network status.
-
         let snapshot = try await module.refresh(context: makeContext())
-        // Real refresh returns a snapshot based on current NWPath status.
-        // Either "Connected", "No Connection", "Connecting…", or "Unknown".
-        XCTAssertFalse(snapshot.title.isEmpty)
-        XCTAssertFalse(snapshot.systemImage.isEmpty)
+        #expect(snapshot.title.isEmpty == false)
+        #expect(snapshot.systemImage.isEmpty == false)
     }
 
-    func testRegistrySeparatesBuiltInAndThirdPartyModules() throws {
+    @Test func registrySeparatesBuiltInAndThirdPartyModules() throws {
         let root = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }
         let source = try makeModulePackage(in: root, id: "sampleThird")
@@ -45,11 +40,11 @@ final class TemplateModuleTests: XCTestCase {
 
         let records = registry.makeRecords()
 
-        XCTAssertEqual(records["counter"]?.sourceKind, .builtIn)
-        XCTAssertEqual(records["sampleThird"]?.sourceKind, .thirdParty)
+        #expect(records["counter"]?.sourceKind == .builtIn)
+        #expect(records["sampleThird"]?.sourceKind == .thirdParty)
     }
 
-    func testRuntimeImportsValidThirdPartyPackage() throws {
+    @Test func runtimeImportsValidThirdPartyPackage() throws {
         let root = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }
         let source = try makeModulePackage(in: root, id: "sampleImport")
@@ -61,12 +56,12 @@ final class TemplateModuleTests: XCTestCase {
 
         let moduleID = try runtime.importModule(from: source)
 
-        XCTAssertEqual(moduleID, "sampleImport")
-        XCTAssertEqual(runtime.record(for: "sampleImport")?.sourceKind, .thirdParty)
-        XCTAssertTrue(runtime.settingsStore.isEnabled("sampleImport"))
+        #expect(moduleID == "sampleImport")
+        #expect(runtime.record(for: "sampleImport")?.sourceKind == .thirdParty)
+        #expect(runtime.settingsStore.isEnabled("sampleImport") == true)
     }
 
-    func testRuntimeRejectsInvalidThirdPartyPackage() throws {
+    @Test func runtimeRejectsInvalidThirdPartyPackage() throws {
         let root = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }
         let invalid = root.appendingPathComponent("Invalid.glyphbarmodule", isDirectory: true)
@@ -77,10 +72,12 @@ final class TemplateModuleTests: XCTestCase {
             )
         )
 
-        XCTAssertThrowsError(try runtime.importModule(from: invalid))
+        #expect(throws: Error.self) {
+            try runtime.importModule(from: invalid)
+        }
     }
 
-    func testRuntimeRemovesThirdPartyPackage() throws {
+    @Test func runtimeRemovesThirdPartyPackage() throws {
         let root = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }
         let source = try makeModulePackage(in: root, id: "sampleRemove")
@@ -93,14 +90,16 @@ final class TemplateModuleTests: XCTestCase {
 
         try runtime.removeThirdPartyModule(moduleID: "sampleRemove")
 
-        XCTAssertNil(runtime.record(for: "sampleRemove"))
-        XCTAssertFalse(runtime.settingsStore.isEnabled("sampleRemove"))
+        #expect(runtime.record(for: "sampleRemove") == nil)
+        #expect(runtime.settingsStore.isEnabled("sampleRemove") == false)
     }
 
-    func testBuiltInModuleCannotBeRemoved() throws {
+    @Test func builtInModuleCannotBeRemoved() throws {
         let runtime = makeRuntime()
 
-        XCTAssertThrowsError(try runtime.removeThirdPartyModule(moduleID: "counter"))
+        #expect(throws: Error.self) {
+            try runtime.removeThirdPartyModule(moduleID: "counter")
+        }
     }
 
     private func makeContext() -> ModuleContext {

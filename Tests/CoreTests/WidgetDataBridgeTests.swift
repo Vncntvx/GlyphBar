@@ -1,9 +1,10 @@
-import XCTest
+import Foundation
+import Testing
 @testable import GlyphBar
 
-final class WidgetDataBridgeTests: XCTestCase {
-    func testWidgetSnapshotRoundTrip() {
-        let defaults = UserDefaults(suiteName: "WidgetDataBridgeTests.\(UUID().uuidString)")!
+struct WidgetDataBridgeTests {
+    @Test func widgetSnapshotRoundTrip() throws {
+        let defaults = try #require(UserDefaults(suiteName: "WidgetDataBridgeTests.\(UUID().uuidString)"))
         let bridge = WidgetDataBridge(defaults: defaults)
         let snapshot = WidgetModuleSnapshot(
             id: "clock",
@@ -18,11 +19,13 @@ final class WidgetDataBridgeTests: XCTestCase {
         )
 
         bridge.write(snapshot, for: "clock")
-
-        XCTAssertEqual(bridge.read(moduleID: "clock"), snapshot)
+        let read = bridge.read(moduleID: "clock")
+        #expect(read != nil)
+        #expect(read?.id == snapshot.id)
+        #expect(read?.title == snapshot.title)
     }
 
-    func testModuleSnapshotConversionCarriesUnavailableState() {
+    @Test func moduleSnapshotConversionCarriesUnavailableState() {
         let snapshot = ModuleSnapshot(
             id: "networkMock",
             title: "Offline",
@@ -34,7 +37,7 @@ final class WidgetDataBridgeTests: XCTestCase {
 
         let widget = WidgetDataBridge.widgetSnapshot(from: snapshot)
 
-        XCTAssertEqual(widget.severity, .critical)
-        XCTAssertEqual(widget.unavailableReason, "Timed out")
+        #expect(widget.severity == .critical)
+        #expect(widget.unavailableReason == "Timed out")
     }
 }

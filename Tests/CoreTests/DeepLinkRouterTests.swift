@@ -1,40 +1,41 @@
 import AppKit
-import XCTest
+import Foundation
+import Testing
 @testable import GlyphBar
 
-final class DeepLinkRouterTests: XCTestCase {
-    func testParsesModuleDeepLinks() {
-        XCTAssertEqual(DeepLinkRouter.parse(URL(string: "glyphbar://module/clock")!), .module("clock"))
-        XCTAssertEqual(DeepLinkRouter.parse(URL(string: "glyphbar://module/clock/settings")!), .moduleSettings("clock"))
-        XCTAssertEqual(DeepLinkRouter.parse(URL(string: "glyphbar://module/counter/action/increment")!), .moduleAction(moduleID: "counter", actionID: "increment"))
-        XCTAssertEqual(DeepLinkRouter.parse(URL(string: "glyphbar://module/network-mock/action/retry")!), .moduleAction(moduleID: "networkMock", actionID: "retry"))
+struct DeepLinkRouterTests {
+    @Test func parsesModuleDeepLinks() throws {
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://module/clock"))) == .module("clock"))
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://module/clock/settings"))) == .moduleSettings("clock"))
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://module/counter/action/increment"))) == .moduleAction(moduleID: "counter", actionID: "increment"))
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://module/network-mock/action/retry"))) == .moduleAction(moduleID: "networkMock", actionID: "retry"))
     }
 
-    func testParsesAppDeepLinks() {
-        XCTAssertEqual(DeepLinkRouter.parse(URL(string: "glyphbar://app/panel")!), .appPanel)
-        XCTAssertEqual(DeepLinkRouter.parse(URL(string: "glyphbar://app/settings")!), .appSettings)
-        XCTAssertEqual(DeepLinkRouter.parse(URL(string: "glyphbar://app/modules")!), .appModules)
-        XCTAssertEqual(DeepLinkRouter.parse(URL(string: "glyphbar://app/logs")!), .appLogs)
-        XCTAssertEqual(DeepLinkRouter.parse(URL(string: "glyphbar://app/import-module")!), .appImportModule)
+    @Test func parsesAppDeepLinks() throws {
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://app/panel"))) == .appPanel)
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://app/settings"))) == .appSettings)
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://app/modules"))) == .appModules)
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://app/logs"))) == .appLogs)
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://app/import-module"))) == .appImportModule)
     }
 
-    func testRejectsInvalidLinks() {
-        XCTAssertNil(DeepLinkRouter.parse(URL(string: "https://module/clock")!))
-        XCTAssertNil(DeepLinkRouter.parse(URL(string: "glyphbar://module")!))
-        XCTAssertNil(DeepLinkRouter.parse(URL(string: "glyphbar://app/unknown")!))
+    @Test func rejectsInvalidLinks() throws {
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "https://module/clock"))) == nil)
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://module"))) == nil)
+        #expect(DeepLinkRouter.parse(try #require(URL(string: "glyphbar://app/unknown"))) == nil)
     }
 
-    func testDockVisibilityPersists() {
+    @Test func dockVisibilityPersists() {
         let defaults = UserDefaults(suiteName: "DeepLinkRouterTests.\(UUID().uuidString)")!
         var store: AppSettingsStore? = AppSettingsStore(defaults: defaults)
         store?.showDockIcon = false
         store = nil
 
-        XCTAssertFalse(AppSettingsStore(defaults: defaults).showDockIcon)
+        #expect(AppSettingsStore(defaults: defaults).showDockIcon == false)
     }
 
     @MainActor
-    func testModuleSettingsRouteOpensOnlySettings() {
+    @Test func moduleSettingsRouteOpensOnlySettings() {
         let runtime = makeRuntime()
         var panelOpenCount = 0
         var settingsSection: SettingsSection?
@@ -55,9 +56,9 @@ final class DeepLinkRouterTests: XCTestCase {
 
         router.route(URL(string: "glyphbar://module/clock/settings")!)
 
-        XCTAssertEqual(settingsSection, .modules)
-        XCTAssertEqual(settingsModuleID, "clock")
-        XCTAssertEqual(panelOpenCount, 0)
+        #expect(settingsSection == .modules)
+        #expect(settingsModuleID == "clock")
+        #expect(panelOpenCount == 0)
     }
 
     @MainActor

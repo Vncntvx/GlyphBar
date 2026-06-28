@@ -1,23 +1,24 @@
-import XCTest
+import Foundation
+import Testing
 @testable import GlyphBar
 
-final class RefreshSchedulerTests: XCTestCase {
-    func testIntervalPolicyWaitsUntilMinimumInterval() {
+struct RefreshSchedulerTests {
+    @Test func intervalPolicyWaitsUntilMinimumInterval() {
         let scheduler = RefreshScheduler()
         let now = Date()
 
-        XCTAssertFalse(scheduler.shouldRefresh(moduleID: "clock", policy: .interval(seconds: 60), lastRefresh: now.addingTimeInterval(-10), now: now))
-        XCTAssertTrue(scheduler.shouldRefresh(moduleID: "clock", policy: .interval(seconds: 60), lastRefresh: now.addingTimeInterval(-90), now: now))
+        #expect(scheduler.shouldRefresh(moduleID: "clock", policy: .interval(seconds: 60), lastRefresh: now.addingTimeInterval(-10), now: now) == false)
+        #expect(scheduler.shouldRefresh(moduleID: "clock", policy: .interval(seconds: 60), lastRefresh: now.addingTimeInterval(-90), now: now) == true)
     }
 
-    func testBackoffGrowsAndResets() {
+    @Test func backoffGrowsAndResets() {
         let scheduler = RefreshScheduler()
         scheduler.baseBackoff = 1
 
-        XCTAssertEqual(scheduler.recordFailure(moduleID: "network"), 1)
-        XCTAssertEqual(scheduler.recordFailure(moduleID: "network"), 2)
+        #expect(scheduler.recordFailure(moduleID: "network") == 1)
+        #expect(scheduler.recordFailure(moduleID: "network") == 2)
 
         scheduler.recordSuccess(moduleID: "network")
-        XCTAssertEqual(scheduler.states["network"], RefreshBackoffState(failureCount: 0, nextRetryDate: nil))
+        #expect(scheduler.states["network"] == RefreshBackoffState(failureCount: 0, nextRetryDate: nil))
     }
 }
