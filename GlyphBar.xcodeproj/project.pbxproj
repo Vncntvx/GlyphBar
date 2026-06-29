@@ -117,6 +117,8 @@
 		BF74723335BFB4F508125281 /* Presentation/Host/ModuleContribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */; };
 		BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */; };
 		B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */; };
+		B55ABC9EA912A432E9087F2A /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */; };
+		B54C983E0C529496A9B23156 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A21A55C55044448178623D34 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -262,6 +264,8 @@
 		AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Host/ModuleContribution.swift; sourceTree = "<group>"; };
 		A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Effect/EffectExecutor.swift; sourceTree = "<group>"; };
 		A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Kernel.swift; sourceTree = "<group>"; };
+		A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/WidgetBridge/WidgetEnvelopeBridge.swift; sourceTree = "<group>"; };
+		A21A55C55044448178623D34 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/WidgetBridge/WidgetEnvelopeBridge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -332,6 +336,8 @@
 				AE68FD1ED5C0844FD9A613AC /* App/Windows/LogsWindowCoordinator.swift */,
 				A0000000000000000000010B /* App/Routing/DeepLinkRouter.swift */,
 				A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */,
+				A21A55C55044448178623D34 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */,
+				A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */,
 				A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */,
 				A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */,
 				AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */,
@@ -580,6 +586,8 @@
 				BFB039805179844118448B23 /* App/Windows/LogsWindowCoordinator.swift in Sources */,
 				B0000000000000000000010B /* App/Routing/DeepLinkRouter.swift in Sources */,
 				B0000000000000000000010C /* Core/Modules/ModuleTypes.swift in Sources */,
+				B54C983E0C529496A9B23156 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */,
+				B55ABC9EA912A432E9087F2A /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */,
 				B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */,
 				BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */,
 				BF74723335BFB4F508125281 /* Presentation/Host/ModuleContribution.swift in Sources */,

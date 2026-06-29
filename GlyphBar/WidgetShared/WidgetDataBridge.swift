@@ -1,5 +1,17 @@
 import Foundation
+import WidgetKit
 
+/// Bridge that publishes module snapshots to the widget app group container
+/// and triggers widget timeline reloads.
+///
+/// P1.12 key fix: `publish(_:)` and `remove(moduleID:)` now call
+/// `WidgetCenter.shared.reloadAllTimelines()` after writing, so widgets pick
+/// up fresh data immediately instead of waiting up to 15 minutes for the next
+/// timeline tick.
+///
+/// Envelope-aware publishing (`publish(_ envelope:)`) is in an extension under
+/// `GlyphBar/Projection/WidgetBridge/` (main target only, because
+/// `SnapshotEnvelope` is not compiled into the widget extension target).
 final class WidgetDataBridge {
     private let defaults: UserDefaults
     private let encoder = JSONEncoder()
@@ -26,10 +38,12 @@ final class WidgetDataBridge {
 
     func remove(moduleID: String) {
         defaults.removeObject(forKey: key(for: moduleID))
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func publish(_ snapshot: ModuleSnapshot) {
         write(Self.widgetSnapshot(from: snapshot), for: snapshot.id)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     static func widgetSnapshot(from snapshot: ModuleSnapshot) -> WidgetModuleSnapshot {

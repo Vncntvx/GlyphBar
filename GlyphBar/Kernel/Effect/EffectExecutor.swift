@@ -27,10 +27,9 @@ final class EffectExecutor {
     func execute(_ effect: Effect, for moduleID: String) async {
         switch effect {
         case .publishSnapshot(let envelope):
-            // P1.12 will introduce `WidgetSnapshotBridge` that accepts envelopes
-            // directly. For now, the legacy `WidgetDataBridge.publish(_:)` only
-            // accepts `ModuleSnapshot`; we log and skip until P1.12 lands.
-            logger.runtime("EffectExecutor: publishSnapshot for \(moduleID) (envelope bridge pending P1.12)")
+            // P1.12: WidgetSnapshotBridge accepts envelopes directly and
+            // triggers `WidgetCenter.shared.reloadAllTimelines()`.
+            widgetBridge.publish(envelope)
 
         case .persistDomainState(let data):
             // P1.13 wires this to `ModuleCacheNamespace.saveDomainState`. For
