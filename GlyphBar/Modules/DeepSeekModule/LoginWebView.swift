@@ -8,8 +8,9 @@ struct LoginWebView: NSViewRepresentable {
     let url: URL
     var onCookiesCaptured: (String) -> Void
     var onWebViewCreated: ((WKWebView) -> Void)?
+    var onRawTokenCaptured: ((String) -> Void)?
 
-    func makeCoordinator() -> Coordinator { Coordinator(onCookiesCaptured: onCookiesCaptured) }
+    func makeCoordinator() -> Coordinator { Coordinator(onCookiesCaptured: onCookiesCaptured, onRawTokenCaptured: onRawTokenCaptured) }
 
     func makeNSView(context: Context) -> WKWebView {
         let c = WKWebViewConfiguration(); c.websiteDataStore = .default()
@@ -25,9 +26,14 @@ struct LoginWebView: NSViewRepresentable {
 
     class Coordinator: NSObject, WKNavigationDelegate {
         let onCookiesCaptured: (String) -> Void
+        let onRawTokenCaptured: ((String) -> Void)?
         private var didCapture = false
+        private var rawUserToken: String?
 
-        init(onCookiesCaptured: @escaping (String) -> Void) { self.onCookiesCaptured = onCookiesCaptured }
+        init(onCookiesCaptured: @escaping (String) -> Void, onRawTokenCaptured: ((String) -> Void)? = nil) {
+            self.onCookiesCaptured = onCookiesCaptured
+            self.onRawTokenCaptured = onRawTokenCaptured
+        }
 
         /// Manual capture — only triggered when user clicks "Detect Login"
         func captureCookies(from webView: WKWebView) {
@@ -50,8 +56,11 @@ struct LoginWebView: NSViewRepresentable {
                     log.info("localStorage keys: \(dict.keys.sorted().joined(separator: ", "), privacy: .public)")
                     for key in ["userToken","token","authToken","accessToken","access_token","jwt","auth_token","session_token"] {
                         guard let raw = dict[key] else { continue }
-                        // Save raw value for WKWebView injection
-                        if key == "userToken" { UserDefaults.standard.set(raw, forKey: "deepseek.rawUserToken") }
+                        // P1.13 bypass #3: store rawUserToken in coordinator, not UserDefaults.
+                        if key == "userToken" {
+                            self.rawUserToken = raw
+                            self.onRawTokenCaptured?(raw)
+                        }
                         // Try nested JSON {value:"..."}
                         if let vd = raw.data(using: .utf8),
                            let vDict = try? JSONSerialization.jsonObject(with: vd) as? [String: String],
@@ -86,8 +95,8 @@ struct LoginWebView: NSViewRepresentable {
                 var parts: [String] = []
                 if let t = token { parts.append("authToken=\(t)"); log.info("Captured authToken") }
                 else { log.info("No auth token - capturing cookies only") }
-                // Also save raw userToken JSON from localStorage (for WKWebView injection)
-                if let rawToken = UserDefaults.standard.string(forKey: "deepseek.rawUserToken") {
+                // P1.13 bypass #3/#4: rawUserToken passed via callback, not UserDefaults.standard.
+                if let rawToken = self.rawUserToken {
                     parts.append("rawUserToken=\(rawToken)")
                 }
                 for c in cookies where !c.name.hasPrefix("_ga") && !c.name.hasPrefix("_gid") && !c.name.hasPrefix("_hj") {
@@ -104,6 +113,7 @@ struct LoginWebView: NSViewRepresentable {
 struct LoginSheet: View {
     @Environment(\.dismiss) private var dismiss
     var onLogin: (String) -> Void
+    var onRawToken: ((String) -> Void)?
     @State private var showWebView = false
     @State private var webView: WKWebView?
     @State private var isDetecting = false
@@ -141,7 +151,8 @@ struct LoginSheet: View {
                         onCookiesCaptured: { cookieString in
                             handleCaptureResult(cookieString)
                         },
-                        onWebViewCreated: { wv in webView = wv })
+                        onWebViewCreated: { wv in webView = wv },
+                        onRawTokenCaptured: { raw in onRawToken?(raw) })
 
                     // Detection status overlay
                     if let result = detectionResult {

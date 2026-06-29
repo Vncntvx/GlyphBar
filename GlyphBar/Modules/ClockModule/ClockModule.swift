@@ -2,18 +2,13 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class ClockModule: StatusModule {
-    private var uses24HourClock: Bool {
-        didSet { persistState() }
-    }
-    private var showSeconds: Bool {
-        didSet { persistState() }
-    }
-    private var worldTimezones: [String] {
-        didSet { persistState() }
-    }
+final class ClockModule: StatusModule, TypedModuleContribution {
+    private var uses24HourClock: Bool
+    private var showSeconds: Bool
+    private var worldTimezones: [String]
 
-    private let defaults = UserDefaults.standard
+    // P1.13: settings via capability (no UserDefaults.standard).
+    private let settings: ModuleSettingsNamespace?
 
     private static let availableTimezones: [(id: String, label: String)] = [
         ("Asia/Shanghai", "Beijing"),
@@ -26,8 +21,9 @@ final class ClockModule: StatusModule {
         ("Pacific/Auckland", "Auckland"),
     ]
 
-    init() {
-        let state = Self.loadState()
+    init(settings: ModuleSettingsNamespace? = nil) {
+        self.settings = settings
+        let state = Self.loadState(from: settings)
         self.uses24HourClock = state?.uses24HourClock ?? true
         self.showSeconds = state?.showSeconds ?? false
         self.worldTimezones = state?.worldTimezones ?? []
@@ -60,7 +56,121 @@ final class ClockModule: StatusModule {
         )
     }
 
+    // MARK: - StatusModule (legacy bridge)
+
     func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
+        buildSnapshot()
+    }
+
+    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
+        switch action.id {
+        case "copyTimestamp":
+            return .copyToPasteboard(ISO8601DateFormatter().string(from: Date()))
+        case "toggleFormat":
+            uses24HourClock.toggle()
+            persistState()
+            return .refreshRequested(manifest.id)
+        default:
+            return .none
+        }
+    }
+
+    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
+        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { _ in })))
+    }
+
+    // MARK: - TypedModuleContribution (P1.13)
+
+    func handle(
+        command: Command,
+        capabilities: GrantedCapabilities,
+        bridge: ModuleBridge
+    ) async -> DomainTransition {
+        switch command {
+        case .refresh:
+            return DomainTransition(
+                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                health: .healthy,
+                refreshProjection: true
+            )
+        case .userAction(let actionID, _):
+            if actionID == "toggleFormat" {
+                uses24HourClock.toggle()
+                persistState()
+            }
+            return DomainTransition(
+                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                health: .healthy,
+                refreshProjection: true
+            )
+        default:
+            return .empty
+        }
+    }
+
+    func buildProjection() -> ProjectionSet {
+        ProjectionBuilder.build(from: buildSnapshot())
+    }
+
+    func statusCandidates() -> [StatusCandidate] {
+        let snap = buildSnapshot()
+        // P1.13: world clocks produce rotation candidates.
+        var candidates: [StatusCandidate] = []
+        for tzID in worldTimezones {
+            let label = Self.availableTimezones.first(where: { $0.id == tzID })?.label ?? tzID
+            candidates.append(StatusCandidate(
+                id: "clock.world.\(tzID)",
+                sourceModule: manifest.id,
+                semanticRole: .rotation,
+                severity: .info,
+                priority: 20,
+                text: label,
+                icon: "globe",
+                createdAt: snap.timestamp,
+                expiresAt: nil,
+                interruptPolicy: .normal,
+                trustLevel: .bundled
+            ))
+        }
+        return candidates
+    }
+
+    func panelContent(context: PanelHostContext) -> some View {
+        // P1.13 mechanism D: Binding(set:) dispatches Command instead of
+        // Task { refresh; cacheStore.save }.
+        ClockPanel(
+            snapshot: buildSnapshot(),
+            uses24HourClock: Binding(
+                get: { [weak self] in self?.uses24HourClock ?? true },
+                set: { [weak self] newValue in
+                    self?.uses24HourClock = newValue
+                    self?.persistState()
+                    context.dispatch(.userAction(actionID: "toggleFormat", payload: nil))
+                }
+            ),
+            showSeconds: Binding(
+                get: { [weak self] in self?.showSeconds ?? false },
+                set: { [weak self] newValue in
+                    self?.showSeconds = newValue
+                    self?.persistState()
+                    context.dispatch(.refresh(reason: .manual))
+                }
+            ),
+            worldTimezones: Binding(
+                get: { [weak self] in self?.worldTimezones ?? [] },
+                set: { [weak self] newValue in
+                    self?.worldTimezones = newValue
+                    self?.persistState()
+                    context.dispatch(.refresh(reason: .manual))
+                }
+            ),
+            availableTimezones: Self.availableTimezones
+        )
+    }
+
+    // MARK: - Internals
+
+    private func buildSnapshot() -> ModuleSnapshot {
         let now = Date()
         let tz = TimeZone.current
 
@@ -102,60 +212,7 @@ final class ClockModule: StatusModule {
         )
     }
 
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        switch action.id {
-        case "copyTimestamp":
-            return .copyToPasteboard(ISO8601DateFormatter().string(from: Date()))
-        case "toggleFormat":
-            uses24HourClock.toggle()
-            return .refreshRequested(manifest.id)
-        default:
-            return .none
-        }
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(ClockPanel(
-            snapshot: snapshot,
-            uses24HourClock: Binding(
-                get: { [weak self] in self?.uses24HourClock ?? true },
-                set: { [weak self] in
-                    self?.uses24HourClock = $0
-                    Task { @MainActor [weak self] in
-                        guard let self else { return }
-                        do {
-                            let snap = try await self.refresh(context: context)
-                            context.cacheStore.save(snap)
-                        } catch {
-                            context.logger.error("Clock refresh failed: \(error.localizedDescription)")
-                        }
-                    }
-                }
-            ),
-            showSeconds: Binding(
-                get: { [weak self] in self?.showSeconds ?? false },
-                set: { [weak self] in
-                    self?.showSeconds = $0
-                    Task { @MainActor [weak self] in
-                        guard let self else { return }
-                        do {
-                            let snap = try await self.refresh(context: context)
-                            context.cacheStore.save(snap)
-                        } catch {
-                            context.logger.error("Clock refresh failed: \(error.localizedDescription)")
-                        }
-                    }
-                }
-            ),
-            worldTimezones: Binding(
-                get: { [weak self] in self?.worldTimezones ?? [] },
-                set: { [weak self] in self?.worldTimezones = $0 }
-            ),
-            availableTimezones: Self.availableTimezones
-        ))
-    }
-
-    // MARK: - Persistence
+    // MARK: - Persistence (via capability)
 
     private struct ClockState: Codable {
         let uses24HourClock: Bool
@@ -163,7 +220,7 @@ final class ClockModule: StatusModule {
         let worldTimezones: [String]
     }
 
-    private static let stateKey = "clock.moduleState"
+    private static let stateKey = "moduleState"
 
     private func persistState() {
         let state = ClockState(
@@ -171,14 +228,11 @@ final class ClockModule: StatusModule {
             showSeconds: showSeconds,
             worldTimezones: worldTimezones
         )
-        if let data = try? JSONEncoder().encode(state) {
-            defaults.set(data, forKey: Self.stateKey)
-        }
+        settings?.set(state, forKey: Self.stateKey)
     }
 
-    private static func loadState() -> ClockState? {
-        guard let data = UserDefaults.standard.data(forKey: stateKey) else { return nil }
-        return try? JSONDecoder().decode(ClockState.self, from: data)
+    private static func loadState(from settings: ModuleSettingsNamespace?) -> ClockState? {
+        settings?.get(ClockState.self, forKey: stateKey)
     }
 }
 

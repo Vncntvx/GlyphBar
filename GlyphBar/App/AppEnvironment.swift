@@ -65,13 +65,47 @@ final class AppEnvironment: ObservableObject {
             platformActions: platformActions,
             widgetBridge: widgetBridge
         )
+
+        // P1.13: build per-module capabilities and inject into module inits.
+        let deepSeekSecretStore = ModuleSecretStore(moduleID: "deepseek")
+        let deepSeekSettings = ModuleSettingsNamespace(moduleID: "deepseek")
+        let deepSeekCache = ModuleCacheNamespace(moduleID: "deepseek")
+        let deepSeekNetwork = NetworkCapability()
+        let deepSeekFileImport = FileImportCapability(moduleID: "deepseek")
+
+        let counterSettings = ModuleSettingsNamespace(moduleID: "counter")
+        let counterCache = ModuleCacheNamespace(moduleID: "counter")
+
+        let notesSettings = ModuleSettingsNamespace(moduleID: "notesQuick")
+        let notesCache = ModuleCacheNamespace(moduleID: "notesQuick")
+
+        let clockSettings = ModuleSettingsNamespace(moduleID: "clock")
+
+        let systemMetrics = SystemMetricsCapability()
+
         let registry = ModuleRegistry()
-        registry.register { DeepSeekModule() }
-        registry.register { ClockModule() }
-        registry.register { SystemPulseModule() }
-        registry.register { NotesQuickModule() }
-        registry.register { CounterModule() }
+        registry.register {
+            DeepSeekModule(
+                secretStore: deepSeekSecretStore,
+                settings: deepSeekSettings,
+                cache: deepSeekCache,
+                network: deepSeekNetwork,
+                fileImport: deepSeekFileImport
+            )
+        }
+        registry.register { ClockModule(settings: clockSettings) }
+        registry.register { SystemPulseModule(systemMetrics: systemMetrics) }
+        registry.register { NotesQuickModule(settings: notesSettings, cache: notesCache) }
+        registry.register { CounterModule(settings: counterSettings, cache: counterCache) }
         registry.register { NetworkMockModule() }
+
+        // P1.13: register capabilities in context for future kernel use.
+        context.registerCapability(deepSeekSecretStore)
+        context.registerCapability(deepSeekSettings)
+        context.registerCapability(deepSeekCache)
+        context.registerCapability(deepSeekNetwork)
+        context.registerCapability(deepSeekFileImport)
+        context.registerCapability(systemMetrics)
 
         let runtime = ModuleRuntime(registry: registry, context: context, settingsStore: settingsStore)
         context.publishSnapshot = { [weak runtime] snapshot in

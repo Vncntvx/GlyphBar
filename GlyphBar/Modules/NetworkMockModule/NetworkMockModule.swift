@@ -3,7 +3,7 @@ import SwiftUI
 import Network
 
 @MainActor
-final class NetworkMockModule: StatusModule {
+final class NetworkMockModule: StatusModule, TypedModuleContribution {
     private let monitor = NWPathMonitor()
     private let monitorQueue = DispatchQueue(label: "com.wenjiexu.GlyphBar.network.monitor")
 
@@ -11,6 +11,9 @@ final class NetworkMockModule: StatusModule {
     private var successCount = 0
     private var failureCount = 0
     private var useMockMode = false
+
+    // P1.13: NWPathMonitor is a built-in module privilege (team-lead approved).
+    // No UserDefaults.standard; state is ephemeral.
 
     init() {
         monitor.pathUpdateHandler = { [weak self] path in
@@ -52,12 +55,109 @@ final class NetworkMockModule: StatusModule {
         )
     }
 
+    // MARK: - StatusModule (legacy bridge)
+
     func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
         if useMockMode {
             return try await mockRefresh()
         }
         return realRefresh()
     }
+
+    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
+        switch action.id {
+        case "retry":
+            return .refreshRequested(manifest.id)
+        case "copyIP":
+            if let ip = localIPAddress() {
+                return .copyToPasteboard(ip)
+            }
+            return .none
+        default:
+            return .none
+        }
+    }
+
+    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
+        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { command in
+            // P1.13 mechanism D: dispatch through PanelHostContext instead of Task+cacheStore
+        })))
+    }
+
+    // MARK: - TypedModuleContribution (P1.13)
+
+    func handle(
+        command: Command,
+        capabilities: GrantedCapabilities,
+        bridge: ModuleBridge
+    ) async -> DomainTransition {
+        switch command {
+        case .refresh:
+            do {
+                let snap = useMockMode ? try await mockRefresh() : realRefresh()
+                return DomainTransition(
+                    effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: snap))],
+                    health: .healthy,
+                    refreshProjection: true
+                )
+            } catch {
+                return DomainTransition(
+                    effects: [.showNotice(error.localizedDescription)],
+                    health: .degraded(reason: .networkError(error.localizedDescription)),
+                    refreshProjection: false
+                )
+            }
+        case .userAction(let actionID, _):
+            if actionID == "copyIP", let ip = localIPAddress() {
+                return DomainTransition(
+                    effects: [.copyToClipboard(ip)],
+                    health: nil,
+                    refreshProjection: false
+                )
+            }
+            return .empty
+        default:
+            return .empty
+        }
+    }
+
+    func buildProjection() -> ProjectionSet {
+        ProjectionBuilder.build(from: realRefresh())
+    }
+
+    func statusCandidates() -> [StatusCandidate] {
+        let snap = realRefresh()
+        return snap.signals.map { signal in
+            StatusCandidate(
+                id: signal.id,
+                sourceModule: manifest.id,
+                semanticRole: .alert,
+                severity: signal.severity,
+                priority: signal.priority,
+                text: signal.title,
+                icon: signal.systemImage,
+                createdAt: snap.timestamp,
+                expiresAt: nil,
+                interruptPolicy: .preempt,
+                trustLevel: .bundled
+            )
+        }
+    }
+
+    func panelContent(context: PanelHostContext) -> some View {
+        NetworkPanel(
+            snapshot: realRefresh(),
+            useMockMode: Binding(
+                get: { [weak self] in self?.useMockMode ?? false },
+                set: { [weak self] in
+                    self?.useMockMode = $0
+                    context.dispatch(.refresh(reason: .manual))
+                }
+            )
+        )
+    }
+
+    // MARK: - Internals
 
     private func realRefresh() -> ModuleSnapshot {
         let path = currentPath
@@ -134,41 +234,6 @@ final class NetworkMockModule: StatusModule {
             metrics: ["successes": Double(successCount), "failures": Double(failureCount)],
             metadata: ["mode": "mock", "request": UUID().uuidString]
         )
-    }
-
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        switch action.id {
-        case "retry":
-            return .refreshRequested(manifest.id)
-        case "copyIP":
-            if let ip = localIPAddress() {
-                return .copyToPasteboard(ip)
-            }
-            return .none
-        default:
-            return .none
-        }
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(NetworkPanel(
-            snapshot: snapshot,
-            useMockMode: Binding(
-                get: { [weak self] in self?.useMockMode ?? false },
-                set: { [weak self] in
-                    self?.useMockMode = $0
-                    Task { @MainActor [weak self] in
-                        guard let self else { return }
-                        do {
-                            let snap = try await self.refresh(context: context)
-                            context.cacheStore.save(snap)
-                        } catch {
-                            context.logger.error("Network mock refresh failed: \(error.localizedDescription)")
-                        }
-                    }
-                }
-            )
-        ))
     }
 
     private func interfaceTypeName(_ type: NWInterface.InterfaceType?) -> String {

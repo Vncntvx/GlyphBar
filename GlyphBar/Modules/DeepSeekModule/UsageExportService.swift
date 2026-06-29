@@ -14,9 +14,27 @@ final class UsageExportService: NSObject {
     private var exportTriggerTime: Date?
     private var isLoggedIn = false
 
+    // P1.13 bypass #3/#4: read cookie/token via capabilities, not UserDefaults.
+    private let secretStore: ModuleSecretStore?
+    private let settings: ModuleSettingsNamespace?
+    private let cache: ModuleCacheNamespace?
+
+    init(
+        secretStore: ModuleSecretStore? = nil,
+        settings: ModuleSettingsNamespace? = nil,
+        cache: ModuleCacheNamespace? = nil
+    ) {
+        self.secretStore = secretStore
+        self.settings = settings
+        self.cache = cache
+        super.init()
+    }
+
+    // P1.13 bypass #7: use temp directory, not ~/.cache/GlyphBar.
+    // WKWebView downloads need a writable directory; temp is appropriate for
+    // ephemeral export files that are parsed and discarded.
     private var exportsDir: URL {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let dir = home.appendingPathComponent(".cache/GlyphBar/deepseek-exports")
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("GlyphBarExports")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
@@ -34,7 +52,8 @@ final class UsageExportService: NSObject {
     }
 
     func export() async throws -> [ParsedUsageItem] {
-        guard let cookieStr = UserDefaults.standard.string(forKey: "deepseek.platformCookie"),
+        // P1.13 bypass #4: cookie via secretStore capability.
+        guard let cookieStr = secretStore?.secret(for: "deepseek.platformCookie"),
               let tokenPart = cookieStr.components(separatedBy: "; ").first(where: { $0.hasPrefix("authToken=") }) else {
             throw ExportError.notLoggedIn
         }
@@ -45,7 +64,6 @@ final class UsageExportService: NSObject {
         cleanup()
         clickAttempts = 0; isLoggedIn = false
         pruneExports()
-        // Clear old export files for polling
         try? FileManager.default.contentsOfDirectory(at: exportsDir, includingPropertiesForKeys: nil).forEach {
             try? FileManager.default.removeItem(at: $0)
         }
@@ -55,8 +73,8 @@ final class UsageExportService: NSObject {
             let config = WKWebViewConfiguration()
             config.websiteDataStore = .default()
 
-            // Inject raw userToken JSON (platform expects full JSON structure like {"value":"..."})
-            let rawToken = UserDefaults.standard.string(forKey: "deepseek.rawUserToken") ?? ""
+            // P1.13 bypass #4: rawUserToken via settings capability.
+            let rawToken = settings?["deepseek.rawUserToken"] ?? ""
             let tokenJS: String
             if !rawToken.isEmpty {
                 let escaped = rawToken.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
@@ -109,14 +127,12 @@ final class UsageExportService: NSObject {
             log.info("Click: \(msg, privacy: .public)")
             if msg.hasPrefix("react_") || msg.hasPrefix("dom_clicked") || msg.hasPrefix("pending_") {
                 self.exportTriggerTime = Date()
-                // Follow-up click after 1s
                 Task { @MainActor in
                     try? await Task.sleep(nanoseconds: 1_000_000_000)
                     wv.evaluateJavaScript(Self.clickJS) { r, _ in
                         log.info("FollowUp: \(String(describing: r), privacy: .public)")
                     }
                 }
-                // Start polling for downloaded files
                 self.pollForFile(retries: 16)
             } else if self.clickAttempts < self.maxRetries {
                 Task { @MainActor in
@@ -131,7 +147,6 @@ final class UsageExportService: NSObject {
 
     private func pollForFile(retries: Int) {
         guard retries > 0, let cont = continuation else { return }
-        // Check if any new file appeared
         if let file = newestExportFile(), file.modifiedAt >= (exportTriggerTime ?? Date()).addingTimeInterval(-2) {
             log.info("Download detected: \(file.name, privacy: .public)")
             do {
@@ -145,7 +160,6 @@ final class UsageExportService: NSObject {
                 log.info("Parse error: \(error.localizedDescription)")
             }
         }
-        // Retry on 2nd and 5th poll
         if retries == 14 || retries == 11, let wv = webView {
             log.info("Retry click at poll \(16 - retries)")
             wv.evaluateJavaScript(Self.clickJS, completionHandler: nil)
@@ -176,7 +190,6 @@ final class UsageExportService: NSObject {
         }
     }
 
-    /// Extract ZIP and merge data from all CSVs (tokens + costs typically in separate files)
     private func unzipAndMerge(_ zipData: Data) -> [ParsedUsageItem] {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("glyph-zip-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: tmp) }
@@ -199,7 +212,6 @@ final class UsageExportService: NSObject {
                 }
             }
             if !allItems.isEmpty {
-                // Merge by date+model: sum tokens, max cost
                 var merged: [String: ParsedUsageItem] = [:]
                 for item in allItems {
                     let key = "\(item.date)|\(item.model)"
@@ -242,7 +254,6 @@ final class UsageExportService: NSObject {
         } else { return }
 
         guard !csvData.isEmpty else { return }
-        // Save to file (so polling finds it)
         let filename = "export-\(Date().timeIntervalSince1970).csv"
         let fileURL = exportsDir.appendingPathComponent(filename)
         try? csvData.write(to: fileURL)
@@ -342,7 +353,7 @@ extension UsageExportService: WKDownloadDelegate {
     func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String) async -> URL {
         let filename = suggestedFilename.isEmpty ? "export-\(Date().timeIntervalSince1970).csv" : suggestedFilename
         let dest = exportsDir.appendingPathComponent(filename)
-        try? FileManager.default.removeItem(at: dest) // overwrite
+        try? FileManager.default.removeItem(at: dest)
         log.info("Download to: \(filename, privacy: .public)")
         return dest
     }

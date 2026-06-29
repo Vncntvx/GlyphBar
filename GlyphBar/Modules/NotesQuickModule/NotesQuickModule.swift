@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class NotesQuickModule: StatusModule {
+final class NotesQuickModule: StatusModule, TypedModuleContribution {
     struct Note: Identifiable, Codable, Hashable {
         let id: UUID
         var text: String
@@ -23,10 +23,17 @@ final class NotesQuickModule: StatusModule {
         didSet { persistState() }
     }
 
-    private let defaults = UserDefaults.standard
+    // P1.13: capabilities injected at init time (no UserDefaults.standard).
+    private let settings: ModuleSettingsNamespace?
+    private let cache: ModuleCacheNamespace?
 
-    init() {
-        self.notes = Self.loadState() ?? []
+    init(
+        settings: ModuleSettingsNamespace? = nil,
+        cache: ModuleCacheNamespace? = nil
+    ) {
+        self.settings = settings
+        self.cache = cache
+        self.notes = Self.loadState(from: settings) ?? []
     }
 
     var manifest: ModuleManifest {
@@ -57,7 +64,138 @@ final class NotesQuickModule: StatusModule {
         )
     }
 
+    // MARK: - StatusModule (legacy bridge)
+
     func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
+        buildSnapshot()
+    }
+
+    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
+        switch action.id {
+        case "addNote":
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            notes.insert(Note(
+                text: "New note at \(formatter.string(from: Date()))",
+                createdAt: Date()
+            ), at: 0)
+            return .refreshRequested(manifest.id)
+        case "pinFirst":
+            guard let idx = notes.firstIndex(where: { !$0.isComplete }) else { return .none }
+            notes[idx].isPinned.toggle()
+            return .refreshRequested(manifest.id)
+        case "clearCompleted":
+            notes.removeAll(where: \.isComplete)
+            return .refreshRequested(manifest.id)
+        default:
+            return .none
+        }
+    }
+
+    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
+        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { _ in })))
+    }
+
+    // MARK: - TypedModuleContribution (P1.13)
+
+    func handle(
+        command: Command,
+        capabilities: GrantedCapabilities,
+        bridge: ModuleBridge
+    ) async -> DomainTransition {
+        switch command {
+        case .refresh:
+            return DomainTransition(
+                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                health: .healthy,
+                refreshProjection: true
+            )
+        case .userAction(let actionID, _):
+            let action = ModuleAction(id: actionID, title: actionID, systemImage: "")
+            _ = try? await handle(action: action, context: legacyContextPlaceholder)
+            return DomainTransition(
+                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                health: .healthy,
+                refreshProjection: true
+            )
+        default:
+            return .empty
+        }
+    }
+
+    func buildProjection() -> ProjectionSet {
+        ProjectionBuilder.build(from: buildSnapshot())
+    }
+
+    func statusCandidates() -> [StatusCandidate] {
+        let snap = buildSnapshot()
+        return snap.signals.map { signal in
+            StatusCandidate(
+                id: signal.id,
+                sourceModule: manifest.id,
+                semanticRole: .primary,
+                severity: signal.severity,
+                priority: signal.priority,
+                text: signal.title,
+                icon: signal.systemImage,
+                createdAt: snap.timestamp,
+                expiresAt: nil,
+                interruptPolicy: .normal,
+                trustLevel: .bundled
+            )
+        }
+    }
+
+    func panelContent(context: PanelHostContext) -> some View {
+        NotesPanel(
+            snapshot: buildSnapshot(),
+            notes: notes,
+            onAdd: { [weak self] text in self?.addNote(text: text); context.dispatch(.refresh(reason: .manual)) },
+            onToggleComplete: { [weak self] id in self?.toggleComplete(id: id); context.dispatch(.refresh(reason: .manual)) },
+            onTogglePin: { [weak self] id in self?.togglePin(id: id); context.dispatch(.refresh(reason: .manual)) },
+            onDelete: { [weak self] id in self?.deleteNote(id: id); context.dispatch(.refresh(reason: .manual)) },
+            onClearCompleted: { [weak self] in self?.clearCompleted(); context.dispatch(.refresh(reason: .manual)) }
+        )
+    }
+
+    // MARK: - Internals
+
+    private var legacyContextPlaceholder: ModuleContext {
+        ModuleContext(
+            logger: GlyphLogger(),
+            cacheStore: CacheStore(),
+            secureStore: SecureStore(),
+            permissionCenter: PermissionCenter(),
+            settingsStore: AppSettingsStore(),
+            platformActions: PlatformActions(),
+            widgetBridge: WidgetDataBridge()
+        )
+    }
+
+    private func addNote(text: String) {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        notes.insert(Note(text: text.trimmingCharacters(in: .whitespacesAndNewlines), createdAt: Date()), at: 0)
+    }
+
+    private func toggleComplete(id: UUID) {
+        guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
+        notes[idx].isComplete.toggle()
+    }
+
+    private func togglePin(id: UUID) {
+        guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
+        notes[idx].isPinned.toggle()
+    }
+
+    private func deleteNote(id: UUID) {
+        notes.removeAll { $0.id == id }
+    }
+
+    private func clearCompleted() {
+        notes.removeAll(where: \.isComplete)
+    }
+
+    private func buildSnapshot() -> ModuleSnapshot {
         let activeNotes = notes.filter { !$0.isComplete }
         let pinnedCount = activeNotes.filter(\.isPinned).count
 
@@ -93,76 +231,16 @@ final class NotesQuickModule: StatusModule {
         )
     }
 
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        switch action.id {
-        case "addNote":
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            notes.insert(Note(
-                text: "New note at \(formatter.string(from: Date()))",
-                createdAt: Date()
-            ), at: 0)
-            return .refreshRequested(manifest.id)
-        case "pinFirst":
-            guard let idx = notes.firstIndex(where: { !$0.isComplete }) else { return .none }
-            notes[idx].isPinned.toggle()
-            return .refreshRequested(manifest.id)
-        case "clearCompleted":
-            notes.removeAll(where: \.isComplete)
-            return .refreshRequested(manifest.id)
-        default:
-            return .none
-        }
-    }
+    // MARK: - Persistence (via capabilities)
 
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(NotesPanel(
-            snapshot: snapshot,
-            notes: notes,
-            onAdd: { [weak self] text in self?.addNote(text: text) },
-            onToggleComplete: { [weak self] id in self?.toggleComplete(id: id) },
-            onTogglePin: { [weak self] id in self?.togglePin(id: id) },
-            onDelete: { [weak self] id in self?.deleteNote(id: id) },
-            onClearCompleted: { [weak self] in self?.clearCompleted() }
-        ))
-    }
-
-    private func addNote(text: String) {
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        notes.insert(Note(text: text.trimmingCharacters(in: .whitespacesAndNewlines), createdAt: Date()), at: 0)
-    }
-
-    private func toggleComplete(id: UUID) {
-        guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
-        notes[idx].isComplete.toggle()
-    }
-
-    private func togglePin(id: UUID) {
-        guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
-        notes[idx].isPinned.toggle()
-    }
-
-    private func deleteNote(id: UUID) {
-        notes.removeAll { $0.id == id }
-    }
-
-    private func clearCompleted() {
-        notes.removeAll(where: \.isComplete)
-    }
-
-    // MARK: - Persistence
-
-    private static let stateKey = "notesQuick.moduleState"
+    private static let stateKey = "moduleState"
 
     private func persistState() {
-        if let data = try? JSONEncoder().encode(notes) {
-            defaults.set(data, forKey: Self.stateKey)
-        }
+        settings?.set(notes, forKey: Self.stateKey)
     }
 
-    private static func loadState() -> [Note]? {
-        guard let data = UserDefaults.standard.data(forKey: stateKey) else { return nil }
-        return try? JSONDecoder().decode([Note].self, from: data)
+    private static func loadState(from settings: ModuleSettingsNamespace?) -> [Note]? {
+        settings?.get([Note].self, forKey: stateKey)
     }
 }
 

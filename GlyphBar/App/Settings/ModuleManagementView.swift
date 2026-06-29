@@ -327,6 +327,7 @@ private struct ModuleManagementDetailView: View {
 
 	    private let apiKeyName = "deepseek.apiKey"
 	    private let cookieKey = "deepseek.platformCookie"
+	    private let rawTokenKey = "deepseek.rawUserToken"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -337,10 +338,16 @@ private struct ModuleManagementDetailView: View {
             exportRow
         }
         .sheet(isPresented: $showLoginSheet) {
-            LoginSheet { cookie in
-                UserDefaults.standard.set(cookie, forKey: cookieKey)
-                refreshState()
-            }
+            // P1.13 bypass #6: cookie via Keychain (ModuleSecretStore), not UserDefaults.
+            LoginSheet(
+                onLogin: { cookie in
+                    secureStore.setSecret(cookie, for: cookieKey)
+                    refreshState()
+                },
+                onRawToken: { raw in
+                    secureStore.setSecret(raw, for: rawTokenKey)
+                }
+            )
         }
         .onAppear {
             refreshState()
@@ -352,7 +359,8 @@ private struct ModuleManagementDetailView: View {
 
     private func refreshState() {
         hasApiKey = secureStore.secret(for: apiKeyName)?.isEmpty == false
-        hasCookie = UserDefaults.standard.string(forKey: cookieKey)?.isEmpty == false
+        // P1.13 bypass #4: read cookie via secureStore (legacy plaintext fallback).
+        hasCookie = secureStore.secret(for: cookieKey)?.isEmpty == false
     }
 
     private func validateAndSave(_ key: String) {
@@ -360,7 +368,8 @@ private struct ModuleManagementDetailView: View {
         keyValidationError = nil
         Task {
             do {
-                try await DeepSeekModule.validateApiKey(key)
+                // P1.13 bypass #1: use NetworkCapability (no URLSession.shared in modules).
+                try await DeepSeekModule.validateApiKey(key, network: NetworkCapability())
                 await MainActor.run {
                     secureStore.setSecret(key, for: apiKeyName)
                     isValidatingKey = false
@@ -379,17 +388,20 @@ private struct ModuleManagementDetailView: View {
 
     private func triggerExport() {
         Task {
-            let svc = UsageExportService()
+            // P1.13 bypass: UsageExportService uses capabilities, not UserDefaults.
+            let secretStore = ModuleSecretStore(moduleID: "deepseek")
+            let svc = UsageExportService(secretStore: secretStore)
             do {
                 let items = try await svc.export()
                 await MainActor.run {
                     if let ds = AppEnvironment.shared.runtime.modules["deepseek"] as? DeepSeekModule {
                         ds.importExportedItems(items)
                     }
-                    let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cache/GlyphBar/deepseek-exports")
+                    // P1.13 bypass #7: exports now go to temp directory.
+                    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("GlyphBarExports")
                     let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path))?.filter { !$0.hasPrefix(".") } ?? []
                     let latest = files.sorted().last ?? "?"
-                    exportStatus = "✓ \(items.count) records → ~/.cache/GlyphBar/deepseek-exports/\(latest)"
+                    exportStatus = "✓ \(items.count) records → \(dir.path)/\(latest)"
                     isExportingUsage = false
                 }
             } catch {

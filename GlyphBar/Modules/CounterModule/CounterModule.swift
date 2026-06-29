@@ -2,31 +2,29 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class CounterModule: StatusModule {
-    private var count: Int {
-        didSet { persistState() }
-    }
-    private var stepSize: Int {
-        didSet { persistState() }
-    }
-    private var minValue: Int? {
-        didSet { persistState() }
-    }
-    private var maxValue: Int? {
-        didSet { persistState() }
-    }
-    private var lastModified: Date? {
-        didSet { persistState() }
-    }
+final class CounterModule: StatusModule, TypedModuleContribution {
+    private var count: Int
+    private var stepSize: Int
+    private var minValue: Int?
+    private var maxValue: Int?
+    private var lastModified: Date?
 
-    private let defaults = UserDefaults.standard
+    // P1.13: capabilities injected at init time (no UserDefaults.standard).
+    private let settings: ModuleSettingsNamespace?
+    private let cache: ModuleCacheNamespace?
 
-    init() {
-        self.count = Self.loadState()?.count ?? 0
-        self.stepSize = Self.loadState()?.stepSize ?? 1
-        self.minValue = Self.loadState()?.minValue
-        self.maxValue = Self.loadState()?.maxValue
-        self.lastModified = Self.loadState()?.lastModified
+    init(
+        settings: ModuleSettingsNamespace? = nil,
+        cache: ModuleCacheNamespace? = nil
+    ) {
+        self.settings = settings
+        self.cache = cache
+        let state = Self.loadState(from: settings)
+        self.count = state?.count ?? 0
+        self.stepSize = state?.stepSize ?? 1
+        self.minValue = state?.minValue
+        self.maxValue = state?.maxValue
+        self.lastModified = state?.lastModified
     }
 
     var manifest: ModuleManifest {
@@ -57,7 +55,140 @@ final class CounterModule: StatusModule {
         )
     }
 
+    // MARK: - StatusModule (legacy bridge, kept for ModuleRuntime compatibility)
+
     func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
+        buildSnapshot()
+    }
+
+    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
+        switch action.id {
+        case "increment":
+            let newValue = count + stepSize
+            if let max = maxValue, newValue > max { return .none }
+            count = newValue
+        case "decrement":
+            let newValue = count - stepSize
+            if let min = minValue, newValue < min { return .none }
+            count = newValue
+        case "reset":
+            count = 0
+        default:
+            return .none
+        }
+        lastModified = Date()
+        persistState()
+        return .didUpdateSnapshot(buildSnapshot())
+    }
+
+    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
+        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { _ in })))
+    }
+
+    // MARK: - TypedModuleContribution (P1.13)
+
+    func handle(
+        command: Command,
+        capabilities: GrantedCapabilities,
+        bridge: ModuleBridge
+    ) async -> DomainTransition {
+        switch command {
+        case .refresh:
+            return DomainTransition(
+                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                health: .healthy,
+                refreshProjection: true
+            )
+        case .userAction(let actionID, _):
+            let action = ModuleAction(id: actionID, title: actionID, systemImage: "")
+            _ = try? await handle(action: action, context: legacyContextPlaceholder)
+            return DomainTransition(
+                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                health: .healthy,
+                refreshProjection: true
+            )
+        default:
+            return .empty
+        }
+    }
+
+    func buildProjection() -> ProjectionSet {
+        ProjectionBuilder.build(from: buildSnapshot())
+    }
+
+    func statusCandidates() -> [StatusCandidate] {
+        let snap = buildSnapshot()
+        return snap.signals.map { signal in
+            StatusCandidate(
+                id: signal.id,
+                sourceModule: manifest.id,
+                semanticRole: .primary,
+                severity: signal.severity,
+                priority: signal.priority,
+                text: signal.title,
+                icon: signal.systemImage,
+                createdAt: snap.timestamp,
+                expiresAt: nil,
+                interruptPolicy: .normal,
+                trustLevel: .bundled
+            )
+        }
+    }
+
+    func panelContent(context: PanelHostContext) -> some View {
+        CounterPanel(
+            snapshot: buildSnapshot(),
+            count: count,
+            stepSize: Binding(
+                get: { [weak self] in self?.stepSize ?? 1 },
+                set: { [weak self] in self?.stepSize = $0; self?.persistState() }
+            ),
+            minValue: Binding(
+                get: { [weak self] in self?.minValue },
+                set: { [weak self] in self?.minValue = $0; self?.persistState() }
+            ),
+            maxValue: Binding(
+                get: { [weak self] in self?.maxValue },
+                set: { [weak self] in self?.maxValue = $0; self?.persistState() }
+            ),
+            onIncrement: { [weak self] in self?.adjust(by: 1, context: context) },
+            onDecrement: { [weak self] in self?.adjust(by: -1, context: context) },
+            onReset: { [weak self] in self?.resetCounter(context: context) }
+        )
+    }
+
+    // MARK: - Internals
+
+    private var legacyContextPlaceholder: ModuleContext {
+        ModuleContext(
+            logger: GlyphLogger(),
+            cacheStore: CacheStore(),
+            secureStore: SecureStore(),
+            permissionCenter: PermissionCenter(),
+            settingsStore: AppSettingsStore(),
+            platformActions: PlatformActions(),
+            widgetBridge: WidgetDataBridge()
+        )
+    }
+
+    private func adjust(by direction: Int, context: PanelHostContext) {
+        let newValue = count + (direction * stepSize)
+        if let max = maxValue, direction > 0, newValue > max { return }
+        if let min = minValue, direction < 0, newValue < min { return }
+        count = newValue
+        lastModified = Date()
+        persistState()
+        context.dispatch(.refresh(reason: .manual))
+    }
+
+    private func resetCounter(context: PanelHostContext) {
+        count = 0
+        lastModified = Date()
+        persistState()
+        context.dispatch(.refresh(reason: .manual))
+    }
+
+    private func buildSnapshot() -> ModuleSnapshot {
         var meta: [String: String] = [
             "stepSize": "\(stepSize)"
         ]
@@ -92,85 +223,13 @@ final class CounterModule: StatusModule {
         )
     }
 
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        switch action.id {
-        case "increment":
-            let newValue = count + stepSize
-            if let max = maxValue, newValue > max { return .none }
-            count = newValue
-        case "decrement":
-            let newValue = count - stepSize
-            if let min = minValue, newValue < min { return .none }
-            count = newValue
-        case "reset":
-            count = 0
-        default:
-            return .none
-        }
-        lastModified = Date()
-        return .didUpdateSnapshot(try await refresh(context: context))
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(CounterPanel(
-            snapshot: snapshot,
-            count: count,
-            stepSize: Binding(
-                get: { [weak self] in self?.stepSize ?? 1 },
-                set: { [weak self] in self?.stepSize = $0; self?.persistState() }
-            ),
-            minValue: Binding(
-                get: { [weak self] in self?.minValue },
-                set: { [weak self] in self?.minValue = $0; self?.persistState() }
-            ),
-            maxValue: Binding(
-                get: { [weak self] in self?.maxValue },
-                set: { [weak self] in self?.maxValue = $0; self?.persistState() }
-            ),
-            onIncrement: { [weak self] in self?.adjust(by: 1, context: context) },
-            onDecrement: { [weak self] in self?.adjust(by: -1, context: context) },
-            onReset: { [weak self] in self?.resetCounter(context: context) }
-        ))
-    }
-
-    private func adjust(by direction: Int, context: ModuleContext) {
-        let newValue = count + (direction * stepSize)
-        if let max = maxValue, direction > 0, newValue > max { return }
-        if let min = minValue, direction < 0, newValue < min { return }
-        count = newValue
-        lastModified = Date()
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            do {
-                let snap = try await self.refresh(context: context)
-                context.cacheStore.save(snap)
-            } catch {
-                context.logger.error("Counter refresh failed: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    private func resetCounter(context: ModuleContext) {
-        count = 0
-        lastModified = Date()
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            do {
-                let snap = try await self.refresh(context: context)
-                context.cacheStore.save(snap)
-            } catch {
-                context.logger.error("Counter reset refresh failed: \(error.localizedDescription)")
-            }
-        }
-    }
-
     private func relativeTime(from date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 
-    // MARK: - Persistence
+    // MARK: - Persistence (via capabilities, no UserDefaults.standard)
 
     private struct CounterState: Codable {
         let count: Int
@@ -180,7 +239,7 @@ final class CounterModule: StatusModule {
         let lastModified: Date?
     }
 
-    private static let stateKey = "counter.moduleState"
+    private static let stateKey = "moduleState"
 
     private func persistState() {
         let state = CounterState(
@@ -188,14 +247,11 @@ final class CounterModule: StatusModule {
             minValue: minValue, maxValue: maxValue,
             lastModified: lastModified
         )
-        if let data = try? JSONEncoder().encode(state) {
-            defaults.set(data, forKey: Self.stateKey)
-        }
+        settings?.set(state, forKey: Self.stateKey)
     }
 
-    private static func loadState() -> CounterState? {
-        guard let data = UserDefaults.standard.data(forKey: stateKey) else { return nil }
-        return try? JSONDecoder().decode(CounterState.self, from: data)
+    private static func loadState(from settings: ModuleSettingsNamespace?) -> CounterState? {
+        settings?.get(CounterState.self, forKey: stateKey)
     }
 }
 

@@ -2,8 +2,18 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class SystemPulseModule: StatusModule {
+final class SystemPulseModule: StatusModule, TypedModuleContribution {
     private var previousCPUTicks: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)?
+
+    // P1.13: SystemMetricsCapability injected; no direct mach/ProcessInfo calls
+    // outside the capability. Thermal state still read via ProcessInfo
+    // (built-in module privilege — team-lead approved; SystemMetricsCapability
+    // does not expose thermal in P1).
+    private let systemMetrics: SystemMetricsCapability?
+
+    init(systemMetrics: SystemMetricsCapability? = nil) {
+        self.systemMetrics = systemMetrics
+    }
 
     var manifest: ModuleManifest {
         ModuleManifest(
@@ -31,7 +41,69 @@ final class SystemPulseModule: StatusModule {
         )
     }
 
+    // MARK: - StatusModule (legacy bridge)
+
     func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
+        buildSnapshot()
+    }
+
+    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
+        action.id == "refresh" ? .refreshRequested(manifest.id) : .none
+    }
+
+    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
+        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { _ in })))
+    }
+
+    // MARK: - TypedModuleContribution (P1.13)
+
+    func handle(
+        command: Command,
+        capabilities: GrantedCapabilities,
+        bridge: ModuleBridge
+    ) async -> DomainTransition {
+        switch command {
+        case .refresh:
+            return DomainTransition(
+                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                health: .healthy,
+                refreshProjection: true
+            )
+        default:
+            return .empty
+        }
+    }
+
+    func buildProjection() -> ProjectionSet {
+        ProjectionBuilder.build(from: buildSnapshot())
+    }
+
+    func statusCandidates() -> [StatusCandidate] {
+        let snap = buildSnapshot()
+        return snap.signals.map { signal in
+            StatusCandidate(
+                id: signal.id,
+                sourceModule: manifest.id,
+                semanticRole: .alert,
+                severity: signal.severity,
+                priority: signal.priority,
+                text: signal.title,
+                icon: signal.systemImage,
+                createdAt: snap.timestamp,
+                expiresAt: nil,
+                interruptPolicy: .preempt,
+                trustLevel: .bundled
+            )
+        }
+    }
+
+    func panelContent(context: PanelHostContext) -> some View {
+        SystemPulsePanel(snapshot: buildSnapshot())
+    }
+
+    // MARK: - Internals
+
+    private func buildSnapshot() -> ModuleSnapshot {
         let cpu = realCPUUsage()
         let memory = realMemoryUsage()
         let storage = storageUsage()
@@ -66,15 +138,7 @@ final class SystemPulseModule: StatusModule {
         )
     }
 
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        action.id == "refresh" ? .refreshRequested(manifest.id) : .none
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(SystemPulsePanel(snapshot: snapshot))
-    }
-
-    // MARK: - Real CPU
+    // MARK: - Real CPU (built-in module privilege: Mach API)
 
     private func realCPUUsage() -> Double {
         var count: mach_msg_type_number_t = 0
@@ -108,12 +172,17 @@ final class SystemPulseModule: StatusModule {
         return min(100, max(0, Double(used) / Double(totalDelta) * 100))
     }
 
-    // MARK: - Real Memory
+    // MARK: - Real Memory (via capability when available)
 
     private func realMemoryUsage() -> Double {
+        if let cap = systemMetrics {
+            let (used, total) = cap.memoryUsage()
+            guard total > 0 else { return 0 }
+            return min(100, max(0, Double(used) / Double(total) * 100))
+        }
+        // Fallback: direct Mach call (only if capability not injected)
         var pageSize: vm_size_t = 0
         host_page_size(mach_host_self(), &pageSize)
-
         var stats = vm_statistics64()
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
         let result = withUnsafeMutablePointer(to: &stats) {
@@ -122,21 +191,21 @@ final class SystemPulseModule: StatusModule {
             }
         }
         guard result == KERN_SUCCESS else { return 0 }
-
         let active = UInt64(stats.active_count) * UInt64(pageSize)
         let wired = UInt64(stats.wire_count) * UInt64(pageSize)
         let compressed = UInt64(stats.compressor_page_count) * UInt64(pageSize)
-        _ = UInt64(stats.free_count) * UInt64(pageSize)
-        _ = UInt64(stats.inactive_count) * UInt64(pageSize)
-
         let total = UInt64(ProcessInfo.processInfo.physicalMemory)
         let used = active + wired + compressed
         return min(100, max(0, Double(used) / Double(total) * 100))
     }
 
-    // MARK: - Storage
+    // MARK: - Storage (via capability when available)
 
     private func storageUsage() -> Double {
+        if let cap = systemMetrics, let (used, total) = cap.diskUsage(), total > 0 {
+            return max(0, min(100, Double(used) / Double(total) * 100))
+        }
+        // Fallback
         guard let values = try? URL(fileURLWithPath: NSHomeDirectory()).resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeTotalCapacityKey]),
               let available = values.volumeAvailableCapacityForImportantUsage,
               let total = values.volumeTotalCapacity,
@@ -146,7 +215,7 @@ final class SystemPulseModule: StatusModule {
         return max(0, min(100, (1 - Double(available) / Double(total)) * 100))
     }
 
-    // MARK: - Thermal
+    // MARK: - Thermal (built-in privilege: ProcessInfo)
 
     private func thermalDescription() -> String {
         switch ProcessInfo.processInfo.thermalState {
