@@ -28,7 +28,7 @@ Use standard Swift formatting with 4-space indentation. Prefer `final` for concr
 
 ## Testing Guidelines
 
-Tests use XCTest. Add focused tests under `Tests/CoreTests/` for routing, scheduling, status composition, storage, and widget bridges. Add module behavior tests under `Tests/ModuleTests/`. Name tests with `test...` and run `./script/build_and_run.sh --test` before opening a PR.
+Tests use Swift Testing (`import Testing`, `@Test`, `#expect`/`#require`). Add focused tests under `Tests/CoreTests/` for routing, scheduling, status composition, storage, and widget bridges. Add module behavior tests under `Tests/ModuleTests/`. Name test functions descriptively (no `test` prefix required by Swift Testing) and run `./script/build_and_run.sh --test` before opening a PR.
 
 ## Commit & Pull Request Guidelines
 

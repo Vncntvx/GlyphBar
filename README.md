@@ -21,7 +21,7 @@ Useful modes:
 ```sh
 ./script/build_and_run.sh          # build and launch
 ./script/build_and_run.sh --build  # build only
-./script/build_and_run.sh --test   # run XCTest
+./script/build_and_run.sh --test   # run Swift Testing tests
 ./script/build_and_run.sh --verify # build, launch, and verify the process
 ./script/build_and_run.sh --logs   # launch and stream process logs
 ./script/build_and_run.sh --telemetry
