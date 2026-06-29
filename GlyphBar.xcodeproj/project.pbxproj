@@ -58,6 +58,7 @@
 		B0000000000000000000030C /* Core/Modules/ModuleTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */; };
 		B00000000000000000000320 /* WidgetShared/AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000120 /* WidgetShared/AppGroup.swift */; };
 		B00000000000000000000321 /* WidgetShared/WidgetSnapshotModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000121 /* WidgetShared/WidgetSnapshotModels.swift */; };
+		B0000000000000000000030D /* Kernel/Contracts/Severity.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACEB0014A5D0344788171B5B /* Kernel/Contracts/Severity.swift */; };
 		B00000000000000000000322 /* WidgetShared/WidgetDataBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000122 /* WidgetShared/WidgetDataBridge.swift */; };
 		B00000000000000000000362 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000262 /* Assets.xcassets */; };
 		B00000000000000000000401 /* CoreTests/StatusComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000301 /* CoreTests/StatusComposerTests.swift */; };
@@ -80,6 +81,42 @@
 		B2CEFB3A8DAF5437EA078FAF /* Modules/DeepSeekModule/LoginWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB40D0A29C4B64E53A58ECBA /* Modules/DeepSeekModule/LoginWebView.swift */; };
 		B2E63DE050D64432E811F3D8 /* Modules/DeepSeekModule/UsageCSVParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6CAC4233ED648FF99E0E4C /* Modules/DeepSeekModule/UsageCSVParser.swift */; };
 		BA037834C051D44CFB213F9F /* Modules/DeepSeekModule/UsageExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A877ACBB40B714CAFBC4398F /* Modules/DeepSeekModule/UsageExportService.swift */; };
+		B384CE6DFEF84408994CB24E /* Kernel/Contracts/Severity.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACEB0014A5D0344788171B5B /* Kernel/Contracts/Severity.swift */; };
+		BE8CBD039DC19466B983020E /* Kernel/Command/Command.swift in Sources */ = {isa = PBXBuildFile; fileRef = A520C9821BDD0486D8BA6994 /* Kernel/Command/Command.swift */; };
+		B8C3B77318BD14C61ADA6AA9 /* Kernel/Effect/Effect.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EE820E35B0D403299C7E40 /* Kernel/Effect/Effect.swift */; };
+		BC39B715190424050847CD92 /* Kernel/Contracts/ModuleHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62042D2E06FA42058F3CBDA /* Kernel/Contracts/ModuleHealth.swift */; };
+		B7F97C2F1EAB74674958C881 /* Kernel/Capabilities/Capability.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADD0EC2D5D2AC47969E44350 /* Kernel/Capabilities/Capability.swift */; };
+		B34C33DF60563427DB507FEC /* Kernel/Capabilities/ModuleSecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB056A138EC9042B89B6E24D /* Kernel/Capabilities/ModuleSecretStore.swift */; };
+		B56B56296B8EA4934AB9C1DB /* Kernel/Capabilities/ModuleCacheNamespace.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C44D39DDE96430D95FC307 /* Kernel/Capabilities/ModuleCacheNamespace.swift */; };
+		B1634F1A270644BAFBECD2C7 /* Kernel/Capabilities/ModuleSettingsNamespace.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE570BCB7F39F4B528129752 /* Kernel/Capabilities/ModuleSettingsNamespace.swift */; };
+		B47916EDEF282479396F9E68 /* Kernel/Capabilities/NetworkCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4EDEAF75F8AE4FC8A2E4B73 /* Kernel/Capabilities/NetworkCapability.swift */; };
+		B439FD7105DE44324BF56047 /* Kernel/Capabilities/FileImportCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB7C5CD4CCEAA41B2991B1B8 /* Kernel/Capabilities/FileImportCapability.swift */; };
+		BA53DD850EE7E4F1D8D082B3 /* Kernel/Capabilities/ClipboardCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4D22E528CC084D0EA3FB945 /* Kernel/Capabilities/ClipboardCapability.swift */; };
+		B3ABBA45F3F8947218DA956F /* Kernel/Capabilities/LoggingCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6316DB289E24253BD77CAE /* Kernel/Capabilities/LoggingCapability.swift */; };
+		B6190199965E34DE4830435D /* Kernel/Capabilities/SystemMetricsCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A9C96E191A743B08B87EEA /* Kernel/Capabilities/SystemMetricsCapability.swift */; };
+		BE465A9C217AB4E8EB561B18 /* Kernel/Capabilities/GrantedCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2C4210828CCC492F912D2FB /* Kernel/Capabilities/GrantedCapabilities.swift */; };
+		BE7F813816D0F4BEDA07D843 /* Kernel/Capabilities/ModuleBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83B51DEB5B31464B9FD7EF3 /* Kernel/Capabilities/ModuleBridge.swift */; };
+		B8A8804ADDF424C2C92C6535 /* Projection/Projections/SummaryProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A64EDC60A228742579918A1A /* Projection/Projections/SummaryProjection.swift */; };
+		BD588122887114AC89248B8B /* Projection/Projections/MetricsProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C6943A4BBEF4770B5C9320 /* Projection/Projections/MetricsProjection.swift */; };
+		B542BEE8D0D06407EAC6D0C9 /* Projection/Projections/ListProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E5979AB8A00471BAAD7830 /* Projection/Projections/ListProjection.swift */; };
+		BDEBB6A64F2FD4BAE9D60BAC /* Projection/Projections/ChartProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53735F15D10C42F2A519FEF /* Projection/Projections/ChartProjection.swift */; };
+		BEA1C9C4F9B394D668924A5E /* Projection/Projections/WidgetProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA55C2B08B96642BBAF9EF2D /* Projection/Projections/WidgetProjection.swift */; };
+		B7758285AB77B49A1BD4FC17 /* Projection/Projections/PanelModelProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5E0CB89F04884F36ABEAC93 /* Projection/Projections/PanelModelProjection.swift */; };
+		B9758C1853DDD4816A73858B /* Projection/Projections/StatusCandidatesProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D1C261D0C364E28AF058D4 /* Projection/Projections/StatusCandidatesProjection.swift */; };
+		B3670F0B3E7884BBBA908F89 /* Projection/ProjectionSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A75201DD2E0A644B29BCCBCB /* Projection/ProjectionSet.swift */; };
+		BF1EF3258B52D4F1AB73FB5A /* Projection/SnapshotEnvelope.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF0C4B6022DB4FF2B4BDEA8 /* Projection/SnapshotEnvelope.swift */; };
+		B377A241601B94086A71550F /* Projection/ProjectionBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D08E76B851649E9B0BC540 /* Projection/ProjectionBuilder.swift */; };
+		BC0ADD42C33E14089B2F8610 /* Presentation/Arbiter/TrustLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3DBC5BB84FB4442189C52F6 /* Presentation/Arbiter/TrustLevel.swift */; };
+		B8016E94194854902AF9F1BB /* Presentation/Arbiter/StatusCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF48DEC3AC374F0B8923E12 /* Presentation/Arbiter/StatusCandidate.swift */; };
+		B0ECD785BD0974049AEEDDF4 /* Presentation/Arbiter/PresentationDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6F5CCAEC59FC4A7C9E50FBD /* Presentation/Arbiter/PresentationDecision.swift */; };
+		B8A54549584504B7D9AA2A19 /* Presentation/Arbiter/HysteresisTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E58337DE18B4A76A7CCF67 /* Presentation/Arbiter/HysteresisTracker.swift */; };
+		B6F90A9832F524F4AB334F1E /* Presentation/Arbiter/PresentationArbiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF109169E5ED4575B65B638 /* Presentation/Arbiter/PresentationArbiter.swift */; };
+		B74AD39D88BCB4EEAA93F5CD /* Kernel/Contracts/DomainTransition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B2F8D5FF2F04FCF983049A /* Kernel/Contracts/DomainTransition.swift */; };
+		B35AD7DF0CDB044AFA2FD282 /* Kernel/Contracts/ModuleContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8BE202DB7CE4122B84C6DA /* Kernel/Contracts/ModuleContract.swift */; };
+		B2EF17695CDA341E9AF93C42 /* Presentation/Host/PanelHostContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA2908814C7415BAF9F7EB /* Presentation/Host/PanelHostContext.swift */; };
+		BF74723335BFB4F508125281 /* Presentation/Host/ModuleContribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */; };
+		BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */; };
+		B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -189,6 +226,42 @@
 		AB40D0A29C4B64E53A58ECBA /* Modules/DeepSeekModule/LoginWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/LoginWebView.swift; sourceTree = "<group>"; };
 		AE6CAC4233ED648FF99E0E4C /* Modules/DeepSeekModule/UsageCSVParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/UsageCSVParser.swift; sourceTree = "<group>"; };
 		A877ACBB40B714CAFBC4398F /* Modules/DeepSeekModule/UsageExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/UsageExportService.swift; sourceTree = "<group>"; };
+		ACEB0014A5D0344788171B5B /* Kernel/Contracts/Severity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Contracts/Severity.swift; sourceTree = "<group>"; };
+		A520C9821BDD0486D8BA6994 /* Kernel/Command/Command.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Command/Command.swift; sourceTree = "<group>"; };
+		A8EE820E35B0D403299C7E40 /* Kernel/Effect/Effect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Effect/Effect.swift; sourceTree = "<group>"; };
+		A62042D2E06FA42058F3CBDA /* Kernel/Contracts/ModuleHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Contracts/ModuleHealth.swift; sourceTree = "<group>"; };
+		ADD0EC2D5D2AC47969E44350 /* Kernel/Capabilities/Capability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/Capability.swift; sourceTree = "<group>"; };
+		AB056A138EC9042B89B6E24D /* Kernel/Capabilities/ModuleSecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/ModuleSecretStore.swift; sourceTree = "<group>"; };
+		A6C44D39DDE96430D95FC307 /* Kernel/Capabilities/ModuleCacheNamespace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/ModuleCacheNamespace.swift; sourceTree = "<group>"; };
+		AE570BCB7F39F4B528129752 /* Kernel/Capabilities/ModuleSettingsNamespace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/ModuleSettingsNamespace.swift; sourceTree = "<group>"; };
+		A4EDEAF75F8AE4FC8A2E4B73 /* Kernel/Capabilities/NetworkCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/NetworkCapability.swift; sourceTree = "<group>"; };
+		AB7C5CD4CCEAA41B2991B1B8 /* Kernel/Capabilities/FileImportCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/FileImportCapability.swift; sourceTree = "<group>"; };
+		A4D22E528CC084D0EA3FB945 /* Kernel/Capabilities/ClipboardCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/ClipboardCapability.swift; sourceTree = "<group>"; };
+		AB6316DB289E24253BD77CAE /* Kernel/Capabilities/LoggingCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/LoggingCapability.swift; sourceTree = "<group>"; };
+		A9A9C96E191A743B08B87EEA /* Kernel/Capabilities/SystemMetricsCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/SystemMetricsCapability.swift; sourceTree = "<group>"; };
+		A2C4210828CCC492F912D2FB /* Kernel/Capabilities/GrantedCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/GrantedCapabilities.swift; sourceTree = "<group>"; };
+		A83B51DEB5B31464B9FD7EF3 /* Kernel/Capabilities/ModuleBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/ModuleBridge.swift; sourceTree = "<group>"; };
+		A64EDC60A228742579918A1A /* Projection/Projections/SummaryProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/Projections/SummaryProjection.swift; sourceTree = "<group>"; };
+		A5C6943A4BBEF4770B5C9320 /* Projection/Projections/MetricsProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/Projections/MetricsProjection.swift; sourceTree = "<group>"; };
+		A1E5979AB8A00471BAAD7830 /* Projection/Projections/ListProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/Projections/ListProjection.swift; sourceTree = "<group>"; };
+		A53735F15D10C42F2A519FEF /* Projection/Projections/ChartProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/Projections/ChartProjection.swift; sourceTree = "<group>"; };
+		AA55C2B08B96642BBAF9EF2D /* Projection/Projections/WidgetProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/Projections/WidgetProjection.swift; sourceTree = "<group>"; };
+		A5E0CB89F04884F36ABEAC93 /* Projection/Projections/PanelModelProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/Projections/PanelModelProjection.swift; sourceTree = "<group>"; };
+		A0D1C261D0C364E28AF058D4 /* Projection/Projections/StatusCandidatesProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/Projections/StatusCandidatesProjection.swift; sourceTree = "<group>"; };
+		A75201DD2E0A644B29BCCBCB /* Projection/ProjectionSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/ProjectionSet.swift; sourceTree = "<group>"; };
+		ADF0C4B6022DB4FF2B4BDEA8 /* Projection/SnapshotEnvelope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/SnapshotEnvelope.swift; sourceTree = "<group>"; };
+		A9D08E76B851649E9B0BC540 /* Projection/ProjectionBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/ProjectionBuilder.swift; sourceTree = "<group>"; };
+		A3DBC5BB84FB4442189C52F6 /* Presentation/Arbiter/TrustLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Arbiter/TrustLevel.swift; sourceTree = "<group>"; };
+		ABF48DEC3AC374F0B8923E12 /* Presentation/Arbiter/StatusCandidate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Arbiter/StatusCandidate.swift; sourceTree = "<group>"; };
+		A6F5CCAEC59FC4A7C9E50FBD /* Presentation/Arbiter/PresentationDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Arbiter/PresentationDecision.swift; sourceTree = "<group>"; };
+		A2E58337DE18B4A76A7CCF67 /* Presentation/Arbiter/HysteresisTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Arbiter/HysteresisTracker.swift; sourceTree = "<group>"; };
+		ADF109169E5ED4575B65B638 /* Presentation/Arbiter/PresentationArbiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Arbiter/PresentationArbiter.swift; sourceTree = "<group>"; };
+		A0B2F8D5FF2F04FCF983049A /* Kernel/Contracts/DomainTransition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Contracts/DomainTransition.swift; sourceTree = "<group>"; };
+		AB8BE202DB7CE4122B84C6DA /* Kernel/Contracts/ModuleContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Contracts/ModuleContract.swift; sourceTree = "<group>"; };
+		AAAA2908814C7415BAF9F7EB /* Presentation/Host/PanelHostContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Host/PanelHostContext.swift; sourceTree = "<group>"; };
+		AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Host/ModuleContribution.swift; sourceTree = "<group>"; };
+		A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Effect/EffectExecutor.swift; sourceTree = "<group>"; };
+		A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Kernel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -259,6 +332,42 @@
 				AE68FD1ED5C0844FD9A613AC /* App/Windows/LogsWindowCoordinator.swift */,
 				A0000000000000000000010B /* App/Routing/DeepLinkRouter.swift */,
 				A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */,
+				A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */,
+				A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */,
+				AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */,
+				AAAA2908814C7415BAF9F7EB /* Presentation/Host/PanelHostContext.swift */,
+				AB8BE202DB7CE4122B84C6DA /* Kernel/Contracts/ModuleContract.swift */,
+				A0B2F8D5FF2F04FCF983049A /* Kernel/Contracts/DomainTransition.swift */,
+				ADF109169E5ED4575B65B638 /* Presentation/Arbiter/PresentationArbiter.swift */,
+				A2E58337DE18B4A76A7CCF67 /* Presentation/Arbiter/HysteresisTracker.swift */,
+				A6F5CCAEC59FC4A7C9E50FBD /* Presentation/Arbiter/PresentationDecision.swift */,
+				ABF48DEC3AC374F0B8923E12 /* Presentation/Arbiter/StatusCandidate.swift */,
+				A3DBC5BB84FB4442189C52F6 /* Presentation/Arbiter/TrustLevel.swift */,
+				A9D08E76B851649E9B0BC540 /* Projection/ProjectionBuilder.swift */,
+				ADF0C4B6022DB4FF2B4BDEA8 /* Projection/SnapshotEnvelope.swift */,
+				A75201DD2E0A644B29BCCBCB /* Projection/ProjectionSet.swift */,
+				A0D1C261D0C364E28AF058D4 /* Projection/Projections/StatusCandidatesProjection.swift */,
+				A5E0CB89F04884F36ABEAC93 /* Projection/Projections/PanelModelProjection.swift */,
+				AA55C2B08B96642BBAF9EF2D /* Projection/Projections/WidgetProjection.swift */,
+				A53735F15D10C42F2A519FEF /* Projection/Projections/ChartProjection.swift */,
+				A1E5979AB8A00471BAAD7830 /* Projection/Projections/ListProjection.swift */,
+				A5C6943A4BBEF4770B5C9320 /* Projection/Projections/MetricsProjection.swift */,
+				A64EDC60A228742579918A1A /* Projection/Projections/SummaryProjection.swift */,
+				A62042D2E06FA42058F3CBDA /* Kernel/Contracts/ModuleHealth.swift */,
+				A8EE820E35B0D403299C7E40 /* Kernel/Effect/Effect.swift */,
+				A520C9821BDD0486D8BA6994 /* Kernel/Command/Command.swift */,
+				ACEB0014A5D0344788171B5B /* Kernel/Contracts/Severity.swift */,
+				ADD0EC2D5D2AC47969E44350 /* Kernel/Capabilities/Capability.swift */,
+				A83B51DEB5B31464B9FD7EF3 /* Kernel/Capabilities/ModuleBridge.swift */,
+				A2C4210828CCC492F912D2FB /* Kernel/Capabilities/GrantedCapabilities.swift */,
+				A9A9C96E191A743B08B87EEA /* Kernel/Capabilities/SystemMetricsCapability.swift */,
+				AB6316DB289E24253BD77CAE /* Kernel/Capabilities/LoggingCapability.swift */,
+				A4D22E528CC084D0EA3FB945 /* Kernel/Capabilities/ClipboardCapability.swift */,
+				AB7C5CD4CCEAA41B2991B1B8 /* Kernel/Capabilities/FileImportCapability.swift */,
+				A4EDEAF75F8AE4FC8A2E4B73 /* Kernel/Capabilities/NetworkCapability.swift */,
+				AE570BCB7F39F4B528129752 /* Kernel/Capabilities/ModuleSettingsNamespace.swift */,
+				A6C44D39DDE96430D95FC307 /* Kernel/Capabilities/ModuleCacheNamespace.swift */,
+				AB056A138EC9042B89B6E24D /* Kernel/Capabilities/ModuleSecretStore.swift */,
 				A0000000000000000000010D /* Core/Modules/StatusModule.swift */,
 				A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */,
 				A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */,
@@ -471,6 +580,42 @@
 				BFB039805179844118448B23 /* App/Windows/LogsWindowCoordinator.swift in Sources */,
 				B0000000000000000000010B /* App/Routing/DeepLinkRouter.swift in Sources */,
 				B0000000000000000000010C /* Core/Modules/ModuleTypes.swift in Sources */,
+				B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */,
+				BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */,
+				BF74723335BFB4F508125281 /* Presentation/Host/ModuleContribution.swift in Sources */,
+				B2EF17695CDA341E9AF93C42 /* Presentation/Host/PanelHostContext.swift in Sources */,
+				B35AD7DF0CDB044AFA2FD282 /* Kernel/Contracts/ModuleContract.swift in Sources */,
+				B74AD39D88BCB4EEAA93F5CD /* Kernel/Contracts/DomainTransition.swift in Sources */,
+				B6F90A9832F524F4AB334F1E /* Presentation/Arbiter/PresentationArbiter.swift in Sources */,
+				B8A54549584504B7D9AA2A19 /* Presentation/Arbiter/HysteresisTracker.swift in Sources */,
+				B0ECD785BD0974049AEEDDF4 /* Presentation/Arbiter/PresentationDecision.swift in Sources */,
+				B8016E94194854902AF9F1BB /* Presentation/Arbiter/StatusCandidate.swift in Sources */,
+				BC0ADD42C33E14089B2F8610 /* Presentation/Arbiter/TrustLevel.swift in Sources */,
+				B377A241601B94086A71550F /* Projection/ProjectionBuilder.swift in Sources */,
+				BF1EF3258B52D4F1AB73FB5A /* Projection/SnapshotEnvelope.swift in Sources */,
+				B3670F0B3E7884BBBA908F89 /* Projection/ProjectionSet.swift in Sources */,
+				B9758C1853DDD4816A73858B /* Projection/Projections/StatusCandidatesProjection.swift in Sources */,
+				B7758285AB77B49A1BD4FC17 /* Projection/Projections/PanelModelProjection.swift in Sources */,
+				BEA1C9C4F9B394D668924A5E /* Projection/Projections/WidgetProjection.swift in Sources */,
+				BDEBB6A64F2FD4BAE9D60BAC /* Projection/Projections/ChartProjection.swift in Sources */,
+				B542BEE8D0D06407EAC6D0C9 /* Projection/Projections/ListProjection.swift in Sources */,
+				BD588122887114AC89248B8B /* Projection/Projections/MetricsProjection.swift in Sources */,
+				B8A8804ADDF424C2C92C6535 /* Projection/Projections/SummaryProjection.swift in Sources */,
+				BC39B715190424050847CD92 /* Kernel/Contracts/ModuleHealth.swift in Sources */,
+				B8C3B77318BD14C61ADA6AA9 /* Kernel/Effect/Effect.swift in Sources */,
+				BE8CBD039DC19466B983020E /* Kernel/Command/Command.swift in Sources */,
+				B384CE6DFEF84408994CB24E /* Kernel/Contracts/Severity.swift in Sources */,
+				B7F97C2F1EAB74674958C881 /* Kernel/Capabilities/Capability.swift in Sources */,
+				BE7F813816D0F4BEDA07D843 /* Kernel/Capabilities/ModuleBridge.swift in Sources */,
+				BE465A9C217AB4E8EB561B18 /* Kernel/Capabilities/GrantedCapabilities.swift in Sources */,
+				B6190199965E34DE4830435D /* Kernel/Capabilities/SystemMetricsCapability.swift in Sources */,
+				B3ABBA45F3F8947218DA956F /* Kernel/Capabilities/LoggingCapability.swift in Sources */,
+				BA53DD850EE7E4F1D8D082B3 /* Kernel/Capabilities/ClipboardCapability.swift in Sources */,
+				B439FD7105DE44324BF56047 /* Kernel/Capabilities/FileImportCapability.swift in Sources */,
+				B47916EDEF282479396F9E68 /* Kernel/Capabilities/NetworkCapability.swift in Sources */,
+				B1634F1A270644BAFBECD2C7 /* Kernel/Capabilities/ModuleSettingsNamespace.swift in Sources */,
+				B56B56296B8EA4934AB9C1DB /* Kernel/Capabilities/ModuleCacheNamespace.swift in Sources */,
+				B34C33DF60563427DB507FEC /* Kernel/Capabilities/ModuleSecretStore.swift in Sources */,
 				B0000000000000000000010D /* Core/Modules/StatusModule.swift in Sources */,
 				B0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift in Sources */,
 				B0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift in Sources */,
@@ -516,6 +661,7 @@
 				B00000000000000000000209 /* Views/ModuleWidgetViews.swift in Sources */,
 				B0000000000000000000020A /* Intents/OpenGlyphBarIntent.swift in Sources */,
 				B0000000000000000000030C /* Core/Modules/ModuleTypes.swift in Sources */,
+				B0000000000000000000030D /* Kernel/Contracts/Severity.swift in Sources */,
 				B00000000000000000000320 /* WidgetShared/AppGroup.swift in Sources */,
 				B00000000000000000000321 /* WidgetShared/WidgetSnapshotModels.swift in Sources */,
 				B00000000000000000000322 /* WidgetShared/WidgetDataBridge.swift in Sources */,

@@ -135,6 +135,7 @@ final class ModuleRuntime: ObservableObject {
 
     func publishSnapshot(_ snapshot: ModuleSnapshot) {
         snapshots[snapshot.id] = snapshot
+        context.cacheStore.save(snapshot)
         context.widgetBridge.publish(snapshot)
     }
 
