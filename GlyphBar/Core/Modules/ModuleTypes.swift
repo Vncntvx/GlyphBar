@@ -73,6 +73,9 @@ struct ModuleManifest: Identifiable, Codable, Hashable, Sendable {
     var defaultRefreshPolicy: RefreshPolicy
     var actions: [ModuleAction]
     var widgets: [ModuleWidgetDescriptor]
+    /// P1.16: drives module ordering. Higher priority sorts first.
+    /// Defaults to 0 (neutral). Built-in modules can set this in their manifest.
+    var priority: Int
 
     init(
         id: ModuleID,
@@ -86,7 +89,8 @@ struct ModuleManifest: Identifiable, Codable, Hashable, Sendable {
         permissions: [ModulePermission],
         defaultRefreshPolicy: RefreshPolicy,
         actions: [ModuleAction],
-        widgets: [ModuleWidgetDescriptor]
+        widgets: [ModuleWidgetDescriptor],
+        priority: Int = 0
     ) {
         self.id = id
         self.displayName = displayName
@@ -100,6 +104,7 @@ struct ModuleManifest: Identifiable, Codable, Hashable, Sendable {
         self.defaultRefreshPolicy = defaultRefreshPolicy
         self.actions = actions
         self.widgets = widgets
+        self.priority = priority
     }
 }
 

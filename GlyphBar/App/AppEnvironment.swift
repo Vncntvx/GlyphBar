@@ -156,10 +156,18 @@ final class AppEnvironment: ObservableObject {
         self.statusItemController = statusItemController
         self.router = router
 
-        // Ensure DeepSeek is first in module order
-        var order = settingsStore.moduleOrder
-        order.removeAll { $0 == "deepseek" }
-        settingsStore.moduleOrder = ["deepseek"] + order
+        // P1.16: module ordering is driven by manifest.priority, not hardcoded.
+        // DeepSeek has priority: 100 in its manifest; others default to 0.
+        // The runtime's orderedModuleIDs sorts by settingsStore.moduleOrder
+        // first, then falls back to module ID. We seed moduleOrder with
+        // priority-sorted IDs on first launch only.
+        if settingsStore.moduleOrder.isEmpty {
+            let prioritySorted = registry.makeRecords()
+                .values
+                .sorted { $0.module.manifest.priority > $1.module.manifest.priority }
+                .map(\.id)
+            settingsStore.moduleOrder = prioritySorted
+        }
     }
 
     func start() {

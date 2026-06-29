@@ -196,7 +196,8 @@ final class DeepSeekModule: StatusModule, TypedModuleContribution {
             systemImage: "brain.head.profile", version: "1.2.0", author: "Wenjie Xu",
             capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
             permissions: [], defaultRefreshPolicy: .interval(seconds: 300),
-            actions: [ModuleAction(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh)], widgets: [])
+            actions: [ModuleAction(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh)], widgets: [],
+            priority: 100)
     }
 
     // MARK: - StatusModule (legacy bridge)
