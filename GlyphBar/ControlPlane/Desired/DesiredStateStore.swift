@@ -56,11 +56,9 @@ final class DesiredStateStore {
     private func save() {
         let dict = Dictionary(uniqueKeysWithValues: states.map { ($0.key.value, $0.value) })
         guard let data = try? JSONEncoder().encode(dict) else { return }
-        // Transactional write: write to temp file, then rename
-        let tempURL = fileURL.deletingLastPathComponent().appendingPathComponent("desired-state.json.tmp")
+        // Transactional write: write directly to the file
         do {
-            try data.write(to: tempURL, options: .atomic)
-            try FileManager.default.moveItem(at: tempURL, to: fileURL)
+            try data.write(to: fileURL, options: .atomic)
         } catch {
             logger.error("Failed to save desired state: \(error.localizedDescription)")
         }
