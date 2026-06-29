@@ -43,7 +43,7 @@ final class StatusItemController: NSObject {
         tooltip: "GlyphBar"
     ))
     private let renderer: StatusItemRenderer
-    private var rotationTimer: Timer?
+    private let presentationTicker = PresentationTicker()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private var cancellables: Set<AnyCancellable> = []
     private var pendingRender: DispatchWorkItem?
@@ -307,20 +307,65 @@ final class StatusItemController: NSObject {
     }
 
     private func updateRotationTimer() {
-        rotationTimer?.invalidate()
-        rotationTimer = nil
+        presentationTicker.stop()
         guard settingsStore.statusRotationEnabled else { return }
         let interval = TimeInterval(settingsStore.statusRotationInterval)
-        rotationTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                // P1.14: rotation tick drives the arbiter, which re-evaluates
-                // candidates with TTL/hysteresis. The renderer writes the
-                // resulting decision.
-                _ = self.arbiter.tick(now: Date())
-                self.renderer.render(self.arbiter.currentDecision)
+        presentationTicker.start(interval: interval) { [weak self] in
+            guard let self else { return }
+            // P2: presentation ticker drives the arbiter tick, which
+            // cycles through rotation candidates and applies TTL/hysteresis.
+            // Also run presentationTick on PresentationTickable modules.
+            self.runPresentationTicks()
+            _ = self.arbiter.tick(now: Date())
+            self.renderer.render(self.arbiter.currentDecision)
+        }
+    }
+
+    /// Run presentationTick on all PresentationTickable modules.
+    /// This updates their display projections without triggering data refresh.
+    private func runPresentationTicks() {
+        for (id, module) in runtime.modules {
+            if let tickable = module as? any PresentationTickable {
+                let projection = tickable.buildProjection()
+                let _ = tickable.presentationTick(trigger: .timerTick, projection: projection)
+                // Re-submit candidates after tick to update arbiter
+                let candidates = tickable.statusCandidates()
+                if !candidates.isEmpty {
+                    // Merge with existing arbiter candidates
+                    var allCandidates = self.collectAllCandidates()
+                    // Replace this module's candidates
+                    allCandidates.removeAll { $0.sourceModule == id }
+                    allCandidates.append(contentsOf: candidates)
+                    arbiter.submit(allCandidates, now: Date())
+                }
             }
         }
+    }
+
+    /// Collect candidates from all enabled modules (used by runPresentationTicks).
+    private func collectAllCandidates() -> [StatusCandidate] {
+        var candidates: [StatusCandidate] = []
+        let enabledSnapshots = runtime.snapshots.filter { settingsStore.isEnabled($0.key) }
+
+        for (id, snapshot) in enabledSnapshots {
+            if let module = runtime.modules[id] as? any ModuleContract {
+                candidates.append(contentsOf: module.statusCandidates())
+            } else {
+                let projection = ProjectionBuilder.build(from: snapshot)
+                candidates.append(contentsOf: projection.statusCandidates)
+            }
+        }
+
+        if !settingsStore.rotationModuleIDs.isEmpty {
+            candidates = candidates.filter { candidate in
+                if candidate.semanticRole == .rotation {
+                    return settingsStore.rotationModuleIDs.contains(candidate.sourceModule)
+                }
+                return true
+            }
+        }
+
+        return candidates
     }
 
     private func scheduleRender() {

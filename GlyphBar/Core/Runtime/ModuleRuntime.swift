@@ -17,6 +17,7 @@ final class ModuleRuntime: ObservableObject {
     private let cacheStore: CacheStore
     private let widgetBridge: WidgetDataBridge
     private let capabilityFactory: CapabilityFactory
+    private let supervisor: ModuleSupervisor
 
     init(
         registry: ModuleRegistry,
@@ -24,7 +25,7 @@ final class ModuleRuntime: ObservableObject {
         widgetBridge: WidgetDataBridge,
         settingsStore: AppSettingsStore,
         logger: GlyphLogger = GlyphLogger(),
-        scheduler: RefreshScheduler = RefreshScheduler()
+        scheduler: RefreshScheduler? = nil
     ) {
         let records = registry.makeRecords()
         self.registry = registry
@@ -33,9 +34,12 @@ final class ModuleRuntime: ObservableObject {
         self.cacheStore = cacheStore
         self.widgetBridge = widgetBridge
         self.settingsStore = settingsStore
-        self.scheduler = scheduler
         self.logger = logger
         self.capabilityFactory = CapabilityFactory(logger: logger)
+        self.supervisor = ModuleSupervisor(capabilityFactory: self.capabilityFactory, logger: logger)
+
+        // Use the new environment-aware scheduler by default
+        self.scheduler = scheduler ?? RefreshScheduler()
 
         let manifests = modules.values.map(\.manifest).sorted { $0.displayName < $1.displayName }
         settingsStore.registerDefaults(for: manifests)
@@ -45,6 +49,24 @@ final class ModuleRuntime: ObservableObject {
             if let cached = cacheStore.load(moduleID: id) {
                 snapshots[id] = cached.markedStale(reason: "Loaded cached snapshot")
             }
+        }
+
+        // Wire supervisor to execute effects
+        supervisor.onEffects = { [weak self] moduleID, effects in
+            guard let self else { return }
+            for effect in effects {
+                await self.executeEffect(effect, for: moduleID)
+            }
+        }
+
+        // Register all modules with the supervisor
+        for (id, module) in modules {
+            supervisor.register(moduleID: id, module: module)
+        }
+
+        // Wire scheduler to dispatch refreshes through supervisor
+        self.scheduler.onRefreshDue = { [weak self] moduleID in
+            self?.supervisor.dispatch(.refresh(reason: .scheduled), for: moduleID)
         }
     }
 
@@ -68,6 +90,15 @@ final class ModuleRuntime: ObservableObject {
     }
 
     func start() {
+        // Register enabled modules with the scheduler
+        for id in enabledModuleIDs {
+            if let module = modules[id] {
+                let policy = settingsStore.refreshPolicies[id] ?? module.manifest.defaultRefreshPolicy
+                scheduler.register(id: id, policy: policy)
+            }
+        }
+
+        // Initial refresh for enabled modules
         Task {
             await refreshEnabledModules(respectingPolicy: true)
         }
@@ -121,30 +152,8 @@ final class ModuleRuntime: ObservableObject {
     }
 
     func dispatch(action: ModuleAction, moduleID: ModuleID) async {
-        guard let module = modules[moduleID] else {
-            return
-        }
-
-        let bridge = KernelBridge { [weak self] effects in
-            guard let self else { return }
-            for effect in effects {
-                Task { await self.executeEffect(effect, for: moduleID) }
-            }
-        }
-        let capabilities = capabilityFactory.makeCapabilities(
-            for: moduleID,
-            manifest: module.manifest,
-            bridge: bridge
-        )
-        let transition = await module.handle(
-            command: .userAction(actionID: action.id, payload: nil),
-            capabilities: capabilities,
-            bridge: bridge
-        )
-
-        for effect in transition.effects {
-            await executeEffect(effect, for: moduleID)
-        }
+        // Route through supervisor for serial processing + generation tracking
+        supervisor.dispatch(.userAction(actionID: action.id, payload: nil), for: moduleID)
     }
 
     func setSelectedModule(_ moduleID: ModuleID?) {
@@ -175,6 +184,8 @@ final class ModuleRuntime: ObservableObject {
         }
 
         settingsStore.setEnabled(false, moduleID: moduleID)
+        supervisor.unregister(moduleID: moduleID)
+        scheduler.unregister(id: moduleID)
         try registry.removeExternalPackage(moduleID: moduleID)
         if removeData {
             cacheStore.clear(moduleID: moduleID)
@@ -198,8 +209,6 @@ final class ModuleRuntime: ObservableObject {
     private func executeEffect(_ effect: Effect, for moduleID: ModuleID) async {
         switch effect {
         case .publishSnapshot(let envelope):
-            // Extract a ModuleSnapshot from the envelope for legacy consumers
-            // (ModuleRuntime.snapshots, cacheStore, widgetBridge).
             let snapshot = ProjectionBuilder.buildSnapshot(from: envelope)
             snapshots[moduleID] = snapshot
             cacheStore.save(snapshot)
@@ -255,7 +264,6 @@ final class ModuleRuntime: ObservableObject {
     }
 
     /// Closure set by AppEnvironment to open the settings window.
-    /// Replaces the old `context.platformActions.showSettingsWindow()`.
     var openSettingsAction: (() -> Void)?
 
     private func reloadModules(selecting preferredModuleID: ModuleID?) {
@@ -265,6 +273,11 @@ final class ModuleRuntime: ObservableObject {
 
         let manifests = modules.values.map(\.manifest).sorted { $0.displayName < $1.displayName }
         settingsStore.registerDefaults(for: manifests)
+
+        // Re-register all modules with the supervisor
+        for (id, module) in modules {
+            supervisor.register(moduleID: id, module: module)
+        }
 
         if let preferredModuleID, modules[preferredModuleID] != nil {
             selectedModuleID = preferredModuleID

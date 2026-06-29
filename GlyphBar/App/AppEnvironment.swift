@@ -37,6 +37,7 @@ final class AppEnvironment: ObservableObject {
     let widgetBridge: WidgetDataBridge
     let registry: ModuleRegistry
     let runtime: ModuleRuntime
+    let envMonitor: SystemEnvironmentMonitor
     let settingsNavigation: SettingsNavigationState
     let quickPanelCoordinator: QuickPanelCoordinator
     let appMenuCoordinator: AppMenuCoordinator
@@ -111,6 +112,8 @@ final class AppEnvironment: ObservableObject {
         }
         registry.register { NetworkMockModule() }
 
+        let envMonitor = SystemEnvironmentMonitor()
+
         let runtime = ModuleRuntime(
             registry: registry,
             cacheStore: cacheStore,
@@ -159,6 +162,7 @@ final class AppEnvironment: ObservableObject {
         self.widgetBridge = widgetBridge
         self.registry = registry
         self.runtime = runtime
+        self.envMonitor = envMonitor
         self.settingsNavigation = settingsNavigation
         self.quickPanelCoordinator = quickPanelCoordinator
         self.logsWindowCoordinator = logsWindowCoordinator

@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class ClockModule: TypedModuleContribution {
+final class ClockModule: TypedModuleContribution, PresentationTickable {
     private var uses24HourClock: Bool
     private var showSeconds: Bool
     private var worldTimezones: [String]
@@ -40,7 +40,7 @@ final class ClockModule: TypedModuleContribution {
         author: "Wenjie Xu",
         capabilities: [.statusItem, .panel, .widgets, .actions, .deepLinks],
         permissions: [.pasteboard],
-        defaultRefreshPolicy: .interval(seconds: 5),
+        defaultRefreshPolicy: .manual,  // P2: tick与refresh分离，Clock不再5s自动refresh
         actions: [
             ModuleAction(id: "copyTimestamp", title: "Copy Timestamp", systemImage: "doc.on.doc"),
             ModuleAction(id: "toggleFormat", title: "Toggle Format", systemImage: "clock.arrow.circlepath")
@@ -101,9 +101,33 @@ final class ClockModule: TypedModuleContribution {
     }
 
     func statusCandidates() -> [StatusCandidate] {
-        let snap = buildSnapshot()
-        // P1.13: world clocks produce rotation candidates.
-        var candidates: [StatusCandidate] = []
+        let now = Date()
+        // P2: Clock submits a primary candidate (local time) plus rotation
+        // candidates (world clocks). The primary candidate is updated by
+        // presentationTick, not by refresh.
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = .current
+        timeFormatter.setLocalizedDateFormatFromTemplate(
+            uses24HourClock ? (showSeconds ? "HHmmss" : "HHmm") : (showSeconds ? "hmmssa" : "hmma")
+        )
+
+        var candidates: [StatusCandidate] = [
+            StatusCandidate(
+                id: "clock.primary",
+                sourceModule: manifest.id,
+                semanticRole: .primary,
+                severity: .normal,
+                priority: 50,
+                text: timeFormatter.string(from: now),
+                icon: "clock",
+                createdAt: now,
+                expiresAt: nil,
+                interruptPolicy: .normal,
+                trustLevel: .bundled
+            )
+        ]
+
+        // World clocks produce rotation candidates
         for tzID in worldTimezones {
             let label = Self.availableTimezones.first(where: { $0.id == tzID })?.label ?? tzID
             candidates.append(StatusCandidate(
@@ -114,13 +138,47 @@ final class ClockModule: TypedModuleContribution {
                 priority: 20,
                 text: label,
                 icon: "globe",
-                createdAt: snap.timestamp,
+                createdAt: now,
                 expiresAt: nil,
                 interruptPolicy: .normal,
                 trustLevel: .bundled
             ))
         }
         return candidates
+    }
+
+    // MARK: - PresentationTickable (P2)
+
+    func presentationTick(trigger: PresentationTrigger, projection: ProjectionSet) -> ProjectionSet {
+        // Update the primary candidate text with the current time.
+        // This is a pure computation — no side effects.
+        let now = Date()
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = .current
+        timeFormatter.setLocalizedDateFormatFromTemplate(
+            uses24HourClock ? (showSeconds ? "HHmmss" : "HHmm") : (showSeconds ? "hmmssa" : "hmma")
+        )
+
+        var updated = projection
+        updated.statusCandidates = updated.statusCandidates.map { candidate in
+            if candidate.id == "clock.primary" {
+                return StatusCandidate(
+                    id: candidate.id,
+                    sourceModule: candidate.sourceModule,
+                    semanticRole: candidate.semanticRole,
+                    severity: candidate.severity,
+                    priority: candidate.priority,
+                    text: timeFormatter.string(from: now),
+                    icon: candidate.icon,
+                    createdAt: now,
+                    expiresAt: candidate.expiresAt,
+                    interruptPolicy: candidate.interruptPolicy,
+                    trustLevel: candidate.trustLevel
+                )
+            }
+            return candidate
+        }
+        return updated
     }
 
     func panelContent(context: PanelHostContext) -> some View {

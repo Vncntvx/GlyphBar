@@ -23,7 +23,6 @@
 		B0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */; };
 
 
-		B00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift */; };
 		B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */; };
 		B00000000000000000000113 /* Core/Storage/AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */; };
 		B00000000000000000000114 /* Core/Storage/CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000114 /* Core/Storage/CacheStore.swift */; };
@@ -130,6 +129,20 @@
 		BE284AF448A7641A08E89206 /* PropertyTests/ArbiterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8FB243B954CE46B9A55010B /* PropertyTests/ArbiterTests.swift */; };
 		B59973B5EFC8D472A847EA17 /* PropertyTests/ArbiterPropertyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1283FEEFD1546F89267A79 /* PropertyTests/ArbiterPropertyTests.swift */; };
 		BC2C784D4B7C94BA6948053E /* Kernel/Capabilities/CapabilityFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38E6E942B9B04C39B7F6562 /* Kernel/Capabilities/CapabilityFactory.swift */; };
+		B3BE7DB91C0CD4B6184321EB /* Kernel/Lifecycle/ModuleOperationalState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E7D462D55774EDB802D494 /* Kernel/Lifecycle/ModuleOperationalState.swift */; };
+		BA61C304C0690410D98E0CC8 /* Kernel/Lifecycle/GenerationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E2353FC22DC477B9D8EDA0 /* Kernel/Lifecycle/GenerationToken.swift */; };
+		B3DC14682470C4EB2A3D5A0F /* Kernel/Lifecycle/CancellationScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = A610C3AD9F29E4C0AAFDC6F4 /* Kernel/Lifecycle/CancellationScope.swift */; };
+		B5FA0F479CAE847068EE5BDA /* Kernel/Lifecycle/ModuleActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9ED24AF7038D4B7AB7F9BDF /* Kernel/Lifecycle/ModuleActor.swift */; };
+		BA3715B118F144B86942657B /* Kernel/Lifecycle/ModuleSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D7BE6E8BE3C401EA9F8712 /* Kernel/Lifecycle/ModuleSupervisor.swift */; };
+		BBD4558F476094E06AA79F52 /* Execution/Scheduler/SchedulerClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5CE3906333142438E2AECA /* Execution/Scheduler/SchedulerClock.swift */; };
+		B6EEC7837190B4A2CA81D9B4 /* Execution/Scheduler/SystemSchedulerClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF3CB8DD251F64899BCDDB33 /* Execution/Scheduler/SystemSchedulerClock.swift */; };
+		B01C889DDA5254A13AA11414 /* Execution/Scheduler/VirtualClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = A43D7CC6DB9F54F769013FD0 /* Execution/Scheduler/VirtualClock.swift */; };
+		B9CB932CB11A74D8A90244CD /* Execution/Scheduler/RefreshJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3ECED0E7A7444F5BAB3F71 /* Execution/Scheduler/RefreshJob.swift */; };
+		B4962A5D0E57D4170B7A11EA /* Execution/Scheduler/RefreshScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB28F209826AC41A59920F19 /* Execution/Scheduler/RefreshScheduler.swift */; };
+		B477CDF5AA83F4FCBA98607C /* Execution/Environment/SystemEnvironmentMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A62F627D1D2B64D0E8566598 /* Execution/Environment/SystemEnvironmentMonitor.swift */; };
+		B08275F8E2216456287AF8E1 /* Execution/Ticks/PresentationTicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A381375634E4A4A609380D91 /* Execution/Ticks/PresentationTicker.swift */; };
+		B1524B35DE86745F3800B94B /* Execution/Ticks/PresentationTickable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9ADAC3A544D04B29893C52B /* Execution/Ticks/PresentationTickable.swift */; };
+		BB703965B94424F16BFA7ABB /* ExecutionTests/ExecutionModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA14A296F904A4A3697E0CC0 /* ExecutionTests/ExecutionModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -181,7 +194,6 @@
 		A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ModuleRegistry.swift; sourceTree = "<group>"; };
 		A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ModuleRuntime.swift; sourceTree = "<group>"; };
 
-		A00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Refresh/RefreshScheduler.swift; sourceTree = "<group>"; };
 		A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Permissions/PermissionCenter.swift; sourceTree = "<group>"; };
 		A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Storage/AppSettingsStore.swift; sourceTree = "<group>"; };
 		A00000000000000000000114 /* Core/Storage/CacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Storage/CacheStore.swift; sourceTree = "<group>"; };
@@ -285,6 +297,20 @@
 		A8FB243B954CE46B9A55010B /* PropertyTests/ArbiterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyTests/ArbiterTests.swift; sourceTree = "<group>"; };
 		AE1283FEEFD1546F89267A79 /* PropertyTests/ArbiterPropertyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyTests/ArbiterPropertyTests.swift; sourceTree = "<group>"; };
 		A38E6E942B9B04C39B7F6562 /* Kernel/Capabilities/CapabilityFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/CapabilityFactory.swift; sourceTree = "<group>"; };
+		A8E7D462D55774EDB802D494 /* Kernel/Lifecycle/ModuleOperationalState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Lifecycle/ModuleOperationalState.swift; sourceTree = "<group>"; };
+		A7E2353FC22DC477B9D8EDA0 /* Kernel/Lifecycle/GenerationToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Lifecycle/GenerationToken.swift; sourceTree = "<group>"; };
+		A610C3AD9F29E4C0AAFDC6F4 /* Kernel/Lifecycle/CancellationScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Lifecycle/CancellationScope.swift; sourceTree = "<group>"; };
+		A9ED24AF7038D4B7AB7F9BDF /* Kernel/Lifecycle/ModuleActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Lifecycle/ModuleActor.swift; sourceTree = "<group>"; };
+		A1D7BE6E8BE3C401EA9F8712 /* Kernel/Lifecycle/ModuleSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Lifecycle/ModuleSupervisor.swift; sourceTree = "<group>"; };
+		AB5CE3906333142438E2AECA /* Execution/Scheduler/SchedulerClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Scheduler/SchedulerClock.swift; sourceTree = "<group>"; };
+		AF3CB8DD251F64899BCDDB33 /* Execution/Scheduler/SystemSchedulerClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Scheduler/SystemSchedulerClock.swift; sourceTree = "<group>"; };
+		A43D7CC6DB9F54F769013FD0 /* Execution/Scheduler/VirtualClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Scheduler/VirtualClock.swift; sourceTree = "<group>"; };
+		AB3ECED0E7A7444F5BAB3F71 /* Execution/Scheduler/RefreshJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Scheduler/RefreshJob.swift; sourceTree = "<group>"; };
+		AB28F209826AC41A59920F19 /* Execution/Scheduler/RefreshScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Scheduler/RefreshScheduler.swift; sourceTree = "<group>"; };
+		A62F627D1D2B64D0E8566598 /* Execution/Environment/SystemEnvironmentMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Environment/SystemEnvironmentMonitor.swift; sourceTree = "<group>"; };
+		A381375634E4A4A609380D91 /* Execution/Ticks/PresentationTicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Ticks/PresentationTicker.swift; sourceTree = "<group>"; };
+		A9ADAC3A544D04B29893C52B /* Execution/Ticks/PresentationTickable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Ticks/PresentationTickable.swift; sourceTree = "<group>"; };
+		AA14A296F904A4A3697E0CC0 /* ExecutionTests/ExecutionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionTests/ExecutionModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -360,6 +386,19 @@
 				A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */,
 				A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */,
 				A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */,
+				AB5CE3906333142438E2AECA /* Execution/Scheduler/SchedulerClock.swift */,
+				AF3CB8DD251F64899BCDDB33 /* Execution/Scheduler/SystemSchedulerClock.swift */,
+				A43D7CC6DB9F54F769013FD0 /* Execution/Scheduler/VirtualClock.swift */,
+				AB3ECED0E7A7444F5BAB3F71 /* Execution/Scheduler/RefreshJob.swift */,
+				AB28F209826AC41A59920F19 /* Execution/Scheduler/RefreshScheduler.swift */,
+				A62F627D1D2B64D0E8566598 /* Execution/Environment/SystemEnvironmentMonitor.swift */,
+				A381375634E4A4A609380D91 /* Execution/Ticks/PresentationTicker.swift */,
+				A9ADAC3A544D04B29893C52B /* Execution/Ticks/PresentationTickable.swift */,
+				A8E7D462D55774EDB802D494 /* Kernel/Lifecycle/ModuleOperationalState.swift */,
+				A7E2353FC22DC477B9D8EDA0 /* Kernel/Lifecycle/GenerationToken.swift */,
+				A610C3AD9F29E4C0AAFDC6F4 /* Kernel/Lifecycle/CancellationScope.swift */,
+				A9ED24AF7038D4B7AB7F9BDF /* Kernel/Lifecycle/ModuleActor.swift */,
+				A1D7BE6E8BE3C401EA9F8712 /* Kernel/Lifecycle/ModuleSupervisor.swift */,
 				AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */,
 				AAAA2908814C7415BAF9F7EB /* Presentation/Host/PanelHostContext.swift */,
 				AB8BE202DB7CE4122B84C6DA /* Kernel/Contracts/ModuleContract.swift */,
@@ -398,7 +437,6 @@
 				AB056A138EC9042B89B6E24D /* Kernel/Capabilities/ModuleSecretStore.swift */,
 				A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */,
 				A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */,
-				A00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift */,
 				A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */,
 				A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */,
 				A00000000000000000000114 /* Core/Storage/CacheStore.swift */,
@@ -460,6 +498,7 @@
 				A50B322DEB2C54375B9E767D /* KernelTests/ModuleCacheNamespaceTests.swift */,
 				A304FD97ECCA14BBE981974E /* KernelTests/ModuleSecretStoreTests.swift */,
 				A821E65B5E2CD4FCDBAE48F5 /* KernelTests/EffectExecutorTests.swift */,
+				AA14A296F904A4A3697E0CC0 /* ExecutionTests/ExecutionModelTests.swift */,
 				A00000000000000000000310 /* CoreTests/StatusRotationEngineTests.swift */,
 				A00000000000000000000302 /* CoreTests/DeepLinkRouterTests.swift */,
 				A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */,
@@ -618,6 +657,19 @@
 				B55ABC9EA912A432E9087F2A /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */,
 				B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */,
 				BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */,
+				BBD4558F476094E06AA79F52 /* Execution/Scheduler/SchedulerClock.swift in Sources */,
+				B6EEC7837190B4A2CA81D9B4 /* Execution/Scheduler/SystemSchedulerClock.swift in Sources */,
+				B01C889DDA5254A13AA11414 /* Execution/Scheduler/VirtualClock.swift in Sources */,
+				B9CB932CB11A74D8A90244CD /* Execution/Scheduler/RefreshJob.swift in Sources */,
+				B4962A5D0E57D4170B7A11EA /* Execution/Scheduler/RefreshScheduler.swift in Sources */,
+				B477CDF5AA83F4FCBA98607C /* Execution/Environment/SystemEnvironmentMonitor.swift in Sources */,
+				B08275F8E2216456287AF8E1 /* Execution/Ticks/PresentationTicker.swift in Sources */,
+				B1524B35DE86745F3800B94B /* Execution/Ticks/PresentationTickable.swift in Sources */,
+				B3BE7DB91C0CD4B6184321EB /* Kernel/Lifecycle/ModuleOperationalState.swift in Sources */,
+				BA61C304C0690410D98E0CC8 /* Kernel/Lifecycle/GenerationToken.swift in Sources */,
+				B3DC14682470C4EB2A3D5A0F /* Kernel/Lifecycle/CancellationScope.swift in Sources */,
+				B5FA0F479CAE847068EE5BDA /* Kernel/Lifecycle/ModuleActor.swift in Sources */,
+				BA3715B118F144B86942657B /* Kernel/Lifecycle/ModuleSupervisor.swift in Sources */,
 				BF74723335BFB4F508125281 /* Presentation/Host/ModuleContribution.swift in Sources */,
 				B2EF17695CDA341E9AF93C42 /* Presentation/Host/PanelHostContext.swift in Sources */,
 				B35AD7DF0CDB044AFA2FD282 /* Kernel/Contracts/ModuleContract.swift in Sources */,
@@ -656,7 +708,6 @@
 				B34C33DF60563427DB507FEC /* Kernel/Capabilities/ModuleSecretStore.swift in Sources */,
 				B0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift in Sources */,
 				B0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift in Sources */,
-				B00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift in Sources */,
 				B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */,
 				B00000000000000000000113 /* Core/Storage/AppSettingsStore.swift in Sources */,
 				B00000000000000000000114 /* Core/Storage/CacheStore.swift in Sources */,
@@ -716,6 +767,7 @@
 				B6FE5742BB42F4C1182FB0F5 /* KernelTests/ModuleCacheNamespaceTests.swift in Sources */,
 				B39E811A8D62345D0907C754 /* KernelTests/ModuleSecretStoreTests.swift in Sources */,
 				BD61148F083BC4134B67198D /* KernelTests/EffectExecutorTests.swift in Sources */,
+				BB703965B94424F16BFA7ABB /* ExecutionTests/ExecutionModelTests.swift in Sources */,
 				B00000000000000000000410 /* CoreTests/StatusRotationEngineTests.swift in Sources */,
 				B00000000000000000000402 /* CoreTests/DeepLinkRouterTests.swift in Sources */,
 				B52A7A82D25D74065B4B38EF /* CoreTests/SettingsOverhaulTests.swift in Sources */,
