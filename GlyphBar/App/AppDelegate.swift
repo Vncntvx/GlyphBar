@@ -2,6 +2,11 @@ import AppKit
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// The hosted Settings scene representation, retained so its
+    /// `openSettings` environment action remains available for
+    /// AppKit entry points (status menu, deep links, module events).
+    private var settingsScene: NSHostingSceneRepresentation<Settings<SettingsRootView>>?
+
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
             self,
@@ -19,11 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Host the Settings scene via the official AppKit↔SwiftUI bridge so the
         // window can be opened from AppKit entry points (status menu, deep links,
         // module events) using the supported `openSettings` action.
-        let settingsScene = NSHostingSceneRepresentation {
+        let scene = NSHostingSceneRepresentation {
             Settings { SettingsRootView(environment: env) }
         }
-        NSApp.addSceneRepresentation(settingsScene)
-        env.openSettingsAction = { settingsScene.environment.openSettings() }
+        NSApp.addSceneRepresentation(scene)
+        env.openSettingsAction = { [scene] in
+            scene.environment.openSettings()
+        }
+        settingsScene = scene
 
         Task { @MainActor in
             env.start()

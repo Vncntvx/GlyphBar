@@ -123,6 +123,7 @@ final class AppEnvironment: ObservableObject {
         )
         runtime.openSettingsAction = { [weak settingsNavigation] in
             settingsNavigation?.open(section: .general)
+            AppEnvironment.shared.openSettingsAction?()
             NSApp.activate()
         }
 
@@ -210,6 +211,9 @@ final class AppEnvironment: ObservableObject {
 
     func openSettings(section: SettingsSection = .general, moduleID: ModuleID? = nil) {
         settingsNavigation.open(section: section, moduleID: moduleID)
+        // Use the SwiftUI openSettings action (bound from AppDelegate's
+        // NSHostingSceneRepresentation) to open/focus the Settings window.
+        openSettingsAction?()
         NSApp.activate()
     }
 

@@ -17,24 +17,20 @@ struct GlyphBarApp: App {
                 Button("Settings...") {
                     environment.openSettings(section: .general)
                 }
-                .keyboardShortcut(",", modifiers: .command)
             }
 
             CommandMenu("GlyphBar") {
                 Button("Show Panel") {
                     environment.quickPanelCoordinator.show(relativeTo: nil)
                 }
-                .keyboardShortcut("g", modifiers: [.command, .shift])
 
                 Button("Open Module Management") {
                     environment.openSettings(section: .modules)
                 }
-                .keyboardShortcut("m", modifiers: [.command, .shift])
 
                 Button("Import Module...") {
                     environment.importModuleFromPanel()
                 }
-                .keyboardShortcut("i", modifiers: [.command, .shift])
             }
         }
     }
