@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct GeneralSettingsView: View {
-    @ObservedObject var environment: AppEnvironment
-    @ObservedObject private var settingsStore: AppSettingsStore
+    var environment: AppEnvironment
+    private var settingsStore: AppSettingsStore
 
     init(environment: AppEnvironment) {
         self.environment = environment
-        self._settingsStore = ObservedObject(wrappedValue: environment.settingsStore)
+        self.settingsStore = environment.settingsStore
     }
 
     var body: some View {

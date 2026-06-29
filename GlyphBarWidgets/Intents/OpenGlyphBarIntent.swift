@@ -9,8 +9,6 @@ import Foundation
 struct OpenGlyphBarIntent: AppIntent {
     static var title: LocalizedStringResource = "Open GlyphBar"
 
-    static var openAppWhenRun: Bool { true }
-
     @available(macOS 26.0, iOS 26.0, watchOS 26.0, *)
     static var supportedModes: IntentModes { .foreground }
 
@@ -81,8 +79,6 @@ struct OpenModuleIntent: AppIntent {
             categoryName: "GlyphBar"
         )
     }
-
-    static var openAppWhenRun: Bool { true }
 
     @available(macOS 26.0, iOS 26.0, watchOS 26.0, *)
     static var supportedModes: IntentModes { .foreground }

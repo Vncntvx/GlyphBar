@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct SettingsRootView: View {
-    @ObservedObject var environment: AppEnvironment
-    @ObservedObject private var settingsStore: AppSettingsStore
-    @ObservedObject private var navigation: SettingsNavigationState
+    var environment: AppEnvironment
+    private var settingsStore: AppSettingsStore
+    @Bindable private var navigation: SettingsNavigationState
 
     init(environment: AppEnvironment) {
         self.environment = environment
-        self._settingsStore = ObservedObject(wrappedValue: environment.settingsStore)
-        self._navigation = ObservedObject(wrappedValue: environment.settingsNavigation)
+        self.settingsStore = environment.settingsStore
+        self._navigation = Bindable(wrappedValue: environment.settingsNavigation)
     }
 
     var body: some View {

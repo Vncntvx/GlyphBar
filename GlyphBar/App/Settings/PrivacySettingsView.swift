@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct PrivacySettingsView: View {
-    @ObservedObject var environment: AppEnvironment
-    @ObservedObject private var permissionCenter: PermissionCenter
+    var environment: AppEnvironment
+    private var permissionCenter: PermissionCenter
 
     init(environment: AppEnvironment) {
         self.environment = environment
-        self._permissionCenter = ObservedObject(wrappedValue: environment.permissionCenter)
+        self.permissionCenter = environment.permissionCenter
     }
 
     var body: some View {

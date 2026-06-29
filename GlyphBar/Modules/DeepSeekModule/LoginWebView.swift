@@ -17,7 +17,7 @@ struct LoginWebView: NSViewRepresentable {
         let wv = WKWebView(frame: .zero, configuration: c)
         wv.navigationDelegate = context.coordinator
         wv.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"
-        DispatchQueue.main.async { self.onWebViewCreated?(wv) }
+        Task { @MainActor in self.onWebViewCreated?(wv) }
         wv.load(URLRequest(url: url))
         return wv
     }
@@ -104,7 +104,7 @@ struct LoginWebView: NSViewRepresentable {
                 }
                 let cs = parts.joined(separator: "; ")
                 log.info("Final: \(cs.count) chars, hasAuthToken: \(token != nil)")
-                DispatchQueue.main.async { self.onCookiesCaptured(cs) }
+                Task { @MainActor in self.onCookiesCaptured(cs) }
             }
         }
     }
@@ -178,7 +178,8 @@ struct LoginSheet: View {
         detectionResult = nil
         coord.captureCookies(from: wv)
         // After 3 seconds, if no result captured, show guidance
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [self] in
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
             if isDetecting {
                 isDetecting = false
                 detectionResult = .noSession

@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct GlyphBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var environment = AppEnvironment.shared
+    @State private var environment = AppEnvironment.shared
 
     var body: some Scene {
         Settings {

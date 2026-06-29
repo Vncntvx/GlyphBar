@@ -1,52 +1,53 @@
-import Combine
 import Foundation
+import Observation
 
-final class AppSettingsStore: ObservableObject {
-    @Published var enabledModuleIDs: Set<ModuleID> {
+@Observable
+final class AppSettingsStore {
+    var enabledModuleIDs: Set<ModuleID> {
         didSet { persist() }
     }
 
-    @Published var moduleOrder: [ModuleID] {
+    var moduleOrder: [ModuleID] {
         didSet { persist() }
     }
 
-    @Published var primaryModuleID: ModuleID? {
+    var primaryModuleID: ModuleID? {
         didSet { persist() }
     }
 
-    @Published var refreshPolicies: [ModuleID: RefreshPolicy] {
+    var refreshPolicies: [ModuleID: RefreshPolicy] {
         didSet { persistPolicies() }
     }
 
-    @Published var launchAtLogin: Bool {
+    var launchAtLogin: Bool {
         didSet { defaults.set(launchAtLogin, forKey: Keys.launchAtLogin) }
     }
 
-    @Published var statusRotationEnabled: Bool {
+    var statusRotationEnabled: Bool {
         didSet { defaults.set(statusRotationEnabled, forKey: Keys.statusRotationEnabled) }
     }
 
-    @Published var statusRotationInterval: Int {
+    var statusRotationInterval: Int {
         didSet { defaults.set(statusRotationInterval, forKey: Keys.statusRotationInterval) }
     }
 
-    @Published var rotationModuleIDs: Set<ModuleID> {
+    var rotationModuleIDs: Set<ModuleID> {
         didSet { defaults.set(Array(rotationModuleIDs).sorted(), forKey: Keys.rotationModuleIDs) }
     }
 
-    @Published var rotationItemIDs: [ModuleID: Set<String>] {
+    var rotationItemIDs: [ModuleID: Set<String>] {
         didSet { persistRotationItems() }
     }
 
-    @Published var showDockIcon: Bool {
+    var showDockIcon: Bool {
         didSet { defaults.set(showDockIcon, forKey: Keys.showDockIcon) }
     }
 
-    @Published var colorScheme: String {
+    var colorScheme: String {
         didSet { defaults.set(colorScheme, forKey: Keys.colorScheme) }
     }
 
-    @Published var pinPanel: Bool {
+    var pinPanel: Bool {
         didSet { defaults.set(pinPanel, forKey: Keys.pinPanel) }
     }
 

@@ -1,5 +1,6 @@
 import AppKit
-import Combine
+import Foundation
+import Observation
 
 /// The single owner of the menu bar status item and its interaction model.
 ///
@@ -45,8 +46,7 @@ final class StatusItemController: NSObject {
     private let renderer: StatusItemRenderer
     private let presentationTicker = PresentationTicker()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    private var cancellables: Set<AnyCancellable> = []
-    private var pendingRender: DispatchWorkItem?
+    private var renderTask: Task<Void, Never>?
     private var isPresentingContextMenu = false
     private var isEndingExpandedSession = false
     private var secondaryClickRecognizer: NSClickGestureRecognizer?
@@ -169,7 +169,7 @@ final class StatusItemController: NSObject {
         // Defer the modal popUp to the next runloop turn so any synchronous
         // didEnd callback from cancel() has fully unwound first. Weak-captured
         // to avoid a retain cycle through the async closure.
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             self?.presentContextMenu()
         }
     }
@@ -216,62 +216,33 @@ final class StatusItemController: NSObject {
     // MARK: - Rendering (P1.14: arbiter + renderer)
 
     private func observeRuntime() {
-        runtime.$snapshots
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.submitCandidatesToArbiter()
-                self?.scheduleRender()
+        withObservationTracking {
+            _ = runtime.snapshots
+            _ = settingsStore.primaryModuleID
+            _ = settingsStore.enabledModuleIDs
+            _ = settingsStore.statusRotationEnabled
+            _ = settingsStore.statusRotationInterval
+            _ = settingsStore.rotationModuleIDs
+            _ = settingsStore.rotationItemIDs
+        } onChange: { [weak self] in
+            // onChange fires on an arbitrary thread — must hop to MainActor
+            Task { @MainActor in
+                self?.handleRuntimeChange()
+                self?.observeRuntime()  // re-register tracking
             }
-            .store(in: &cancellables)
+        }
+    }
 
-        settingsStore.$primaryModuleID
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.submitCandidatesToArbiter()
-                self?.scheduleRender()
-            }
-            .store(in: &cancellables)
-
-        settingsStore.$enabledModuleIDs
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.submitCandidatesToArbiter()
-                self?.updateRotationTimer()
-                self?.scheduleRender()
-            }
-            .store(in: &cancellables)
-
-        settingsStore.$statusRotationEnabled
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateRotationTimer()
-                self?.scheduleRender()
-            }
-            .store(in: &cancellables)
-
-        settingsStore.$statusRotationInterval
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateRotationTimer()
-            }
-            .store(in: &cancellables)
-
-        settingsStore.$rotationModuleIDs
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.submitCandidatesToArbiter()
-                self?.updateRotationTimer()
-                self?.scheduleRender()
-            }
-            .store(in: &cancellables)
-
-        settingsStore.$rotationItemIDs
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.submitCandidatesToArbiter()
-                self?.scheduleRender()
-            }
-            .store(in: &cancellables)
+    /// Consolidated handler for all observed property changes.
+    /// Groups the effects of the former Combine pipelines logically.
+    private func handleRuntimeChange() {
+        // All pipelines called submitCandidatesToArbiter + scheduleRender
+        // except statusRotationInterval which only called updateRotationTimer,
+        // and statusRotationEnabled which called updateRotationTimer + scheduleRender.
+        // Safe to call all three unconditionally — they are idempotent.
+        submitCandidatesToArbiter()
+        updateRotationTimer()
+        scheduleRender()
     }
 
     /// Collects `StatusCandidate`s from all enabled modules and submits them
@@ -303,7 +274,7 @@ final class StatusItemController: NSObject {
             }
         }
 
-        arbiter.submit(candidates, now: Date())
+        arbiter.submit(candidates, now: .now)
     }
 
     private func updateRotationTimer() {
@@ -316,7 +287,7 @@ final class StatusItemController: NSObject {
             // cycles through rotation candidates and applies TTL/hysteresis.
             // Also run presentationTick on PresentationTickable modules.
             self.runPresentationTicks()
-            _ = self.arbiter.tick(now: Date())
+            _ = self.arbiter.tick(now: .now)
             self.renderer.render(self.arbiter.currentDecision)
         }
     }
@@ -336,7 +307,7 @@ final class StatusItemController: NSObject {
                     // Replace this module's candidates
                     allCandidates.removeAll { $0.sourceModule == id }
                     allCandidates.append(contentsOf: candidates)
-                    arbiter.submit(allCandidates, now: Date())
+                    arbiter.submit(allCandidates, now: .now)
                 }
             }
         }
@@ -369,14 +340,12 @@ final class StatusItemController: NSObject {
     }
 
     private func scheduleRender() {
-        pendingRender?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            Task { @MainActor in
-                self?.render()
-            }
+        renderTask?.cancel()
+        renderTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
+            self?.render()
         }
-        pendingRender = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
     }
 
     private func render() {

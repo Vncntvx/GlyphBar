@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct MenuBarSettingsView: View {
-    @ObservedObject var environment: AppEnvironment
-    @ObservedObject private var settingsStore: AppSettingsStore
-    @ObservedObject private var runtime: ModuleRuntime
+    var environment: AppEnvironment
+    @Bindable private var settingsStore: AppSettingsStore
+    private var runtime: ModuleRuntime
 
     init(environment: AppEnvironment) {
         self.environment = environment
-        self._settingsStore = ObservedObject(wrappedValue: environment.settingsStore)
-        self._runtime = ObservedObject(wrappedValue: environment.runtime)
+        self.settingsStore = environment.settingsStore
+        self.runtime = environment.runtime
     }
 
     var body: some View {

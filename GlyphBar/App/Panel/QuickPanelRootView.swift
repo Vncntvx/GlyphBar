@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 struct QuickPanelRootView: View {
-    @ObservedObject var runtime: ModuleRuntime
+    var runtime: ModuleRuntime
     var coordinator: QuickPanelCoordinator?
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
@@ -58,7 +58,7 @@ private struct PanelMaterialBackground: View {
 }
 
 private struct PanelHeader: View {
-    @ObservedObject var runtime: ModuleRuntime
+    var runtime: ModuleRuntime
     var coordinator: QuickPanelCoordinator?
 
     var body: some View {
@@ -255,7 +255,7 @@ private final class ThinScroller: NSScroller {
 // MARK: - Module Switcher
 
 private struct ModuleSwitcher: View {
-    @ObservedObject var runtime: ModuleRuntime
+    var runtime: ModuleRuntime
 
     var body: some View {
         ModuleSwitcherScroller(
@@ -272,7 +272,7 @@ private struct ModuleSwitcher: View {
 
 private struct ModuleTabButtonHost: View {
     let moduleID: ModuleID
-    @ObservedObject var runtime: ModuleRuntime
+    var runtime: ModuleRuntime
 
     var body: some View {
         let manifest = runtime.modules[moduleID]?.manifest
@@ -332,7 +332,7 @@ private struct ModuleSwitchButton: View {
 }
 
 private struct PanelModuleContent: View {
-    @ObservedObject var runtime: ModuleRuntime
+    var runtime: ModuleRuntime
     var coordinator: QuickPanelCoordinator?
 
     var body: some View {
@@ -370,7 +370,7 @@ private struct PanelModuleContent: View {
 }
 
 private struct CompactModuleView: View {
-    @ObservedObject var runtime: ModuleRuntime
+    var runtime: ModuleRuntime
     let module: any ModuleContract
     let snapshot: ModuleSnapshot?
 
@@ -581,7 +581,7 @@ private struct CompactMetricCell: View {
 }
 
 private struct ModuleActionStrip: View {
-    @ObservedObject var runtime: ModuleRuntime
+    var runtime: ModuleRuntime
     let module: any ModuleContract
 
     var body: some View {
@@ -615,7 +615,7 @@ private struct ModuleActionStrip: View {
 }
 
 private struct PanelFooter: View {
-    @ObservedObject var runtime: ModuleRuntime
+    var runtime: ModuleRuntime
     var coordinator: QuickPanelCoordinator?
     @State private var isPinned = false
 

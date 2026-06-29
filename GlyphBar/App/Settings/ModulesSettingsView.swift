@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ModulesSettingsView: View {
-    @ObservedObject var environment: AppEnvironment
+    var environment: AppEnvironment
 
     var body: some View {
         ModuleManagementView(

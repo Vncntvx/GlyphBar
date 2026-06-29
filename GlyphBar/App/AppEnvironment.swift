@@ -1,6 +1,6 @@
 import AppKit
-import Combine
 import Foundation
+import Observation
 import ServiceManagement
 
 enum SettingsSection: String, CaseIterable, Identifiable {
@@ -15,9 +15,10 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 }
 
 @MainActor
-final class SettingsNavigationState: ObservableObject {
-    @Published var selectedSection: SettingsSection = .general
-    @Published var selectedModuleID: ModuleID?
+@Observable
+final class SettingsNavigationState {
+    var selectedSection: SettingsSection = .general
+    var selectedModuleID: ModuleID?
 
     func open(section: SettingsSection, moduleID: ModuleID? = nil) {
         selectedSection = section
@@ -26,7 +27,8 @@ final class SettingsNavigationState: ObservableObject {
 }
 
 @MainActor
-final class AppEnvironment: ObservableObject {
+@Observable
+final class AppEnvironment {
     static let shared = AppEnvironment()
 
     let logger: GlyphLogger

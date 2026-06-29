@@ -1,9 +1,10 @@
 import AppKit
+import Observation
 import SwiftUI
-import Combine
 
 @MainActor
-final class QuickPanelCoordinator: ObservableObject {
+@Observable
+final class QuickPanelCoordinator {
     private let runtime: ModuleRuntime
     private let menuCoordinator: AppMenuCoordinator
     private let settingsStore: AppSettingsStore
@@ -32,13 +33,7 @@ final class QuickPanelCoordinator: ObservableObject {
         self.runtime = runtime
         self.menuCoordinator = menuCoordinator
         self.settingsStore = settingsStore
-        // Propagate settingsStore changes so views observing coordinator refresh.
-        settingsStore.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }.store(in: &cancellables)
     }
-
-    private var cancellables = Set<AnyCancellable>()
 
     func toggle(relativeTo statusItem: NSStatusItem) {
         lastStatusItem = statusItem
@@ -198,26 +193,10 @@ final class QuickPanelCoordinator: ObservableObject {
 
 // MARK: - Adaptive Panel Height
 
-private struct HeightKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
-}
-
-private struct ResizeModifier: ViewModifier {
-    let onResize: (CGSize) -> Void
-    func body(content: Content) -> some View {
-        content
-            .background(GeometryReader { geo in
-                Color.clear.preference(key: HeightKey.self, value: geo.size.height)
-            })
-            .onPreferenceChange(HeightKey.self) { height in
-                if height > 0 { onResize(CGSize(width: 404, height: height)) }
-            }
-    }
-}
-
 extension View {
     func onResize(_ action: @escaping (CGSize) -> Void) -> some View {
-        modifier(ResizeModifier(onResize: action))
+        onGeometryChange(for: CGSize.self, of: { geo in geo.size }) { newSize in
+            if newSize.height > 0 { action(newSize) }
+        }
     }
 }

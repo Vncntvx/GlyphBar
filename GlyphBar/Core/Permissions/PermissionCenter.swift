@@ -1,7 +1,9 @@
 import Foundation
+import Observation
 
-final class PermissionCenter: ObservableObject {
-    @Published private(set) var grantedPermissions: Set<ModulePermission>
+@Observable
+final class PermissionCenter {
+    private(set) var grantedPermissions: Set<ModulePermission>
 
     init(defaults: UserDefaults = .standard) {
         let rawValues = defaults.stringArray(forKey: "permissions.granted") ?? []

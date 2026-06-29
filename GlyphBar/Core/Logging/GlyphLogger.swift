@@ -1,4 +1,5 @@
 import Foundation
+import os
 import OSLog
 
 struct LogEntry: Hashable, Identifiable {
@@ -13,8 +14,7 @@ final class GlyphLogger {
     let subsystem = "com.wenjiexu.GlyphBar"
 
     private static let bufferLimit = 500
-    private let bufferQueue = DispatchQueue(label: "com.wenjiexu.GlyphBar.logger.buffer")
-    private var buffer: [LogEntry] = []
+    private let bufferLock = OSAllocatedUnfairLock(uncheckedState: [LogEntry]())
 
     private lazy var general = Logger(subsystem: subsystem, category: "general")
     private lazy var runtime = Logger(subsystem: subsystem, category: "runtime")
@@ -23,14 +23,14 @@ final class GlyphLogger {
 
     /// Snapshot of recent in-session log entries (newest last), capped at 500.
     func recentEntries() -> [LogEntry] {
-        bufferQueue.sync { buffer }
+        bufferLock.withLock { $0 }
     }
 
     private func record(_ category: String, level: String, message: String) {
-        bufferQueue.sync {
-            buffer.append(LogEntry(date: Date(), category: category, level: level, message: message))
-            if buffer.count > Self.bufferLimit {
-                buffer.removeFirst(buffer.count - Self.bufferLimit)
+        bufferLock.withLock {
+            $0.append(LogEntry(date: Date(), category: category, level: level, message: message))
+            if $0.count > Self.bufferLimit {
+                $0.removeFirst($0.count - Self.bufferLimit)
             }
         }
     }

@@ -102,7 +102,7 @@ struct GrantedCapabilities {
 
 ```swift
 @MainActor final class FileImportCapability: Capability {
-    func requestImport(allowedTypes: [String]) async -> URL?
+    func requestImport(allowedTypes: [String]) -> URL?
 }
 ```
 

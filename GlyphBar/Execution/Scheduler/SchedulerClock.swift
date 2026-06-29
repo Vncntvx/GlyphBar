@@ -22,6 +22,11 @@ struct ScheduledHandle: Sendable, Equatable, Hashable {
         hasher.combine(id)
     }
 
+    /// Cancel the scheduled callback.
+    func cancel() {
+        cancelBlock()
+    }
+
     /// Create a handle. Only the scheduler clock implementations should call this.
     static func make(id: UInt64, cancel: @escaping @Sendable () -> Void) -> ScheduledHandle {
         ScheduledHandle(id: id, cancelBlock: cancel)
