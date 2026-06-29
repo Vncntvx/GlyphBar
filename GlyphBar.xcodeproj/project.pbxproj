@@ -116,7 +116,6 @@
 		BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */; };
 		B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */; };
 		B55ABC9EA912A432E9087F2A /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */; };
-		B54C983E0C529496A9B23156 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A21A55C55044448178623D34 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */; };
 		B8A786956D5CB4AB985605FC /* Presentation/StatusBar/StatusItemRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF924D09DCD5A44F48948129 /* Presentation/StatusBar/StatusItemRenderer.swift */; };
 		B6070732B58AC4CD48080CFF /* Kernel/Contracts/ModuleCoreTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B9312E9A9894F0EBE8D306 /* Kernel/Contracts/ModuleCoreTypes.swift */; };
 		BD61148F083BC4134B67198D /* KernelTests/EffectExecutorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A821E65B5E2CD4FCDBAE48F5 /* KernelTests/EffectExecutorTests.swift */; };
@@ -162,6 +161,8 @@
 		B3DC7A91F0E754A9081DBC1E /* Platform/Isolation/XPCModuleProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85576BE04F0D41A2BB3B52F /* Platform/Isolation/XPCModuleProxy.swift */; };
 		BB3C4E0A3A76C4E50A5F3479 /* Platform/Isolation/XPCModuleHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB026DEDB2264C0182D5116 /* Platform/Isolation/XPCModuleHost.swift */; };
 		B599BB93D1DC04207A6FC97F /* ControlPlaneTests/PlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E53CC6BF97848F698D3388 /* ControlPlaneTests/PlatformTests.swift */; };
+		B36697F3B19E5450B9D506DA /* ContractTests/BuiltInModuleContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7CA92141A1904FDA96B2730 /* ContractTests/BuiltInModuleContractTests.swift */; };
+		B1678B432093D4BBEBB6F671 /* ContractTests/ThirdPartyModuleContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A877183E44AEA4E94BCB4F19 /* ContractTests/ThirdPartyModuleContractTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -303,7 +304,6 @@
 		A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Effect/EffectExecutor.swift; sourceTree = "<group>"; };
 		A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Kernel.swift; sourceTree = "<group>"; };
 		A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/WidgetBridge/WidgetEnvelopeBridge.swift; sourceTree = "<group>"; };
-		A21A55C55044448178623D34 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/WidgetBridge/WidgetEnvelopeBridge.swift; sourceTree = "<group>"; };
 		AF924D09DCD5A44F48948129 /* Presentation/StatusBar/StatusItemRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/StatusBar/StatusItemRenderer.swift; sourceTree = "<group>"; };
 		A0B9312E9A9894F0EBE8D306 /* Kernel/Contracts/ModuleCoreTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Contracts/ModuleCoreTypes.swift; sourceTree = "<group>"; };
 		A821E65B5E2CD4FCDBAE48F5 /* KernelTests/EffectExecutorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KernelTests/EffectExecutorTests.swift; sourceTree = "<group>"; };
@@ -349,6 +349,8 @@
 		A85576BE04F0D41A2BB3B52F /* Platform/Isolation/XPCModuleProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform/Isolation/XPCModuleProxy.swift; sourceTree = "<group>"; };
 		AFB026DEDB2264C0182D5116 /* Platform/Isolation/XPCModuleHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform/Isolation/XPCModuleHost.swift; sourceTree = "<group>"; };
 		A1E53CC6BF97848F698D3388 /* ControlPlaneTests/PlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneTests/PlatformTests.swift; sourceTree = "<group>"; };
+		A7CA92141A1904FDA96B2730 /* ContractTests/BuiltInModuleContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/BuiltInModuleContractTests.swift; sourceTree = "<group>"; };
+		A877183E44AEA4E94BCB4F19 /* ContractTests/ThirdPartyModuleContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/ThirdPartyModuleContractTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -420,7 +422,6 @@
 				AE68FD1ED5C0844FD9A613AC /* App/Windows/LogsWindowCoordinator.swift */,
 				A0000000000000000000010B /* App/Routing/DeepLinkRouter.swift */,
 				A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */,
-				A21A55C55044448178623D34 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */,
 				A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */,
 				A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */,
 				A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */,
@@ -550,6 +551,8 @@
 				ABEBB38AAB0B344AFB10BA36 /* KernelTests/DeepSeekRegressionTests.swift */,
 				A5D3C9B693C7B4E3FB915680 /* KernelTests/ProjectionBuilderTests.swift */,
 				A0DAA20FE5972457BA7713A8 /* KernelTests/SnapshotEnvelopeTests.swift */,
+				A877183E44AEA4E94BCB4F19 /* ContractTests/ThirdPartyModuleContractTests.swift */,
+				A7CA92141A1904FDA96B2730 /* ContractTests/BuiltInModuleContractTests.swift */,
 				A50B322DEB2C54375B9E767D /* KernelTests/ModuleCacheNamespaceTests.swift */,
 				A304FD97ECCA14BBE981974E /* KernelTests/ModuleSecretStoreTests.swift */,
 				A821E65B5E2CD4FCDBAE48F5 /* KernelTests/EffectExecutorTests.swift */,
@@ -710,7 +713,6 @@
 				BFB039805179844118448B23 /* App/Windows/LogsWindowCoordinator.swift in Sources */,
 				B0000000000000000000010B /* App/Routing/DeepLinkRouter.swift in Sources */,
 				B0000000000000000000010C /* Core/Modules/ModuleTypes.swift in Sources */,
-				B54C983E0C529496A9B23156 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */,
 				B55ABC9EA912A432E9087F2A /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */,
 				B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */,
 				BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */,
@@ -838,6 +840,8 @@
 				B8CBFBADCB91A477C9CB9795 /* KernelTests/DeepSeekRegressionTests.swift in Sources */,
 				B5875F1C6EC9A4AEFBFBB395 /* KernelTests/ProjectionBuilderTests.swift in Sources */,
 				BD28E2294B27A4425BC84F90 /* KernelTests/SnapshotEnvelopeTests.swift in Sources */,
+				B1678B432093D4BBEBB6F671 /* ContractTests/ThirdPartyModuleContractTests.swift in Sources */,
+				B36697F3B19E5450B9D506DA /* ContractTests/BuiltInModuleContractTests.swift in Sources */,
 				B6FE5742BB42F4C1182FB0F5 /* KernelTests/ModuleCacheNamespaceTests.swift in Sources */,
 				B39E811A8D62345D0907C754 /* KernelTests/ModuleSecretStoreTests.swift in Sources */,
 				BD61148F083BC4134B67198D /* KernelTests/EffectExecutorTests.swift in Sources */,
