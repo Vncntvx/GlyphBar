@@ -1,4 +1,4 @@
-# Repository Guidelines
+# CLAUDE.md
 
 ## Project Structure & Module Organization
 

@@ -1,0 +1,257 @@
+# Command / Effect 管线
+
+GlyphBar 的所有模块行为遵循**单向数据流**：外部刺激归一化为 `Command`，模块处理后返回 `DomainTransition`，其中包含的 `Effect` 由 `EffectExecutor` 统一执行。模块**永远不**直接调用平台 API。
+
+## 设计原则
+
+| 原则 | 含义 |
+|------|------|
+| 模块拥有领域状态，不拥有应用平台 | 模块不直接访问 `NSPasteboard`、`URLSession`、`NSWorkspace` 等 |
+| 模块提出 Effects，不直接执行全局副作用 | 所有副作用通过 `Effect` 枚举声明 |
+| 统一入口 | 所有模块行为通过 `handle(command:capabilities:bridge:)` 单一入口 |
+| 无旁路 | 不允许模块绕过管线直接 publish snapshot 或修改 UI |
+
+## Command — 统一输入词汇
+
+每个外部刺激被归一化为 `Command` 枚举的一个 case：
+
+```swift
+enum Command: Sendable {
+    case refresh(reason: RefreshReason)
+    case userAction(actionID: String, payload: ActionPayload?)
+    case settingsChanged
+    case permissionChanged
+    case appBecameActive
+    case systemWake
+    case networkChanged(reachable: Bool)
+    case importData(URL)
+    case clearCache
+    case contributionTick
+}
+```
+
+### Command 详细参考
+
+| Command | 触发时机 | 携带参数 | 典型响应 |
+|---------|----------|----------|----------|
+| `.refresh(reason:)` | 手动刷新、定时调度、启动、深度链接、级联、网络恢复、面板打开 | `RefreshReason` | 产生新 snapshot 并发布 |
+| `.userAction(actionID:payload:)` | 用户点击模块动作按钮 | 动作 ID + 可选载荷 | 执行对应动作（复制、打开 URL 等） |
+| `.settingsChanged` | 用户修改模块设置 | 无 | 重新读取设置，可能刷新数据 |
+| `.permissionChanged` | 权限授予或撤销 | 无 | 重新评估可用能力，可能降级 |
+| `.appBecameActive` | App 回到前台 | 无 | 刷新过期数据 |
+| `.systemWake` | 系统从睡眠恢复 | 无 | 批量恢复刷新 |
+| `.networkChanged(reachable:)` | 网络可达性变化 | 是否可达 | 网络恢复时触发刷新；断网时标记降级 |
+| `.importData(URL)` | 文件导入结果 | 导入文件 URL | 处理导入的数据 |
+| `.clearCache` | 缓存清除请求 | 无 | 清除本地缓存 |
+| `.contributionTick` | 面板展示 Tick（Clock 秒级更新） | 无 | 仅更新展示，不产生副作用 |
+
+### RefreshReason
+
+```swift
+enum RefreshReason: Sendable {
+    case manual          // 用户手动触发
+    case scheduled       // 定时调度
+    case launch          // App 启动
+    case deepLink        // 深度链接触发
+    case cascade         // 级联刷新（其他模块变化触发）
+    case networkRestored // 网络恢复
+    case panelOpened     // 面板打开
+}
+```
+
+模块可以根据 `reason` 调整行为，例如 `manual` 可以显示加载指示器，而 `scheduled` 则静默刷新。
+
+### ActionPayload
+
+```swift
+struct ActionPayload: Sendable {
+    var text: String?
+    var data: Data?
+}
+```
+
+可选的动作载荷，用于传递用户操作的附加上下文。
+
+## Effect — 统一输出词汇
+
+所有模块副作用被表达为 `Effect` 枚举：
+
+```swift
+enum Effect: Sendable {
+    case publishSnapshot(SnapshotEnvelope)
+    case persistDomainState(Data)
+    case copyToClipboard(String)
+    case openURL(URL)
+    case showNotice(String)
+    case openModuleSettings
+    case requestFileImport(allowedTypes: [String])
+    case requestRefresh(reason: Command.RefreshReason)
+    case scheduleLocal(Command, after: TimeInterval)
+    case networkRequest(NetworkRequest)
+}
+```
+
+### Effect 详细参考
+
+| Effect | 副作用执行 | 使用场景 |
+|--------|-----------|----------|
+| `.publishSnapshot(SnapshotEnvelope)` | 写入 WidgetBridge 并触发 `WidgetCenter.reloadAllTimelines()` | 模块数据更新后发布到 Widget |
+| `.persistDomainState(Data)` | 持久化模块不透明状态 | 保存模块的域状态数据 |
+| `.copyToClipboard(String)` | 写入 `NSPasteboard.general` | 复制文本到剪贴板 |
+| `.openURL(URL)` | 调用 `NSWorkspace.shared.open(url)` | 在浏览器中打开 URL |
+| `.showNotice(String)` | 记录日志，未来可展示通知 | 向用户显示提示信息 |
+| `.openModuleSettings` | 打开设置窗口并激活 App | 跳转到模块设置 |
+| `.requestFileImport(allowedTypes:)` | 请求文件导入对话框 | 让用户选择文件导入 |
+| `.requestRefresh(reason:)` | 请求再次刷新 | 某些操作后需要立即刷新 |
+| `.scheduleLocal(Command, after:)` | 延迟后发送 Command | 定时自我触发（如 DeepSeek 的周期性检查） |
+| `.networkRequest(NetworkRequest)` | 执行 HTTP 请求 | ⚠️ 建议使用 `NetworkCapability` 代替 |
+
+> **注意**：`.networkRequest` 保留用于兼容，新代码应使用 `GrantedCapabilities.network` (`NetworkCapability`) 发起网络请求，这样可以利用能力授予机制进行权限控制。
+
+## DomainTransition — 模块返回值
+
+`handle(command:capabilities:bridge:)` 返回 `DomainTransition`：
+
+```swift
+struct DomainTransition: Sendable {
+    var effects: [Effect]
+    var health: ModuleHealth?
+    var refreshProjection: Bool
+
+    static let empty = DomainTransition(effects: [], health: nil, refreshProjection: false)
+}
+```
+
+| 字段 | 类型 | 含义 |
+|------|------|------|
+| `effects` | `[Effect]` | 需要内核执行的副作用列表 |
+| `health` | `ModuleHealth?` | 可选的健康状态更新 |
+| `refreshProjection` | `Bool` | 是否需要重新调用 `buildProjection()` |
+
+### 常见 DomainTransition 模式
+
+**成功刷新**：
+```swift
+DomainTransition(
+    effects: [.publishSnapshot(envelope)],
+    health: .healthy,
+    refreshProjection: true
+)
+```
+
+**用户动作（复制到剪贴板）**：
+```swift
+DomainTransition(
+    effects: [.copyToClipboard("已复制的文本"), .publishSnapshot(updatedEnvelope)],
+    health: nil,
+    refreshProjection: true
+)
+```
+
+**优雅降级（缺少密钥）**：
+```swift
+DomainTransition(
+    effects: [],
+    health: .misconfigured(.missingSecret("apiKey")),
+    refreshProjection: true
+)
+```
+
+**忽略不相关的 Command**：
+```swift
+DomainTransition.empty
+// 或
+DomainTransition(effects: [], health: nil, refreshProjection: false)
+```
+
+## ModuleBridge — Effect 提交通道
+
+模块通过 `ModuleBridge` 协议提交 Effect：
+
+```swift
+@MainActor
+protocol ModuleBridge: AnyObject {
+    func submit(_ effects: [Effect])
+    func submit(_ effect: Effect)
+}
+```
+
+`ModuleBridge` 是 `GrantedCapabilities` 中**始终授予**的能力。模块在 `handle()` 内部可以通过 `bridge.submit()` 提交额外的 Effect，但通常建议通过 `DomainTransition.effects` 返回——`bridge.submit()` 主要用于面板等异步场景。
+
+两种实现：
+
+1. **Kernel**：微内核本身实现 `ModuleBridge`，缓冲提交的 Effect，在 `handle()` 返回后统一排空
+2. **KernelBridge**：轻量闭包实现，用于 `ModuleSupervisor` 中将 Effect 路由回 supervisor 的 `onEffects` 回调
+
+## EffectExecutor — 全局副作用出口
+
+`EffectExecutor` 是**唯一**执行副作用的组件：
+
+```swift
+@MainActor
+final class EffectExecutor {
+    private let widgetBridge: WidgetDataBridge
+    private let cacheStore: CacheStore
+    private let logger: GlyphLogger
+    var openSettingsAction: (() -> Void)?
+
+    func execute(_ effect: Effect, for moduleID: String) async
+}
+```
+
+每个 `Effect` case 在 `EffectExecutor.execute()` 中映射到具体的平台调用：
+
+| Effect | EffectExecutor 执行 |
+|--------|-------------------|
+| `.publishSnapshot(envelope)` | `widgetBridge.publish(envelope)` |
+| `.persistDomainState(data)` | 日志记录（完整接线待完成） |
+| `.copyToClipboard(text)` | `NSPasteboard.general.clearContents()` + `setString()` |
+| `.openURL(url)` | `NSWorkspace.shared.open(url)` |
+| `.showNotice(message)` | 日志记录 |
+| `.openModuleSettings` | `openSettingsAction?()` + `NSApp.activate()` |
+| `.requestFileImport(types)` | 日志记录（能力接线待完成） |
+| `.requestRefresh(reason)` | 日志记录（内核接线待完成） |
+| `.scheduleLocal(cmd, after:)` | `Task.sleep` 后日志记录 |
+| `.networkRequest(req)` | 警告：建议使用 `NetworkCapability` |
+
+## 完整数据流示例
+
+以 ClockModule 手动刷新为例：
+
+```
+1. 用户点击菜单栏 → Refresh
+2. DeepLinkRouter / Menu → ModuleRuntime.refresh(moduleID:)
+3. ModuleRuntime → ModuleActor.enqueue(.refresh(reason: .manual))
+4. ModuleActor → ClockModule.handle(command: .refresh(reason: .manual),
+                                      capabilities: granted,
+                                      bridge: kernelBridge)
+5. ClockModule:
+   - 读取当前时间
+   - 构建 SnapshotEnvelope
+   - 返回 DomainTransition(
+       effects: [.publishSnapshot(envelope)],
+       health: .healthy,
+       refreshProjection: true
+     )
+6. ModuleActor → EffectExecutor.execute(.publishSnapshot(envelope), for: "clock")
+7. EffectExecutor → WidgetDataBridge.publish(envelope)
+8. WidgetDataBridge → 写入 App Group UserDefaults + WidgetCenter.reloadAllTimelines()
+9. 同时: ModuleActor → Kernel → buildProjection() → 更新 ProjectionSet
+10. 同时: ModuleActor → Kernel → statusCandidates() → PresentationArbiter.submit()
+11. PresentationArbiter → StatusItemRenderer → 更新 NSStatusItem
+```
+
+## Command 合并与代际
+
+`ModuleActor` 保证**模块内串行**处理：
+
+- **Coalesce**：重复的 `.refresh` 命令会被合并，只保留最新的 `reason`
+- **不合并**：`.userAction` 命令不会合并，确保每个用户操作都被处理
+- **代际**：使用 `GenerationToken` 和 `CancellationScope`，如果模块正在处理旧 refresh，新 refresh 取消旧任务，旧结果被丢弃
+
+## 相关文档
+
+- [架构总览](Architecture.md) — 五平面架构和设计原则
+- [能力安全体系](Capabilities.md) — GrantedCapabilities 和 CapabilityFactory
+- [投影与快照](ProjectionAndSnapshot.md) — SnapshotEnvelope 和 ProjectionSet
+- [原生模块开发](NativeModuleDevelopment.md) — 如何实现 handle() 方法

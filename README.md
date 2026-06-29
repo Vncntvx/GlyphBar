@@ -1,8 +1,8 @@
 # GlyphBar
 
-GlyphBar is a native macOS SwiftUI-first menu bar modular information hub.
+GlyphBar is a native macOS SwiftUI-first menu bar modular information hub built on a **microkernel + unidirectional data flow + actor supervision + capability security** architecture.
 
-The app shell owns menu bar rendering, quick panel presentation, native menus, routing, runtime scheduling, and widget snapshot publishing. Bundled modules demonstrate clock, system metrics, notes, counter state, and async failure/stale-cache behavior.
+The app shell owns menu bar rendering, quick panel presentation, native menus, routing, runtime scheduling, and widget snapshot publishing. Bundled modules demonstrate clock, system metrics, notes, counter state, and async failure/stale-cache behavior. Third-party modules are supported through declarative JSON packages and (future) XPC-isolated native modules.
 
 Developer: Wenjie Xu, <wenjie.xu.cn@outlook.com>
 
@@ -39,15 +39,60 @@ To run manually in Xcode, open `GlyphBar.xcodeproj`, select the `GlyphBar` schem
 
 The default bundle IDs are `com.wenjiexu.GlyphBar` and `com.wenjiexu.GlyphBar.widgets`. App Group support uses `group.com.wenjiexu.GlyphBar`; local unsigned builds fall back to standard `UserDefaults` for widget cache APIs.
 
-## Third-Party Modules
+## Architecture
 
-GlyphBar supports built-in modules and imported declarative third-party module packages. Third-party packages are copied into GlyphBar's Application Support modules directory, validated, and rendered by the host without loading arbitrary native code.
+GlyphBar follows a five-plane microkernel architecture:
 
-Start here:
+| Plane | Responsibility |
+|-------|---------------|
+| **Presentation** | Menu bar rendering, panel display, status arbitration |
+| **Projection** | Data projection, snapshot envelopes, widget bridge |
+| **Kernel** | Module contracts, Command/Effect pipeline, capabilities, lifecycle |
+| **Execution** | Refresh scheduling, environment awareness, presentation ticks |
+| **Control Plane** | Desired/Observed state reconciliation, installation, upgrades |
 
-- `docs/ModuleDevelopment.md`
-- `docs/ModuleManifest.md`
-- `docs/DeepLinks.md`
-- `docs/WidgetIntegration.md`
-- `docs/SecurityAndPermissions.md`
-- `examples/ExampleStatus.glyphbarmodule`
+All module behavior follows a **unidirectional data flow**:
+
+```
+Command → ModuleContract.handle() → DomainTransition → EffectExecutor → Side effects
+```
+
+Modules never directly access platform APIs (`NSPasteboard`, `URLSession`, `NSWorkspace`, `UserDefaults.standard`). All side effects are expressed as `Effect` values and executed by the single `EffectExecutor`.
+
+Three extension levels are supported:
+
+| Level | Type | Trust | Isolation |
+|-------|------|-------|-----------|
+| Level 1 | Built-in compiled modules | `.bundled` | Compile-time contract |
+| Level 2 | Declarative JSON packages | `.unsignedLocal` | Data isolation |
+| Level 3 | XPC-isolated native modules | `.signed` | Process isolation + capability proxy |
+
+See [Architecture Overview](docs/Architecture.md) for the full architecture documentation.
+
+## Documentation
+
+### Architecture & Core Mechanisms
+
+- [Architecture Overview](docs/Architecture.md) — Five-plane microkernel architecture, design principles, directory structure
+- [Command/Effect Pipeline](docs/CommandEffectPipeline.md) — Unidirectional data flow, Command and Effect reference
+- [Capabilities](docs/Capabilities.md) — GrantedCapabilities, CapabilityFactory, namespace isolation
+- [Projection & Snapshot](docs/ProjectionAndSnapshot.md) — ProjectionSet, SnapshotEnvelope, ModuleHealth
+- [Presentation Arbiter](docs/PresentationArbiter.md) — Status candidates, arbitration algorithm, hysteresis
+
+### Module Development
+
+- [Built-in Modules Reference](docs/BuiltInModules.md) — Clock, Counter, DeepSeek, NotesQuick, SystemPulse, NetworkMock
+- [Declarative Module Development](docs/ModuleDevelopment.md) — Third-party JSON package guide (Level 2)
+- [Native Module Development](docs/NativeModuleDevelopment.md) — Built-in and XPC module guide (Level 1 & 3)
+- [Module Manifest Reference](docs/ModuleManifest.md) — `glyphbar-module.json` and `snapshot.json` field reference
+
+### Integration & Security
+
+- [Widget Integration](docs/WidgetIntegration.md) — Widget data flow, shared types, third-party widget strategy
+- [Deep Links](docs/DeepLinks.md) — `glyphbar://` URL scheme routing
+- [Security & Permissions](docs/SecurityAndPermissions.md) — Trust levels, permission system, storage security, XPC isolation
+- [Testing Guide](docs/TestingGuide.md) — Swift Testing patterns, contract tests, test infrastructure
+
+### Example
+
+- `examples/ExampleStatus.glyphbarmodule/` — A working third-party module example
