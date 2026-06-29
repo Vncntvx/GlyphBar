@@ -375,7 +375,37 @@ private struct CompactModuleView: View {
     let snapshot: ModuleSnapshot?
 
     var body: some View {
-        module.makePanelView(context: runtime.context, snapshot: snapshot)
+        // P1.14: route through panelContribution when the module is a
+        // TypedModuleContribution; otherwise fall back to the legacy path.
+        if let contribution = module as? any TypedModuleContribution {
+            ModulePanelHost(contribution: contribution, runtime: runtime)
+        } else {
+            module.makePanelView(context: runtime.context, snapshot: snapshot)
+        }
+    }
+}
+
+/// P1.14: Hosts a `TypedModuleContribution`'s `panelContent` view inside the
+/// quick panel. The module dispatches commands back to the kernel via
+/// `PanelHostContext.dispatch` instead of capturing the runtime directly.
+private struct ModulePanelHost: View {
+    let contribution: any TypedModuleContribution
+    let runtime: ModuleRuntime
+
+    var body: some View {
+        let context = PanelHostContext(moduleID: contribution.manifest.id) { command in
+            // P1.14: dispatch through the runtime (P1.15 wires the kernel).
+            switch command {
+            case .refresh:
+                Task { await runtime.refresh(moduleID: contribution.manifest.id) }
+            case .userAction(let actionID, _):
+                let action = ModuleAction(id: actionID, title: actionID, systemImage: "")
+                Task { try? await runtime.dispatch(action: action, moduleID: contribution.manifest.id) }
+            default:
+                break
+            }
+        }
+        return contribution.panelContribution(context: context)
     }
 }
 

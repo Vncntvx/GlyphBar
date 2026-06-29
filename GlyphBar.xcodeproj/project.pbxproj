@@ -119,6 +119,7 @@
 		B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */; };
 		B55ABC9EA912A432E9087F2A /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */; };
 		B54C983E0C529496A9B23156 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A21A55C55044448178623D34 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */; };
+		B8A786956D5CB4AB985605FC /* Presentation/StatusBar/StatusItemRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF924D09DCD5A44F48948129 /* Presentation/StatusBar/StatusItemRenderer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -266,6 +267,7 @@
 		A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Kernel.swift; sourceTree = "<group>"; };
 		A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/WidgetBridge/WidgetEnvelopeBridge.swift; sourceTree = "<group>"; };
 		A21A55C55044448178623D34 /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/WidgetBridge/WidgetEnvelopeBridge.swift; sourceTree = "<group>"; };
+		AF924D09DCD5A44F48948129 /* Presentation/StatusBar/StatusItemRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/StatusBar/StatusItemRenderer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -320,6 +322,7 @@
 				A00000000000000000000102 /* App/AppDelegate.swift */,
 				A00000000000000000000103 /* App/AppEnvironment.swift */,
 				A00000000000000000000104 /* App/StatusBar/StatusItemController.swift */,
+				AF924D09DCD5A44F48948129 /* Presentation/StatusBar/StatusItemRenderer.swift */,
 				A00000000000000000000105 /* App/Panel/QuickPanelCoordinator.swift */,
 				A00000000000000000000106 /* App/Panel/QuickPanelRootView.swift */,
 				A00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift */,
@@ -570,6 +573,7 @@
 				B00000000000000000000102 /* App/AppDelegate.swift in Sources */,
 				B00000000000000000000103 /* App/AppEnvironment.swift in Sources */,
 				B00000000000000000000104 /* App/StatusBar/StatusItemController.swift in Sources */,
+				B8A786956D5CB4AB985605FC /* Presentation/StatusBar/StatusItemRenderer.swift in Sources */,
 				B00000000000000000000105 /* App/Panel/QuickPanelCoordinator.swift in Sources */,
 				B00000000000000000000106 /* App/Panel/QuickPanelRootView.swift in Sources */,
 				B00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift in Sources */,

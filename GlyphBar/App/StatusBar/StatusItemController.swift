@@ -35,8 +35,14 @@ final class StatusItemController: NSObject {
     private let panelCoordinator: QuickPanelCoordinator
     private let menuCoordinator: AppMenuCoordinator
     private let logger: GlyphLogger
-    private let composer = StatusComposer()
-    private let rotationEngine = StatusRotationEngine()
+    // P1.14: arbiter + renderer replace composer + rotationEngine.
+    private let arbiter = PresentationArbiter(fallback: PresentationDecision(
+        title: "GlyphBar",
+        systemImage: "sparkles",
+        severity: .normal,
+        tooltip: "GlyphBar"
+    ))
+    private let renderer: StatusItemRenderer
     private var rotationTimer: Timer?
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private var cancellables: Set<AnyCancellable> = []
@@ -57,6 +63,7 @@ final class StatusItemController: NSObject {
         self.panelCoordinator = panelCoordinator
         self.menuCoordinator = menuCoordinator
         self.logger = logger
+        self.renderer = StatusItemRenderer(statusItem: statusItem)
         super.init()
     }
 
@@ -67,7 +74,7 @@ final class StatusItemController: NSObject {
         configureAppearance()
         configureInteraction()
         observeRuntime()
-        rebuildRotation()
+        submitCandidatesToArbiter()
         updateRotationTimer()
         render()
     }
@@ -206,20 +213,21 @@ final class StatusItemController: NSObject {
         }
     }
 
-    // MARK: - Rendering
+    // MARK: - Rendering (P1.14: arbiter + renderer)
 
     private func observeRuntime() {
         runtime.$snapshots
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
+                self?.submitCandidatesToArbiter()
                 self?.scheduleRender()
-                self?.rebuildRotation()
             }
             .store(in: &cancellables)
 
         settingsStore.$primaryModuleID
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
+                self?.submitCandidatesToArbiter()
                 self?.scheduleRender()
             }
             .store(in: &cancellables)
@@ -227,8 +235,9 @@ final class StatusItemController: NSObject {
         settingsStore.$enabledModuleIDs
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
+                self?.submitCandidatesToArbiter()
+                self?.updateRotationTimer()
                 self?.scheduleRender()
-                self?.rebuildRotation()
             }
             .store(in: &cancellables)
 
@@ -250,7 +259,7 @@ final class StatusItemController: NSObject {
         settingsStore.$rotationModuleIDs
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.rebuildRotation()
+                self?.submitCandidatesToArbiter()
                 self?.updateRotationTimer()
                 self?.scheduleRender()
             }
@@ -259,30 +268,58 @@ final class StatusItemController: NSObject {
         settingsStore.$rotationItemIDs
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.rebuildRotation()
+                self?.submitCandidatesToArbiter()
                 self?.scheduleRender()
             }
             .store(in: &cancellables)
     }
 
-    private func rebuildRotation() {
-        rotationEngine.rebuild(
-            modules: runtime.modules,
-            snapshots: runtime.snapshots.filter { settingsStore.isEnabled($0.key) },
-            enabledIDs: settingsStore.enabledModuleIDs,
-            rotationModuleIDs: settingsStore.rotationModuleIDs,
-            rotationItemIDs: settingsStore.rotationItemIDs
-        )
+    /// Collects `StatusCandidate`s from all enabled modules and submits them
+    /// to the arbiter. P1.13 modules implement `statusCandidates()` directly;
+    /// legacy snapshots are converted via `ProjectionBuilder` as a fallback.
+    private func submitCandidatesToArbiter() {
+        var candidates: [StatusCandidate] = []
+        let enabledSnapshots = runtime.snapshots.filter { settingsStore.isEnabled($0.key) }
+
+        for (id, snapshot) in enabledSnapshots {
+            if let module = runtime.modules[id] as? any TypedModuleContribution {
+                // P1.13 path: module vends candidates directly.
+                candidates.append(contentsOf: module.statusCandidates())
+            } else {
+                // Legacy path: derive candidates from snapshot signals.
+                let projection = ProjectionBuilder.build(from: snapshot)
+                candidates.append(contentsOf: projection.statusCandidates)
+            }
+        }
+
+        // P1.14: respect rotationModuleIDs filter — only those modules
+        // contribute rotation candidates. Critical/primary candidates are
+        // always included.
+        if !settingsStore.rotationModuleIDs.isEmpty {
+            candidates = candidates.filter { candidate in
+                if candidate.semanticRole == .rotation {
+                    return settingsStore.rotationModuleIDs.contains(candidate.sourceModule)
+                }
+                return true
+            }
+        }
+
+        arbiter.submit(candidates, now: Date())
     }
 
     private func updateRotationTimer() {
         rotationTimer?.invalidate()
         rotationTimer = nil
-        guard settingsStore.statusRotationEnabled, rotationEngine.count > 0 else { return }
+        guard settingsStore.statusRotationEnabled else { return }
         let interval = TimeInterval(settingsStore.statusRotationInterval)
         rotationTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.scheduleRender()
+                guard let self else { return }
+                // P1.14: rotation tick drives the arbiter, which re-evaluates
+                // candidates with TTL/hysteresis. The renderer writes the
+                // resulting decision.
+                _ = self.arbiter.tick(now: Date())
+                self.renderer.render(self.arbiter.currentDecision)
             }
         }
     }
@@ -299,39 +336,8 @@ final class StatusItemController: NSObject {
     }
 
     private func render() {
-        let enabledSnapshots = runtime.snapshots.filter { runtime.settingsStore.isEnabled($0.key) }
-
-        // Critical signals always take priority over rotation
-        let signals = enabledSnapshots.values.flatMap(\.signals)
-        let hasCritical = signals.contains(where: { $0.severity == .critical })
-
-        let presentation: StatusItemPresentation
-        if hasCritical {
-            // Signals take priority over rotation
-            presentation = composer.compose(
-                snapshots: enabledSnapshots,
-                primaryModuleID: settingsStore.primaryModuleID
-            )
-        } else if settingsStore.statusRotationEnabled, let rotated = rotationEngine.tick() {
-            presentation = rotated
-        } else {
-            presentation = composer.compose(
-                snapshots: enabledSnapshots,
-                primaryModuleID: settingsStore.primaryModuleID
-            )
-        }
-
-        guard let button = statusItem.button else {
-            return
-        }
-
-        button.title = " \(presentation.title)"
-        button.image = NSImage(
-            systemSymbolName: presentation.systemImage,
-            accessibilityDescription: presentation.title
-        )
-        button.imagePosition = .imageLeft
-        button.toolTip = presentation.tooltip.isEmpty ? presentation.title : presentation.tooltip
+        // P1.14: single path — renderer writes the arbiter's current decision.
+        renderer.render(arbiter.currentDecision)
     }
 }
 
