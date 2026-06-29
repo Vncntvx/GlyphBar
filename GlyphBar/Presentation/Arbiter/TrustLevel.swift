@@ -4,7 +4,7 @@ import Foundation
 /// third-party modules get `.signed`; unsigned local modules get `.unsignedLocal`;
 /// untrusted sources get `.untrusted`. The arbiter uses this to break ties and
 /// to prevent untrusted candidates from starving bundled ones.
-enum TrustLevel: Sendable, Comparable {
+enum TrustLevel: Sendable, Comparable, Codable {
     case untrusted
     case unsignedLocal
     case bundled

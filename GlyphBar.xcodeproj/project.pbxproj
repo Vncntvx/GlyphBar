@@ -143,6 +143,17 @@
 		B08275F8E2216456287AF8E1 /* Execution/Ticks/PresentationTicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A381375634E4A4A609380D91 /* Execution/Ticks/PresentationTicker.swift */; };
 		B1524B35DE86745F3800B94B /* Execution/Ticks/PresentationTickable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9ADAC3A544D04B29893C52B /* Execution/Ticks/PresentationTickable.swift */; };
 		BB703965B94424F16BFA7ABB /* ExecutionTests/ExecutionModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA14A296F904A4A3697E0CC0 /* ExecutionTests/ExecutionModelTests.swift */; };
+		B2760B5B9E52B4535BA5F8CB /* Kernel/Contracts/ModuleIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87235BDE3A144647831931D /* Kernel/Contracts/ModuleIdentity.swift */; };
+		B7EA3EDB4C23A493DB93C0B2 /* ControlPlane/Desired/DesiredModuleState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A44D0121776804659AF55887 /* ControlPlane/Desired/DesiredModuleState.swift */; };
+		B70EAAEEF55674528807791B /* ControlPlane/Desired/DesiredStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB80A4FD68A854155832E177 /* ControlPlane/Desired/DesiredStateStore.swift */; };
+		B23C84E6ADADE46B8B2DB92A /* ControlPlane/Observed/ObservedModuleState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3962A29F6A684F45A564D82 /* ControlPlane/Observed/ObservedModuleState.swift */; };
+		B820EF96A1C914D3490C3DAC /* ControlPlane/Reconciler/Reconciler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA32A04D6F5A34C788111CE7 /* ControlPlane/Reconciler/Reconciler.swift */; };
+		BDA5CC03372414A67BDEA130 /* ControlPlane/Packages/Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE4D41E20123F428891A379F /* ControlPlane/Packages/Package.swift */; };
+		BB36C388F540645BEB6A28FB /* ControlPlane/Packages/Installer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A512D7C68B31D4156A520BFD /* ControlPlane/Packages/Installer.swift */; };
+		B3E586D1F0E204B9DB8DB66C /* ControlPlane/Migration/StorageMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2D876B647A44708BD7243D /* ControlPlane/Migration/StorageMigration.swift */; };
+		BCFC31ACADCB74EFFA11E478 /* ControlPlane/Migration/SchemaVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6A9C7F86218B433EB693274 /* ControlPlane/Migration/SchemaVersion.swift */; };
+		B90CEADB30CE842E294ECE8D /* ControlPlane/Upgrade/ModuleUpgrader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05CE6875FA2143F6B2CC089 /* ControlPlane/Upgrade/ModuleUpgrader.swift */; };
+		B1EA775DA3C7648C595ED018 /* ControlPlaneTests/ControlPlaneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEFFECEE3654446CEA19C342 /* ControlPlaneTests/ControlPlaneTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -311,6 +322,17 @@
 		A381375634E4A4A609380D91 /* Execution/Ticks/PresentationTicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Ticks/PresentationTicker.swift; sourceTree = "<group>"; };
 		A9ADAC3A544D04B29893C52B /* Execution/Ticks/PresentationTickable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Execution/Ticks/PresentationTickable.swift; sourceTree = "<group>"; };
 		AA14A296F904A4A3697E0CC0 /* ExecutionTests/ExecutionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionTests/ExecutionModelTests.swift; sourceTree = "<group>"; };
+		A87235BDE3A144647831931D /* Kernel/Contracts/ModuleIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Contracts/ModuleIdentity.swift; sourceTree = "<group>"; };
+		A44D0121776804659AF55887 /* ControlPlane/Desired/DesiredModuleState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlane/Desired/DesiredModuleState.swift; sourceTree = "<group>"; };
+		AB80A4FD68A854155832E177 /* ControlPlane/Desired/DesiredStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlane/Desired/DesiredStateStore.swift; sourceTree = "<group>"; };
+		A3962A29F6A684F45A564D82 /* ControlPlane/Observed/ObservedModuleState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlane/Observed/ObservedModuleState.swift; sourceTree = "<group>"; };
+		AA32A04D6F5A34C788111CE7 /* ControlPlane/Reconciler/Reconciler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlane/Reconciler/Reconciler.swift; sourceTree = "<group>"; };
+		AE4D41E20123F428891A379F /* ControlPlane/Packages/Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlane/Packages/Package.swift; sourceTree = "<group>"; };
+		A512D7C68B31D4156A520BFD /* ControlPlane/Packages/Installer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlane/Packages/Installer.swift; sourceTree = "<group>"; };
+		AA2D876B647A44708BD7243D /* ControlPlane/Migration/StorageMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlane/Migration/StorageMigration.swift; sourceTree = "<group>"; };
+		A6A9C7F86218B433EB693274 /* ControlPlane/Migration/SchemaVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlane/Migration/SchemaVersion.swift; sourceTree = "<group>"; };
+		A05CE6875FA2143F6B2CC089 /* ControlPlane/Upgrade/ModuleUpgrader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlane/Upgrade/ModuleUpgrader.swift; sourceTree = "<group>"; };
+		AEFFECEE3654446CEA19C342 /* ControlPlaneTests/ControlPlaneTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneTests/ControlPlaneTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -420,6 +442,16 @@
 				A5C6943A4BBEF4770B5C9320 /* Projection/Projections/MetricsProjection.swift */,
 				A64EDC60A228742579918A1A /* Projection/Projections/SummaryProjection.swift */,
 				A62042D2E06FA42058F3CBDA /* Kernel/Contracts/ModuleHealth.swift */,
+				A87235BDE3A144647831931D /* Kernel/Contracts/ModuleIdentity.swift */,
+				A44D0121776804659AF55887 /* ControlPlane/Desired/DesiredModuleState.swift */,
+				AB80A4FD68A854155832E177 /* ControlPlane/Desired/DesiredStateStore.swift */,
+				A3962A29F6A684F45A564D82 /* ControlPlane/Observed/ObservedModuleState.swift */,
+				AA32A04D6F5A34C788111CE7 /* ControlPlane/Reconciler/Reconciler.swift */,
+				AE4D41E20123F428891A379F /* ControlPlane/Packages/Package.swift */,
+				A512D7C68B31D4156A520BFD /* ControlPlane/Packages/Installer.swift */,
+				AA2D876B647A44708BD7243D /* ControlPlane/Migration/StorageMigration.swift */,
+				A6A9C7F86218B433EB693274 /* ControlPlane/Migration/SchemaVersion.swift */,
+				A05CE6875FA2143F6B2CC089 /* ControlPlane/Upgrade/ModuleUpgrader.swift */,
 				A8EE820E35B0D403299C7E40 /* Kernel/Effect/Effect.swift */,
 				A520C9821BDD0486D8BA6994 /* Kernel/Command/Command.swift */,
 				ACEB0014A5D0344788171B5B /* Kernel/Contracts/Severity.swift */,
@@ -499,6 +531,7 @@
 				A304FD97ECCA14BBE981974E /* KernelTests/ModuleSecretStoreTests.swift */,
 				A821E65B5E2CD4FCDBAE48F5 /* KernelTests/EffectExecutorTests.swift */,
 				AA14A296F904A4A3697E0CC0 /* ExecutionTests/ExecutionModelTests.swift */,
+				AEFFECEE3654446CEA19C342 /* ControlPlaneTests/ControlPlaneTests.swift */,
 				A00000000000000000000310 /* CoreTests/StatusRotationEngineTests.swift */,
 				A00000000000000000000302 /* CoreTests/DeepLinkRouterTests.swift */,
 				A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */,
@@ -691,6 +724,16 @@
 				BD588122887114AC89248B8B /* Projection/Projections/MetricsProjection.swift in Sources */,
 				B8A8804ADDF424C2C92C6535 /* Projection/Projections/SummaryProjection.swift in Sources */,
 				BC39B715190424050847CD92 /* Kernel/Contracts/ModuleHealth.swift in Sources */,
+				B2760B5B9E52B4535BA5F8CB /* Kernel/Contracts/ModuleIdentity.swift in Sources */,
+				B7EA3EDB4C23A493DB93C0B2 /* ControlPlane/Desired/DesiredModuleState.swift in Sources */,
+				B70EAAEEF55674528807791B /* ControlPlane/Desired/DesiredStateStore.swift in Sources */,
+				B23C84E6ADADE46B8B2DB92A /* ControlPlane/Observed/ObservedModuleState.swift in Sources */,
+				B820EF96A1C914D3490C3DAC /* ControlPlane/Reconciler/Reconciler.swift in Sources */,
+				BDA5CC03372414A67BDEA130 /* ControlPlane/Packages/Package.swift in Sources */,
+				BB36C388F540645BEB6A28FB /* ControlPlane/Packages/Installer.swift in Sources */,
+				B3E586D1F0E204B9DB8DB66C /* ControlPlane/Migration/StorageMigration.swift in Sources */,
+				BCFC31ACADCB74EFFA11E478 /* ControlPlane/Migration/SchemaVersion.swift in Sources */,
+				B90CEADB30CE842E294ECE8D /* ControlPlane/Upgrade/ModuleUpgrader.swift in Sources */,
 				B8C3B77318BD14C61ADA6AA9 /* Kernel/Effect/Effect.swift in Sources */,
 				BE8CBD039DC19466B983020E /* Kernel/Command/Command.swift in Sources */,
 				B384CE6DFEF84408994CB24E /* Kernel/Contracts/Severity.swift in Sources */,
@@ -768,6 +811,7 @@
 				B39E811A8D62345D0907C754 /* KernelTests/ModuleSecretStoreTests.swift in Sources */,
 				BD61148F083BC4134B67198D /* KernelTests/EffectExecutorTests.swift in Sources */,
 				BB703965B94424F16BFA7ABB /* ExecutionTests/ExecutionModelTests.swift in Sources */,
+				B1EA775DA3C7648C595ED018 /* ControlPlaneTests/ControlPlaneTests.swift in Sources */,
 				B00000000000000000000410 /* CoreTests/StatusRotationEngineTests.swift in Sources */,
 				B00000000000000000000402 /* CoreTests/DeepLinkRouterTests.swift in Sources */,
 				B52A7A82D25D74065B4B38EF /* CoreTests/SettingsOverhaulTests.swift in Sources */,

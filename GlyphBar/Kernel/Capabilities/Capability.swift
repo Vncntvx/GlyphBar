@@ -2,7 +2,7 @@ import Foundation
 
 /// Stable identifier for a capability slot. Modules request capabilities by key
 /// in their manifest; the kernel grants concrete instances via `GrantedCapabilities`.
-enum CapabilityKey: String, Sendable, CaseIterable {
+enum CapabilityKey: String, Sendable, CaseIterable, Codable {
     case secretStore
     case cache
     case settings
