@@ -1,14 +1,15 @@
 import AppKit
-import Combine
 import Foundation
+import Observation
 
 @MainActor
-final class ModuleRuntime: ObservableObject {
-    @Published private(set) var modules: [ModuleID: any ModuleContract]
-    @Published private(set) var moduleRecords: [ModuleID: ModuleRecord]
-    @Published private(set) var snapshots: [ModuleID: ModuleSnapshot] = [:]
-    @Published var selectedModuleID: ModuleID?
-    @Published var userNotice: String?
+@Observable
+final class ModuleRuntime {
+    private(set) var modules: [ModuleID: any ModuleContract]
+    private(set) var moduleRecords: [ModuleID: ModuleRecord]
+    private(set) var snapshots: [ModuleID: ModuleSnapshot] = [:]
+    var selectedModuleID: ModuleID?
+    var userNotice: String?
 
     let settingsStore: AppSettingsStore
     private let registry: ModuleRegistry
@@ -240,7 +241,7 @@ final class ModuleRuntime: ObservableObject {
 
         case .scheduleLocal(let command, let delay):
             Task {
-                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                try? await Task.sleep(for: .seconds(delay))
                 guard let module = self.modules[moduleID] else { return }
                 let bridge = KernelBridge { [weak self] effects in
                     guard let self else { return }

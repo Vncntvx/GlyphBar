@@ -2,11 +2,11 @@ import SwiftUI
 import WebKit
 
 struct ModuleManagementView: View {
-    @ObservedObject var environment: AppEnvironment
-    @ObservedObject var runtime: ModuleRuntime
-    @ObservedObject var settingsStore: AppSettingsStore
+    var environment: AppEnvironment
+    var runtime: ModuleRuntime
+    var settingsStore: AppSettingsStore
     let cacheStore: CacheStore
-    @ObservedObject var navigation: SettingsNavigationState
+    @Bindable var navigation: SettingsNavigationState
 
     var body: some View {
         VStack(spacing: 0) {
@@ -100,8 +100,8 @@ struct ModuleManagementView: View {
 }
 
 private struct ModuleManagementDetailView: View {
-    @ObservedObject var runtime: ModuleRuntime
-    @ObservedObject var settingsStore: AppSettingsStore
+    var runtime: ModuleRuntime
+    var settingsStore: AppSettingsStore
     let cacheStore: CacheStore
     let environment: AppEnvironment
     let selectedModuleID: ModuleID?
@@ -180,7 +180,7 @@ private struct ModuleManagementDetailView: View {
                         metadataRow("Type", record.sourceKind.title)
                         metadataRow("Trust", record.trustState.title)
                         if let location = runtime.storageLocation(for: module.manifest.id) {
-                            metadataRow("Storage", location.path)
+                            metadataRow("Storage", location.path(percentEncoded: false))
                         }
                     }
                     Section("Capabilities") {
@@ -397,10 +397,10 @@ private struct ModuleManagementDetailView: View {
                         ds.importExportedItems(items)
                     }
                     // P1.13 bypass #7: exports now go to temp directory.
-                    let dir = FileManager.default.temporaryDirectory.appendingPathComponent("GlyphBarExports")
-                    let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path))?.filter { !$0.hasPrefix(".") } ?? []
+                    let dir = FileManager.default.temporaryDirectory.appending(path: "GlyphBarExports")
+                    let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path(percentEncoded: false)))?.filter { !$0.hasPrefix(".") } ?? []
                     let latest = files.sorted().last ?? "?"
-                    exportStatus = "✓ \(items.count) records → \(dir.path)/\(latest)"
+                    exportStatus = "✓ \(items.count) records → \(dir.path(percentEncoded: false))/\(latest)"
                     isExportingUsage = false
                 }
             } catch {

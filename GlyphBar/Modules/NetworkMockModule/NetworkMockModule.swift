@@ -5,6 +5,8 @@ import Network
 @MainActor
 final class NetworkMockModule: TypedModuleContribution {
     private let monitor = NWPathMonitor()
+    // DispatchQueue is required by NWPathMonitor.start(queue:) — the API demands a
+    // dispatch queue and cannot be replaced with Swift concurrency (async/await or Task).
     private let monitorQueue = DispatchQueue(label: "com.wenjiexu.GlyphBar.network.monitor")
 
     private var currentPath: NWPath?
@@ -190,7 +192,7 @@ final class NetworkMockModule: TypedModuleContribution {
     }
 
     private func mockRefresh() async throws -> ModuleSnapshot {
-        try await Task.sleep(nanoseconds: 250_000_000)
+        try await Task.sleep(for: .milliseconds(250))
         let succeeds = Int.random(in: 0..<100) >= 35
         guard succeeds else {
             failureCount += 1

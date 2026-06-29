@@ -173,7 +173,7 @@ struct PresentationTickerTests {
         }
 
         // Wait briefly for at least one tick
-        try? await Task.sleep(nanoseconds: 200_000_000)
+        try? await Task.sleep(for: .milliseconds(200))
 
         ticker.stop()
         #expect(tickCount >= 1)
@@ -202,7 +202,7 @@ struct ModuleActorCoalescingTests {
         actor.enqueue(.refresh(reason: .scheduled))
 
         // Give the actor time to drain
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        try? await Task.sleep(for: .milliseconds(100))
 
         // Only one refresh should have been executed (coalesced)
         #expect(refreshCount <= 1)

@@ -13,7 +13,7 @@ struct HysteresisTracker {
     let minDurationToExit: TimeInterval
 
     private(set) var currentState: Bool = false
-    private(set) var since: Date = Date()
+    private(set) var since: Date = .now
     private var pendingState: Bool?
 
     init(

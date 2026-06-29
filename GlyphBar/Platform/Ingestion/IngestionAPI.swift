@@ -58,7 +58,7 @@ struct IngestionPayload: Codable, Sendable {
         snapshot: ExternalSnapshotV2,
         signals: [ExternalSignal]? = nil,
         source: IngestionSource,
-        emittedAt: Date = Date()
+        emittedAt: Date = .now
     ) {
         self.schemaVersion = schemaVersion
         self.snapshot = snapshot

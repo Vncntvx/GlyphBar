@@ -86,7 +86,7 @@ private final class UsageRecordStore {
     func proCacheMiss() -> Int { records.values.filter { $0.model.contains("pro") || $0.model.contains("reasoner") }.reduce(0) { $0 + $1.inputCacheMissTokens } }
 
     func todayCost() -> Double {
-        let f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate]; let today = f.string(from: Date())
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate]; let today = f.string(from: .now)
         return records.values.filter { $0.date == today }.reduce(0) { $0 + $1.cost }
     }
 
@@ -305,7 +305,7 @@ final class DeepSeekModule: TypedModuleContribution {
                 // P1.13 bypass #8: fileImport via capability (not NSOpenPanel).
                 Task { @MainActor [weak self] in
                     guard let self, let cap = self.fileImport else { return }
-                    if let url = await cap.requestImport(allowedTypes: ["csv", "zip"]) {
+                    if let url = cap.requestImport(allowedTypes: ["csv", "zip"]) {
                         self.importCSV(url: url)
                         context.dispatch(.refresh(reason: .manual))
                     }

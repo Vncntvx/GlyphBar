@@ -10,7 +10,7 @@ struct LogsView: View {
     private var filtered: [LogEntry] {
         entries
             .filter { enabledCategories.contains($0.category) }
-            .filter { searchText.isEmpty || $0.message.localizedCaseInsensitiveContains(searchText) }
+            .filter { searchText.isEmpty || $0.message.localizedStandardContains(searchText) }
     }
 
     var body: some View {

@@ -34,7 +34,7 @@ final class UsageExportService: NSObject {
     // WKWebView downloads need a writable directory; temp is appropriate for
     // ephemeral export files that are parsed and discarded.
     private var exportsDir: URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("GlyphBarExports")
+        let dir = FileManager.default.temporaryDirectory.appending(path: "GlyphBarExports")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
@@ -100,7 +100,7 @@ final class UsageExportService: NSObject {
             wv.load(URLRequest(url: URL(string: "https://platform.deepseek.com/usage")!))
 
             self.timeoutTask = Task { [weak self] in
-                try? await Task.sleep(nanoseconds: 45_000_000_000)
+                try? await Task.sleep(for: .seconds(45))
                 guard let self, self.continuation != nil else { return }
                 log.info("Export timed out after 45s")
                 self.continuation?.resume(throwing: ExportError.timeout)
@@ -128,7 +128,7 @@ final class UsageExportService: NSObject {
             if msg.hasPrefix("react_") || msg.hasPrefix("dom_clicked") || msg.hasPrefix("pending_") {
                 self.exportTriggerTime = Date()
                 Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    try? await Task.sleep(for: .seconds(1))
                     wv.evaluateJavaScript(Self.clickJS) { r, _ in
                         log.info("FollowUp: \(String(describing: r), privacy: .public)")
                     }
@@ -136,7 +136,7 @@ final class UsageExportService: NSObject {
                 self.pollForFile(retries: 16)
             } else if self.clickAttempts < self.maxRetries {
                 Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 1_200_000_000)
+                    try? await Task.sleep(for: .milliseconds(1200))
                     self.attemptClick()
                 }
             } else {
@@ -165,7 +165,7 @@ final class UsageExportService: NSObject {
             wv.evaluateJavaScript(Self.clickJS, completionHandler: nil)
         }
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            try? await Task.sleep(for: .milliseconds(1500))
             self.pollForFile(retries: retries - 1)
         }
     }
@@ -191,14 +191,14 @@ final class UsageExportService: NSObject {
     }
 
     private func unzipAndMerge(_ zipData: Data) -> [ParsedUsageItem] {
-        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("glyph-zip-\(UUID().uuidString)")
+        let tmp = FileManager.default.temporaryDirectory.appending(path: "glyph-zip-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: tmp) }
         do {
             try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
-            let zp = tmp.appendingPathComponent("e.zip")
+            let zp = tmp.appending(path: "e.zip")
             try zipData.write(to: zp)
             let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-            p.arguments = ["-x", "-k", zp.path, tmp.path]; try p.run(); p.waitUntilExit()
+            p.arguments = ["-x", "-k", zp.path(percentEncoded: false), tmp.path(percentEncoded: false)]; try p.run(); p.waitUntilExit()
 
             let files = (try? FileManager.default.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil)) ?? []
             var allItems: [ParsedUsageItem] = []
@@ -255,7 +255,7 @@ final class UsageExportService: NSObject {
 
         guard !csvData.isEmpty else { return }
         let filename = "export-\(Date().timeIntervalSince1970).csv"
-        let fileURL = exportsDir.appendingPathComponent(filename)
+        let fileURL = exportsDir.appending(path: filename)
         try? csvData.write(to: fileURL)
         log.info("Saved bridged download: \(filename, privacy: .public) (\(csvData.count) bytes)")
     }
@@ -275,7 +275,7 @@ final class UsageExportService: NSObject {
             isLoggedIn = true
             log.info("Logged in, scheduling click...")
             Task {
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                try? await Task.sleep(for: .seconds(3))
                 await MainActor.run { self.attemptClick() }
             }
         }
@@ -352,7 +352,7 @@ final class UsageExportService: NSObject {
 extension UsageExportService: WKDownloadDelegate {
     func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String) async -> URL {
         let filename = suggestedFilename.isEmpty ? "export-\(Date().timeIntervalSince1970).csv" : suggestedFilename
-        let dest = exportsDir.appendingPathComponent(filename)
+        let dest = exportsDir.appending(path: filename)
         try? FileManager.default.removeItem(at: dest)
         log.info("Download to: \(filename, privacy: .public)")
         return dest

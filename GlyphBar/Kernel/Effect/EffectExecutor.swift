@@ -54,7 +54,7 @@ final class EffectExecutor {
 
         case .scheduleLocal(let command, let delay):
             Task {
-                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                try? await Task.sleep(for: .seconds(delay))
                 logger.runtime("EffectExecutor: scheduleLocal fired for \(moduleID)")
             }
 

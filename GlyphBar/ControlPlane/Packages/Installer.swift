@@ -45,8 +45,8 @@ final class Installer {
 /// Validates module packages before installation.
 struct PackageValidator {
     func validate(at url: URL) throws -> ModuleManifest {
-        let manifestURL = url.appendingPathComponent("glyphbar-module.json")
-        guard FileManager.default.fileExists(atPath: manifestURL.path) else {
+        let manifestURL = url.appending(path: "glyphbar-module.json")
+        guard FileManager.default.fileExists(atPath: manifestURL.path(percentEncoded: false)) else {
             throw InstallerError.missingManifest
         }
 

@@ -38,7 +38,7 @@ struct TemplateModuleTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let source = try makeModulePackage(in: root, id: "sampleThird")
         let store = ExternalModulePackageStore(
-            modulesDirectory: root.appendingPathComponent("Installed", isDirectory: true)
+            modulesDirectory: root.appending(path: "Installed", directoryHint: .isDirectory)
         )
         _ = try store.importPackage(from: source)
 
@@ -57,7 +57,7 @@ struct TemplateModuleTests {
         let source = try makeModulePackage(in: root, id: "sampleImport")
         let runtime = makeRuntime(
             externalStore: ExternalModulePackageStore(
-                modulesDirectory: root.appendingPathComponent("Installed", isDirectory: true)
+                modulesDirectory: root.appending(path: "Installed", directoryHint: .isDirectory)
             )
         )
 
@@ -71,11 +71,11 @@ struct TemplateModuleTests {
     @Test func runtimeRejectsInvalidThirdPartyPackage() throws {
         let root = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }
-        let invalid = root.appendingPathComponent("Invalid.glyphbarmodule", isDirectory: true)
+        let invalid = root.appending(path: "Invalid.glyphbarmodule", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: invalid, withIntermediateDirectories: true)
         let runtime = makeRuntime(
             externalStore: ExternalModulePackageStore(
-                modulesDirectory: root.appendingPathComponent("Installed", isDirectory: true)
+                modulesDirectory: root.appending(path: "Installed", directoryHint: .isDirectory)
             )
         )
 
@@ -90,7 +90,7 @@ struct TemplateModuleTests {
         let source = try makeModulePackage(in: root, id: "sampleRemove")
         let runtime = makeRuntime(
             externalStore: ExternalModulePackageStore(
-                modulesDirectory: root.appendingPathComponent("Installed", isDirectory: true)
+                modulesDirectory: root.appending(path: "Installed", directoryHint: .isDirectory)
             )
         )
         _ = try runtime.importModule(from: source)
@@ -133,12 +133,12 @@ struct TemplateModuleTests {
     }
 
     private func temporaryDirectory() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            .appendingPathComponent("GlyphBarTests.\(UUID().uuidString)", isDirectory: true)
+        FileManager.default.temporaryDirectory
+            .appending(path: "GlyphBarTests.\(UUID().uuidString)", directoryHint: .isDirectory)
     }
 
     private func makeModulePackage(in root: URL, id: String) throws -> URL {
-        let package = root.appendingPathComponent("\(id).glyphbarmodule", isDirectory: true)
+        let package = root.appending(path: "\(id).glyphbarmodule", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
 
         let manifest = """
@@ -190,8 +190,8 @@ struct TemplateModuleTests {
         }
         """
 
-        try manifest.write(to: package.appendingPathComponent("glyphbar-module.json"), atomically: true, encoding: .utf8)
-        try snapshot.write(to: package.appendingPathComponent("snapshot.json"), atomically: true, encoding: .utf8)
+        try manifest.write(to: package.appending(path: "glyphbar-module.json"), atomically: true, encoding: .utf8)
+        try snapshot.write(to: package.appending(path: "snapshot.json"), atomically: true, encoding: .utf8)
         return package
     }
 }

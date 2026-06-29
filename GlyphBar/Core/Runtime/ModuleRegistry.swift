@@ -267,8 +267,8 @@ enum ExternalModulePackageValidator {
     static let currentGlyphBarVersion = "1.0"
 
     static func validatePackage(at url: URL) throws -> ExternalModulePackage {
-        let manifestURL = url.appendingPathComponent(manifestFileName)
-        guard FileManager.default.fileExists(atPath: manifestURL.path) else {
+        let manifestURL = url.appending(path: manifestFileName)
+        guard FileManager.default.fileExists(atPath: manifestURL.path(percentEncoded: false)) else {
             throw ExternalModuleError.missingManifest
         }
 
@@ -292,7 +292,7 @@ enum ExternalModulePackageValidator {
             manifest: manifest,
             moduleManifest: moduleManifest,
             installURL: url,
-            snapshotURL: url.appendingPathComponent(snapshotFileName)
+            snapshotURL: url.appending(path: snapshotFileName)
         )
     }
 
@@ -349,10 +349,10 @@ final class ExternalModulePackageStore {
             self.modulesDirectory = modulesDirectory
         } else {
             let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-                ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+                ?? FileManager.default.temporaryDirectory
             self.modulesDirectory = appSupport
-                .appendingPathComponent("GlyphBar", isDirectory: true)
-                .appendingPathComponent("Modules", isDirectory: true)
+                .appending(path: "GlyphBar", directoryHint: .isDirectory)
+                .appending(path: "Modules", directoryHint: .isDirectory)
         }
     }
 
@@ -376,8 +376,8 @@ final class ExternalModulePackageStore {
         let package = try validatePackage(at: sourceURL)
         try ensureModulesDirectory()
 
-        let destination = modulesDirectory.appendingPathComponent("\(package.manifest.id).glyphbarmodule", isDirectory: true)
-        if fileManager.fileExists(atPath: destination.path) {
+        let destination = modulesDirectory.appending(path: "\(package.manifest.id).glyphbarmodule", directoryHint: .isDirectory)
+        if fileManager.fileExists(atPath: destination.path(percentEncoded: false)) {
             guard replacing else {
                 throw ExternalModuleError.duplicateModuleID(package.manifest.id)
             }
@@ -394,19 +394,19 @@ final class ExternalModulePackageStore {
     }
 
     func removePackage(moduleID: ModuleID) throws {
-        let destination = modulesDirectory.appendingPathComponent("\(moduleID).glyphbarmodule", isDirectory: true)
-        guard fileManager.fileExists(atPath: destination.path) else {
+        let destination = modulesDirectory.appending(path: "\(moduleID).glyphbarmodule", directoryHint: .isDirectory)
+        guard fileManager.fileExists(atPath: destination.path(percentEncoded: false)) else {
             throw ExternalModuleError.notThirdParty(moduleID)
         }
         try fileManager.removeItem(at: destination)
     }
 
     func storageLocation(moduleID: ModuleID) -> URL {
-        modulesDirectory.appendingPathComponent("\(moduleID).glyphbarmodule", isDirectory: true)
+        modulesDirectory.appending(path: "\(moduleID).glyphbarmodule", directoryHint: .isDirectory)
     }
 
     private func ensureModulesDirectory() throws {
-        guard !fileManager.fileExists(atPath: modulesDirectory.path) else {
+        guard !fileManager.fileExists(atPath: modulesDirectory.path(percentEncoded: false)) else {
             return
         }
         try fileManager.createDirectory(at: modulesDirectory, withIntermediateDirectories: true)
@@ -567,7 +567,7 @@ final class DeclarativeModule: TypedModuleContribution {
     // MARK: - Internals
 
     private func loadSnapshot() -> ModuleSnapshot {
-        guard FileManager.default.fileExists(atPath: package.snapshotURL.path) else {
+        guard FileManager.default.fileExists(atPath: package.snapshotURL.path(percentEncoded: false)) else {
             return ModuleSnapshot(
                 id: manifest.id,
                 title: manifest.displayName,

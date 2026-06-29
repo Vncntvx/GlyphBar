@@ -11,9 +11,9 @@ final class DesiredStateStore {
     init(logger: GlyphLogger = GlyphLogger()) {
         self.logger = logger
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("GlyphBar", isDirectory: true)
+        let dir = appSupport.appending(path: "GlyphBar", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        self.fileURL = dir.appendingPathComponent("desired-state.json")
+        self.fileURL = dir.appending(path: "desired-state.json")
         load()
     }
 
@@ -45,7 +45,7 @@ final class DesiredStateStore {
     // MARK: - Persistence
 
     private func load() {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return }
         guard let data = try? Data(contentsOf: fileURL) else { return }
         let decoded = try? JSONDecoder().decode([String: DesiredModuleState].self, from: data)
         if let decoded {

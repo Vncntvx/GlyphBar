@@ -19,7 +19,7 @@ struct SnapshotEnvelope: Sendable, Identifiable {
     init(
         id: String,
         schemaVersion: Int = 1,
-        capturedAt: Date = Date(),
+        capturedAt: Date = .now,
         validUntil: Date? = nil,
         freshness: SnapshotFreshness = .fresh,
         health: ModuleHealth = .healthy,
