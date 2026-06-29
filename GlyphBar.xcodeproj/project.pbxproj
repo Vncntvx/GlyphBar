@@ -66,6 +66,7 @@
 		B00000000000000000000404 /* CoreTests/WidgetDataBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */; };
 		B00000000000000000000405 /* ModuleTests/TemplateModuleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */; };
 		B52A7A82D25D74065B4B38EF /* CoreTests/SettingsOverhaulTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */; };
+		B7F3C91DA4820E15D6E5B2RK /* CoreTests/QuickPanelCoordinatorAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D8E74FB1953F60C1A06D3K /* CoreTests/QuickPanelCoordinatorAPITests.swift */; };
 		BC0AE133EBDB04F6ABBAB2E4 /* App/Settings/ColorSchemeOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADD4D73C767BE42D281E3397 /* App/Settings/ColorSchemeOption.swift */; };
 		BFF5589ECC5374BF49CF9E9B /* App/Settings/GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD087B0EC6D904392BA58B11 /* App/Settings/GeneralSettingsView.swift */; };
 		B7ABC75BEADE648349B9C4B1 /* App/Settings/MenuBarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB65AF26BD12347D6A9A4153 /* App/Settings/MenuBarSettingsView.swift */; };
@@ -254,6 +255,7 @@
 		A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/WidgetDataBridgeTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/TemplateModuleTests.swift; sourceTree = "<group>"; };
 		A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/SettingsOverhaulTests.swift; sourceTree = "<group>"; };
+		A2D8E74FB1953F60C1A06D3K /* CoreTests/QuickPanelCoordinatorAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/QuickPanelCoordinatorAPITests.swift; sourceTree = "<group>"; };
 		ADD4D73C767BE42D281E3397 /* App/Settings/ColorSchemeOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/ColorSchemeOption.swift; sourceTree = "<group>"; };
 		AD087B0EC6D904392BA58B11 /* App/Settings/GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/GeneralSettingsView.swift; sourceTree = "<group>"; };
 		AB65AF26BD12347D6A9A4153 /* App/Settings/MenuBarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/MenuBarSettingsView.swift; sourceTree = "<group>"; };
@@ -562,6 +564,7 @@
 				A00000000000000000000310 /* CoreTests/StatusRotationEngineTests.swift */,
 				A00000000000000000000302 /* CoreTests/DeepLinkRouterTests.swift */,
 				A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */,
+				A2D8E74FB1953F60C1A06D3K /* CoreTests/QuickPanelCoordinatorAPITests.swift */,
 				A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */,
 				A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */,
 				A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */,
@@ -851,6 +854,7 @@
 				B00000000000000000000410 /* CoreTests/StatusRotationEngineTests.swift in Sources */,
 				B00000000000000000000402 /* CoreTests/DeepLinkRouterTests.swift in Sources */,
 				B52A7A82D25D74065B4B38EF /* CoreTests/SettingsOverhaulTests.swift in Sources */,
+				B7F3C91DA4820E15D6E5B2RK /* CoreTests/QuickPanelCoordinatorAPITests.swift in Sources */,
 				B00000000000000000000403 /* CoreTests/RefreshSchedulerTests.swift in Sources */,
 				B00000000000000000000404 /* CoreTests/WidgetDataBridgeTests.swift in Sources */,
 				B00000000000000000000405 /* ModuleTests/TemplateModuleTests.swift in Sources */,

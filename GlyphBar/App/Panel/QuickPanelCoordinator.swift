@@ -104,21 +104,6 @@ final class QuickPanelCoordinator {
         AppEnvironment.shared.openSettings(section: .general)
     }
 
-    /// Fallback entry point for the context menu, surfaced from a "More" button
-    /// inside the quick panel. On macOS 27 Beta the status item's secondary
-    /// (right-click) gesture may not be forwarded by the system, so the menu
-    /// must remain reachable from within the panel itself.
-    func showMoreMenu() {
-        let menu = menuCoordinator.makeMenu()
-        guard let panel, panel.isVisible else {
-            return
-        }
-        // Anchor at the panel's top-trailing corner; the system flips the menu
-        // to stay on screen. Coordinates are in screen space (in: nil).
-        let anchor = NSPoint(x: panel.frame.maxX, y: panel.frame.maxY - 4)
-        menu.popUp(positioning: nil, at: anchor, in: nil)
-    }
-
     private func handlePanelResignedKey() {
         // Pinned panels stay open across focus changes.
         guard dismissOnResignKey, !settingsStore.pinPanel else {

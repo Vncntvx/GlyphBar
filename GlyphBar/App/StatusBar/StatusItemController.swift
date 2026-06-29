@@ -143,8 +143,7 @@ final class StatusItemController: NSObject {
         // item secondary-click events may not be forwarded at all. If this
         // recognizer fails to fire on macOS 27 Beta, do NOT work around it with
         // global event monitors, CGEventTap, or Input Monitoring — none of those
-        // are acceptable here. The context menu remains reachable via the
-        // "More" button inside the quick panel (see QuickPanelCoordinator.showMoreMenu).
+        // are acceptable here.
         button.addGestureRecognizer(recognizer)
         secondaryClickRecognizer = recognizer
     }
