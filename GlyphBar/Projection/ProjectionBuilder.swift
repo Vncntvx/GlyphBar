@@ -95,4 +95,44 @@ enum ProjectionBuilder {
             projections: build(from: snapshot, health: health)
         )
     }
+
+    /// Reconstructs a `ModuleSnapshot` from a `SnapshotEnvelope`.
+    /// Used by `ModuleRuntime` to maintain the legacy `snapshots` dictionary
+    /// and `CacheStore`/`WidgetDataBridge` paths during the transition.
+    static func buildSnapshot(from envelope: SnapshotEnvelope) -> ModuleSnapshot {
+        let projections = envelope.projections
+        let metrics: [String: Double] = Dictionary(
+            uniqueKeysWithValues: projections.metrics?.metrics.map { ($0.id, $0.value) } ?? []
+        )
+        let notes: [String] = projections.list?.items.map(\.title) ?? []
+        let metadata: [String: String] = [:]
+
+        var signals: [StatusSignal] = []
+        if let summary = projections.summary {
+            // Reconstruct primary signal from summary
+        }
+        for candidate in projections.statusCandidates {
+            signals.append(StatusSignal(
+                id: candidate.id,
+                title: candidate.text,
+                message: "",
+                systemImage: candidate.icon,
+                severity: candidate.severity,
+                priority: candidate.priority
+            ))
+        }
+
+        return ModuleSnapshot(
+            id: envelope.id,
+            title: projections.summary?.title ?? "",
+            subtitle: projections.summary?.subtitle ?? "",
+            systemImage: projections.summary?.systemImage ?? "circle",
+            timestamp: envelope.capturedAt,
+            freshness: envelope.freshness,
+            signals: signals,
+            metrics: metrics,
+            notes: notes,
+            metadata: metadata
+        )
+    }
 }

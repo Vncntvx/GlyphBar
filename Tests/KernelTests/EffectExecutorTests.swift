@@ -7,12 +7,10 @@ struct EffectExecutorTests {
     @Test func effectExecutorPublishesToWidgetBridge() async {
         let bridge = WidgetDataBridge(defaults: UserDefaults(suiteName: "EffectExecutorTests.\(UUID().uuidString)")!)
         let cache = CacheStore()
-        let actions = PlatformActions()
         let logger = GlyphLogger()
         let executor = EffectExecutor(
             widgetBridge: bridge,
             cacheStore: cache,
-            platformActions: actions,
             logger: logger
         )
 
@@ -32,12 +30,10 @@ struct EffectExecutorTests {
     @Test func effectExecutorCopiesToClipboard() async {
         let bridge = WidgetDataBridge(defaults: UserDefaults(suiteName: "EffectExecutorTests.\(UUID().uuidString)")!)
         let cache = CacheStore()
-        let actions = PlatformActions()
         let logger = GlyphLogger()
         let executor = EffectExecutor(
             widgetBridge: bridge,
             cacheStore: cache,
-            platformActions: actions,
             logger: logger
         )
 

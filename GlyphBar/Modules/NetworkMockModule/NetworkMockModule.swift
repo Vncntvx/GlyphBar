@@ -3,7 +3,7 @@ import SwiftUI
 import Network
 
 @MainActor
-final class NetworkMockModule: StatusModule, TypedModuleContribution {
+final class NetworkMockModule: TypedModuleContribution {
     private let monitor = NWPathMonitor()
     private let monitorQueue = DispatchQueue(label: "com.wenjiexu.GlyphBar.network.monitor")
 
@@ -28,63 +28,34 @@ final class NetworkMockModule: StatusModule, TypedModuleContribution {
         monitor.cancel()
     }
 
-    var manifest: ModuleManifest {
-        ModuleManifest(
-            id: "networkMock",
-            displayName: "Network",
-            subtitle: "Connection status and interface info",
-            systemImage: "antenna.radiowaves.left.and.right",
-            version: "1.1.0",
-            author: "Wenjie Xu",
-            capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
-            permissions: [],
-            defaultRefreshPolicy: .interval(seconds: 30),
-            actions: [
-                ModuleAction(id: "retry", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh),
-                ModuleAction(id: "copyIP", title: "Copy IP", systemImage: "doc.on.doc")
-            ],
-            widgets: [
-                ModuleWidgetDescriptor(
-                    id: "networkMock.state",
-                    title: "Network",
-                    subtitle: "Connection status",
-                    systemImage: "antenna.radiowaves.left.and.right",
-                    supportedFamilies: ["small", "medium", "large"]
-                )
-            ]
-        )
-    }
+    var manifest: ModuleManifest { Self.staticManifest }
 
-    // MARK: - StatusModule (legacy bridge)
+    static let staticManifest = ModuleManifest(
+        id: "networkMock",
+        displayName: "Network",
+        subtitle: "Connection status and interface info",
+        systemImage: "antenna.radiowaves.left.and.right",
+        version: "1.1.0",
+        author: "Wenjie Xu",
+        capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
+        permissions: [],
+        defaultRefreshPolicy: .interval(seconds: 30),
+        actions: [
+            ModuleAction(id: "retry", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh),
+            ModuleAction(id: "copyIP", title: "Copy IP", systemImage: "doc.on.doc")
+        ],
+        widgets: [
+            ModuleWidgetDescriptor(
+                id: "networkMock.state",
+                title: "Network",
+                subtitle: "Connection status",
+                systemImage: "antenna.radiowaves.left.and.right",
+                supportedFamilies: ["small", "medium", "large"]
+            )
+        ]
+    )
 
-    func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
-        if useMockMode {
-            return try await mockRefresh()
-        }
-        return realRefresh()
-    }
-
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        switch action.id {
-        case "retry":
-            return .refreshRequested(manifest.id)
-        case "copyIP":
-            if let ip = localIPAddress() {
-                return .copyToPasteboard(ip)
-            }
-            return .none
-        default:
-            return .none
-        }
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { command in
-            // P1.13 mechanism D: dispatch through PanelHostContext instead of Task+cacheStore
-        })))
-    }
-
-    // MARK: - TypedModuleContribution (P1.13)
+    // MARK: - TypedModuleContribution
 
     func handle(
         command: Command,

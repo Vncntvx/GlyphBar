@@ -29,7 +29,7 @@ enum ModuleTrustState: String, Codable, Hashable, Sendable {
 
 struct ModuleRecord: Identifiable {
     let id: ModuleID
-    let module: any StatusModule
+    let module: any ModuleContract
     let sourceKind: ModuleSourceKind
     let installURL: URL?
     let trustState: ModuleTrustState
@@ -415,7 +415,7 @@ final class ExternalModulePackageStore {
 
 @MainActor
 final class ModuleRegistry {
-    typealias Factory = () -> any StatusModule
+    typealias Factory = () -> any ModuleContract
 
     private var factories: [ModuleID: Factory] = [:]
     private let externalStore: ExternalModulePackageStore
@@ -476,7 +476,7 @@ final class ModuleRegistry {
 }
 
 @MainActor
-final class DeclarativeModule: StatusModule {
+final class DeclarativeModule: TypedModuleContribution {
     private let package: ExternalModulePackage
     private let decoder = JSONDecoder()
 
@@ -488,7 +488,85 @@ final class DeclarativeModule: StatusModule {
         package.moduleManifest
     }
 
-    func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
+    // MARK: - ModuleContract
+
+    func handle(
+        command: Command,
+        capabilities: GrantedCapabilities,
+        bridge: ModuleBridge
+    ) async -> DomainTransition {
+        switch command {
+        case .refresh:
+            let snapshot = loadSnapshot()
+            let envelope = ProjectionBuilder.buildEnvelope(from: snapshot)
+            return DomainTransition(
+                effects: [.publishSnapshot(envelope)],
+                health: .healthy,
+                refreshProjection: true
+            )
+        case .userAction(let actionID, _):
+            guard let definition = package.manifest.actions.first(where: { $0.id == actionID }) else {
+                return .empty
+            }
+            switch definition.kind {
+            case .copy:
+                return DomainTransition(
+                    effects: [.copyToClipboard(definition.value ?? "")],
+                    health: nil,
+                    refreshProjection: false
+                )
+            case .openURL, .deepLink:
+                guard let value = definition.value,
+                      let url = URL(string: value) else {
+                    return .empty
+                }
+                return DomainTransition(
+                    effects: [.openURL(url)],
+                    health: nil,
+                    refreshProjection: false
+                )
+            case .refresh:
+                return DomainTransition(
+                    effects: [.requestRefresh(reason: .cascade)],
+                    health: nil,
+                    refreshProjection: false
+                )
+            }
+        default:
+            return .empty
+        }
+    }
+
+    func buildProjection() -> ProjectionSet {
+        ProjectionBuilder.build(from: loadSnapshot())
+    }
+
+    func statusCandidates() -> [StatusCandidate] {
+        let snap = loadSnapshot()
+        return snap.signals.map { signal in
+            StatusCandidate(
+                id: signal.id,
+                sourceModule: manifest.id,
+                semanticRole: .primary,
+                severity: signal.severity,
+                priority: signal.priority,
+                text: signal.title,
+                icon: signal.systemImage,
+                createdAt: snap.timestamp,
+                expiresAt: nil,
+                interruptPolicy: .normal,
+                trustLevel: .unsignedLocal
+            )
+        }
+    }
+
+    func panelContent(context: PanelHostContext) -> some View {
+        DeclarativeModulePanel(manifest: manifest, descriptor: package.manifest.panel, snapshot: loadSnapshot())
+    }
+
+    // MARK: - Internals
+
+    private func loadSnapshot() -> ModuleSnapshot {
         guard FileManager.default.fileExists(atPath: package.snapshotURL.path) else {
             return ModuleSnapshot(
                 id: manifest.id,
@@ -499,32 +577,15 @@ final class DeclarativeModule: StatusModule {
             )
         }
 
-        let snapshot = try decoder.decode(ExternalModuleSnapshot.self, from: Data(contentsOf: package.snapshotURL))
-        return snapshot.snapshot(moduleID: manifest.id, fallbackSystemImage: manifest.systemImage)
-    }
-
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        guard let definition = package.manifest.actions.first(where: { $0.id == action.id }) else {
-            return .none
-        }
-
-        switch definition.kind {
-        case .copy:
-            return .copyToPasteboard(definition.value ?? "")
-        case .openURL, .deepLink:
-            guard let value = definition.value,
-                  let url = URL(string: value) else {
-                return .none
-            }
-            context.platformActions.open(url)
-            return .none
-        case .refresh:
-            return .refreshRequested(manifest.id)
-        }
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(DeclarativeModulePanel(manifest: manifest, descriptor: package.manifest.panel, snapshot: snapshot))
+        let snapshot = try? decoder.decode(ExternalModuleSnapshot.self, from: Data(contentsOf: package.snapshotURL))
+        return snapshot?.snapshot(moduleID: manifest.id, fallbackSystemImage: manifest.systemImage)
+            ?? ModuleSnapshot(
+                id: manifest.id,
+                title: manifest.displayName,
+                subtitle: "Failed to read snapshot",
+                systemImage: manifest.systemImage,
+                freshness: .unavailable("Snapshot decode error")
+            )
     }
 }
 

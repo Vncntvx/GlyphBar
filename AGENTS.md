@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-GlyphBar is a SwiftUI-first macOS menu bar app with narrow AppKit bridges. Main app code lives in `GlyphBar/`: `App/` contains app coordination, status bar, panel, settings, menu, windows, and routing; `Core/` contains module contracts, runtime, refresh, storage, security, logging, and platform abstractions; `DesignSystem/` contains reusable SwiftUI components; `Modules/` contains bundled modules. Shared widget cache models live in `GlyphBar/WidgetShared/`. Widget extension code lives in `GlyphBarWidgets/`. Tests are split between `Tests/CoreTests/` and `Tests/ModuleTests/`. Do not commit `DerivedData/` or `build/`.
+GlyphBar is a SwiftUI-first macOS menu bar app with narrow AppKit bridges. Main app code lives in `GlyphBar/`: `App/` contains app coordination, status bar, panel, settings, menu, windows, and routing; `Kernel/` contains module contracts, command/effect pipeline, capabilities, and effect execution; `Projection/` contains snapshot envelopes, projection sets, and the widget bridge; `Presentation/` contains the status-bar arbiter, panel host+contribution, and status-item renderer; `Core/` contains legacy runtime, registry, storage, security, and logging (being gradually migrated to Kernel/Projection/Presentation); `DesignSystem/` contains reusable SwiftUI components; `Modules/` contains bundled modules. Shared widget cache models live in `GlyphBar/WidgetShared/`. Widget extension code lives in `GlyphBarWidgets/`. Tests are split between `Tests/CoreTests/`, `Tests/KernelTests/`, and `Tests/ModuleTests/`. Do not commit `DerivedData/` or `build/`.
 
 ## Build, Test, and Development Commands
 
@@ -24,11 +24,21 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild -projec
 
 ## Coding Style & Naming Conventions
 
-Use standard Swift formatting with 4-space indentation. Prefer `final` for concrete reference types, `@MainActor` for UI-facing coordinators, and dependency injection through `ModuleContext`. Keep modules isolated behind `StatusModule`; modules must return snapshots, signals, and events rather than directly changing status bar UI. Use descriptive type names such as `ClockModule`, `StatusBarController`, and `WidgetDataBridge`.
+Use standard Swift formatting with 4-space indentation. Prefer `final` for concrete reference types, `@MainActor` for UI-facing coordinators, and dependency injection through `GrantedCapabilities`. Keep modules isolated behind `ModuleContract`; modules must return `DomainTransition` (effects + health) rather than directly changing status bar UI or calling platform APIs. Use descriptive type names such as `ClockModule`, `StatusItemController`, and `WidgetDataBridge`.
+
+## Architecture (Microkernel Platform)
+
+- **ModuleContract** replaces `StatusModule`. Modules implement `handle(command:capabilities:bridge:)` returning `DomainTransition`.
+- **Command/Effect** unidirectional data flow: all module inputs are `Command`, all side-effects are `Effect` submitted via `ModuleBridge`.
+- **GrantedCapabilities** replaces god-`ModuleContext`. Capabilities are granted per-module based on manifest permissions via `CapabilityFactory`.
+- **PresentationArbiter** replaces `StatusComposer`+`StatusRotationEngine`. Modules submit `StatusCandidate`s; the arbiter picks the winner with hysteresis, TTL, and rotation support.
+- **SnapshotEnvelope + ProjectionSet** replace flat `ModuleSnapshot` for typed projections.
+- **TypedModuleContribution** provides `@ViewBuilder` panel content for built-in modules; third-party/XPC modules use `AnyView`.
+- **EffectExecutor** is the single global side-effect exit point (clipboard, URLs, settings, etc.).
 
 ## Testing Guidelines
 
-Tests use Swift Testing (`import Testing`, `@Test`, `#expect`/`#require`). Add focused tests under `Tests/CoreTests/` for routing, scheduling, status composition, storage, and widget bridges. Add module behavior tests under `Tests/ModuleTests/`. Name test functions descriptively (no `test` prefix required by Swift Testing) and run `./script/build_and_run.sh --test` before opening a PR.
+Tests use Swift Testing (`import Testing`, `@Test`, `#expect`/`#require`). Add focused tests under `Tests/CoreTests/` for routing, scheduling, status composition, storage, and widget bridges. Add kernel/contract tests under `Tests/KernelTests/`. Add module behavior tests under `Tests/ModuleTests/`. Name test functions descriptively (no `test` prefix required by Swift Testing) and run `./script/build_and_run.sh --test` before opening a PR.
 
 ## Commit & Pull Request Guidelines
 

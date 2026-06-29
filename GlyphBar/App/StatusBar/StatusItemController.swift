@@ -275,18 +275,17 @@ final class StatusItemController: NSObject {
     }
 
     /// Collects `StatusCandidate`s from all enabled modules and submits them
-    /// to the arbiter. P1.13 modules implement `statusCandidates()` directly;
-    /// legacy snapshots are converted via `ProjectionBuilder` as a fallback.
+    /// to the arbiter. All modules now implement `ModuleContract` and
+    /// `statusCandidates()` directly.
     private func submitCandidatesToArbiter() {
         var candidates: [StatusCandidate] = []
         let enabledSnapshots = runtime.snapshots.filter { settingsStore.isEnabled($0.key) }
 
         for (id, snapshot) in enabledSnapshots {
-            if let module = runtime.modules[id] as? any TypedModuleContribution {
-                // P1.13 path: module vends candidates directly.
+            if let module = runtime.modules[id] as? any ModuleContract {
                 candidates.append(contentsOf: module.statusCandidates())
             } else {
-                // Legacy path: derive candidates from snapshot signals.
+                // Fallback: derive candidates from snapshot signals.
                 let projection = ProjectionBuilder.build(from: snapshot)
                 candidates.append(contentsOf: projection.statusCandidates)
             }

@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class ClockModule: StatusModule, TypedModuleContribution {
+final class ClockModule: TypedModuleContribution {
     private var uses24HourClock: Bool
     private var showSeconds: Bool
     private var worldTimezones: [String]
@@ -29,57 +29,34 @@ final class ClockModule: StatusModule, TypedModuleContribution {
         self.worldTimezones = state?.worldTimezones ?? []
     }
 
-    var manifest: ModuleManifest {
-        ModuleManifest(
-            id: "clock",
-            displayName: "Clock",
-            subtitle: "Local time, date, and world clocks",
-            systemImage: "clock",
-            version: "1.1.0",
-            author: "Wenjie Xu",
-            capabilities: [.statusItem, .panel, .widgets, .actions, .deepLinks],
-            permissions: [.pasteboard],
-            defaultRefreshPolicy: .interval(seconds: 5),
-            actions: [
-                ModuleAction(id: "copyTimestamp", title: "Copy Timestamp", systemImage: "doc.on.doc"),
-                ModuleAction(id: "toggleFormat", title: "Toggle Format", systemImage: "clock.arrow.circlepath")
-            ],
-            widgets: [
-                ModuleWidgetDescriptor(
-                    id: "clock.time",
-                    title: "Clock",
-                    subtitle: "Current local time",
-                    systemImage: "clock",
-                    supportedFamilies: ["small", "medium", "large"]
-                )
-            ]
-        )
-    }
+    var manifest: ModuleManifest { Self.staticManifest }
 
-    // MARK: - StatusModule (legacy bridge)
+    static let staticManifest = ModuleManifest(
+        id: "clock",
+        displayName: "Clock",
+        subtitle: "Local time, date, and world clocks",
+        systemImage: "clock",
+        version: "1.1.0",
+        author: "Wenjie Xu",
+        capabilities: [.statusItem, .panel, .widgets, .actions, .deepLinks],
+        permissions: [.pasteboard],
+        defaultRefreshPolicy: .interval(seconds: 5),
+        actions: [
+            ModuleAction(id: "copyTimestamp", title: "Copy Timestamp", systemImage: "doc.on.doc"),
+            ModuleAction(id: "toggleFormat", title: "Toggle Format", systemImage: "clock.arrow.circlepath")
+        ],
+        widgets: [
+            ModuleWidgetDescriptor(
+                id: "clock.time",
+                title: "Clock",
+                subtitle: "Current local time",
+                systemImage: "clock",
+                supportedFamilies: ["small", "medium", "large"]
+            )
+        ]
+    )
 
-    func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
-        buildSnapshot()
-    }
-
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        switch action.id {
-        case "copyTimestamp":
-            return .copyToPasteboard(ISO8601DateFormatter().string(from: Date()))
-        case "toggleFormat":
-            uses24HourClock.toggle()
-            persistState()
-            return .refreshRequested(manifest.id)
-        default:
-            return .none
-        }
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { _ in })))
-    }
-
-    // MARK: - TypedModuleContribution (P1.13)
+    // MARK: - TypedModuleContribution
 
     func handle(
         command: Command,
@@ -94,6 +71,17 @@ final class ClockModule: StatusModule, TypedModuleContribution {
                 refreshProjection: true
             )
         case .userAction(let actionID, _):
+            if actionID == "copyTimestamp" {
+                let timestamp = ISO8601DateFormatter().string(from: Date())
+                return DomainTransition(
+                    effects: [
+                        .publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot())),
+                        .copyToClipboard(timestamp)
+                    ],
+                    health: .healthy,
+                    refreshProjection: true
+                )
+            }
             if actionID == "toggleFormat" {
                 uses24HourClock.toggle()
                 persistState()

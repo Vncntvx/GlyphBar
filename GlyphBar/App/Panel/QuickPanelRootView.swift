@@ -371,16 +371,18 @@ private struct PanelModuleContent: View {
 
 private struct CompactModuleView: View {
     @ObservedObject var runtime: ModuleRuntime
-    let module: any StatusModule
+    let module: any ModuleContract
     let snapshot: ModuleSnapshot?
 
     var body: some View {
-        // P1.14: route through panelContribution when the module is a
-        // TypedModuleContribution; otherwise fall back to the legacy path.
+        // All modules now use TypedModuleContribution via ModuleContract.
         if let contribution = module as? any TypedModuleContribution {
             ModulePanelHost(contribution: contribution, runtime: runtime)
         } else {
-            module.makePanelView(context: runtime.context, snapshot: snapshot)
+            // Fallback: module doesn't provide a panel contribution.
+            Text("No panel available")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -410,7 +412,7 @@ private struct ModulePanelHost: View {
 }
 
 private struct ModuleSummaryBlock: View {
-    let module: any StatusModule
+    let module: any ModuleContract
     let snapshot: ModuleSnapshot?
 
     var body: some View {
@@ -580,7 +582,7 @@ private struct CompactMetricCell: View {
 
 private struct ModuleActionStrip: View {
     @ObservedObject var runtime: ModuleRuntime
-    let module: any StatusModule
+    let module: any ModuleContract
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {

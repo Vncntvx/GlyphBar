@@ -3,11 +3,9 @@ import AppKit
 @MainActor
 final class AppMenuCoordinator: NSObject {
     private let runtime: ModuleRuntime
-    private let platformActions: PlatformActions
 
-    init(runtime: ModuleRuntime, platformActions: PlatformActions) {
+    init(runtime: ModuleRuntime) {
         self.runtime = runtime
-        self.platformActions = platformActions
     }
 
     func makeMenu() -> NSMenu {
@@ -83,7 +81,7 @@ final class AppMenuCoordinator: NSObject {
     }
 
     @objc private func quit() {
-        platformActions.quit()
+        NSApplication.shared.terminate(nil)
     }
 
     private func shortTitle(_ title: String) -> String {

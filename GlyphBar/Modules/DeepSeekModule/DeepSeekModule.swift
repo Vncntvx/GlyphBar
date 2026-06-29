@@ -127,7 +127,7 @@ private struct CachedData: Codable {
 // MARK: - Module
 
 @MainActor
-final class DeepSeekModule: StatusModule, TypedModuleContribution {
+final class DeepSeekModule: TypedModuleContribution {
     private var cached: CachedData?
     private var lastErrorMessage: String?
     private var cookieExpired = false
@@ -191,67 +191,20 @@ final class DeepSeekModule: StatusModule, TypedModuleContribution {
         if http.statusCode != 200 { throw DeepSeekError.apiError(http.statusCode, "") }
     }
 
-    var manifest: ModuleManifest {
-        ModuleManifest(id: "deepseek", displayName: "DeepSeek", subtitle: "API balance & usage tracker",
-            systemImage: "brain.head.profile", version: "1.2.0", author: "Wenjie Xu",
-            capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
-            permissions: [], defaultRefreshPolicy: .interval(seconds: 300),
-            actions: [ModuleAction(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh)], widgets: [],
-            priority: 100)
-    }
+    var manifest: ModuleManifest { Self.staticManifest }
 
-    // MARK: - StatusModule (legacy bridge)
+    static let staticManifest = ModuleManifest(
+        id: "deepseek", displayName: "DeepSeek", subtitle: "API balance & usage tracker",
+        systemImage: "brain.head.profile", version: "1.2.0", author: "Wenjie Xu",
+        capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
+        permissions: [.openExternalURLs, .localFiles, .appGroupStorage],
+        defaultRefreshPolicy: .interval(seconds: 300),
+        actions: [ModuleAction(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh)],
+        widgets: [],
+        priority: 100
+    )
 
-    func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
-        migrateSecretsIfNeeded()
-        lastErrorMessage = nil; cookieExpired = false
-
-        // P1.13 bypass #9: secret via capability (Keychain-first).
-        let platformCookie = secretStore?.secret(for: "deepseek.platformCookie")
-        let apiKey = secretStore?.secret(for: "deepseek.apiKey") ?? ""
-
-        // P1.13 bypass #2: fetchBalance via NetworkCapability.
-        let balance = try? await fetchBalance(apiKey: apiKey)
-        let totalBal = Double(balance?.balanceInfos.first?.totalBalance ?? "0") ?? 0
-        let granted = Double(balance?.balanceInfos.first?.grantedBalance ?? "0") ?? 0
-        let topped = Double(balance?.balanceInfos.first?.toppedUpBalance ?? "0") ?? 0
-
-        let existing = cached
-        cached = CachedData(
-            totalBalance: totalBal, grantedBalance: granted, toppedUpBalance: topped,
-            isAvailable: balance?.isAvailable ?? false,
-            todayCost: existing?.todayCost ?? 0, monthlyCost: existing?.monthlyCost ?? 0,
-            totalTokens: existing?.totalTokens ?? 0, totalCacheHit: existing?.totalCacheHit ?? 0, totalRequests: existing?.totalRequests ?? 0,
-            modelV4FlashTokens: existing?.modelV4FlashTokens ?? 0, modelV4FlashCost: existing?.modelV4FlashCost ?? 0,
-            modelV4FlashCacheHit: existing?.modelV4FlashCacheHit ?? 0, modelV4FlashCacheMiss: existing?.modelV4FlashCacheMiss ?? 0,
-            modelV4ProTokens: existing?.modelV4ProTokens ?? 0, modelV4ProCost: existing?.modelV4ProCost ?? 0,
-            modelV4ProCacheHit: existing?.modelV4ProCacheHit ?? 0, modelV4ProCacheMiss: existing?.modelV4ProCacheMiss ?? 0,
-            dailyItems: existing?.dailyItems ?? [], lastUpdated: Date(),
-            hasPlatformData: existing?.hasPlatformData ?? false
-        )
-        persistCache()
-
-        // P1.13 bypass #11: auto-export via bridge.scheduleLocal (not untracked Task).
-        // For now keep as Task since bridge isn't available in legacy refresh path;
-        // P1.14 wires the kernel dispatch. Marked TODO.
-        if !isExporting, let cookie = platformCookie, !cookie.isEmpty {
-            Task { await fetchUsageExport() }
-        }
-        return buildSnapshot()
-    }
-
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        switch action.id {
-        case "refresh": return .refreshRequested(manifest.id)
-        default: return .none
-        }
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { _ in })))
-    }
-
-    // MARK: - TypedModuleContribution (P1.13)
+    // MARK: - TypedModuleContribution
 
     func handle(
         command: Command,

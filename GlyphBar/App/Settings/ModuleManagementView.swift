@@ -146,11 +146,10 @@ private struct ModuleManagementDetailView: View {
                     }
                     Section {
                         Toggle("Include in Status Bar Rotation", isOn: rotationModuleBinding(module.manifest.id))
-                        let snap = runtime.snapshots[module.manifest.id]
-                        let items = module.statusBarRotationItems(snapshot: snap ?? ModuleSnapshot(id: module.manifest.id, title: "", subtitle: "", systemImage: module.manifest.systemImage))
-                        if !items.isEmpty && (settingsStore.rotationModuleIDs.contains(module.manifest.id)) {
-                            ForEach(items) { item in
-                                Toggle(item.title, isOn: rotationItemBinding(moduleID: module.manifest.id, itemID: item.id))
+                        let candidates = module.statusCandidates()
+                        if !candidates.isEmpty && (settingsStore.rotationModuleIDs.contains(module.manifest.id)) {
+                            ForEach(candidates) { candidate in
+                                Toggle(candidate.text, isOn: rotationItemBinding(moduleID: module.manifest.id, itemID: candidate.id))
                             }
                         }
                     } header: {
@@ -223,7 +222,7 @@ private struct ModuleManagementDetailView: View {
         }
     }
 
-    private func detailHeader(module: any StatusModule, record: ModuleRecord) -> some View {
+    private func detailHeader(module: any ModuleContract, record: ModuleRecord) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: module.manifest.systemImage)
                 .font(.largeTitle)
@@ -484,16 +483,18 @@ private struct ModuleManagementDetailView: View {
                 if hasCookie {
                     Button("Re-login") { showLoginSheet = true }.buttonStyle(.bordered).controlSize(.small)
                     Button("Logout") {
-                        // Clear cookie from storage
-                        UserDefaults.standard.removeObject(forKey: cookieKey)
-                        // Clear WKWebView cookies so next login starts fresh
+                        // Clear cookie from secure store (Keychain-backed).
+                        secureStore.setSecret(nil, for: cookieKey)
+                        secureStore.setSecret(nil, for: rawTokenKey)
+                        // Clear WKWebView cookies so next login starts fresh.
                         WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
                             for c in cookies {
                                 WKWebsiteDataStore.default().httpCookieStore.delete(c)
                             }
                         }
-                        // Clear cached platform usage data
-                        UserDefaults.standard.removeObject(forKey: "deepseek.cache")
+                        // Clear cached platform usage data via the module's cache namespace.
+                        let cache = ModuleCacheNamespace(moduleID: "deepseek")
+                        cache.clearDomainState()
                         hasCookie = false
                     }
                     .buttonStyle(.bordered).controlSize(.small)

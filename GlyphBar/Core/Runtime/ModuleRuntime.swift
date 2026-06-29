@@ -1,41 +1,48 @@
+import AppKit
 import Combine
 import Foundation
 
 @MainActor
 final class ModuleRuntime: ObservableObject {
-    @Published private(set) var modules: [ModuleID: any StatusModule]
+    @Published private(set) var modules: [ModuleID: any ModuleContract]
     @Published private(set) var moduleRecords: [ModuleID: ModuleRecord]
     @Published private(set) var snapshots: [ModuleID: ModuleSnapshot] = [:]
     @Published var selectedModuleID: ModuleID?
     @Published var userNotice: String?
 
-    let context: ModuleContext
     let settingsStore: AppSettingsStore
     private let registry: ModuleRegistry
     private let scheduler: RefreshScheduler
     private let logger: GlyphLogger
+    private let cacheStore: CacheStore
+    private let widgetBridge: WidgetDataBridge
+    private let capabilityFactory: CapabilityFactory
 
     init(
         registry: ModuleRegistry,
-        context: ModuleContext,
+        cacheStore: CacheStore,
+        widgetBridge: WidgetDataBridge,
         settingsStore: AppSettingsStore,
+        logger: GlyphLogger = GlyphLogger(),
         scheduler: RefreshScheduler = RefreshScheduler()
     ) {
         let records = registry.makeRecords()
         self.registry = registry
         self.moduleRecords = records
         self.modules = records.mapValues(\.module)
-        self.context = context
+        self.cacheStore = cacheStore
+        self.widgetBridge = widgetBridge
         self.settingsStore = settingsStore
         self.scheduler = scheduler
-        self.logger = context.logger
+        self.logger = logger
+        self.capabilityFactory = CapabilityFactory(logger: logger)
 
         let manifests = modules.values.map(\.manifest).sorted { $0.displayName < $1.displayName }
         settingsStore.registerDefaults(for: manifests)
         selectedModuleID = settingsStore.primaryModuleID ?? manifests.first?.id
 
         for id in modules.keys {
-            if let cached = context.cacheStore.load(moduleID: id) {
+            if let cached = cacheStore.load(moduleID: id) {
                 snapshots[id] = cached.markedStale(reason: "Loaded cached snapshot")
             }
         }
@@ -85,33 +92,31 @@ final class ModuleRuntime: ObservableObject {
             return
         }
 
-        do {
-            let snapshot = try await module.refresh(context: context)
-            snapshots[moduleID] = snapshot
-            context.cacheStore.save(snapshot)
-            context.widgetBridge.publish(snapshot)
+        let bridge = KernelBridge { [weak self] effects in
+            guard let self else { return }
+            for effect in effects {
+                Task { await self.executeEffect(effect, for: moduleID) }
+            }
+        }
+        let capabilities = capabilityFactory.makeCapabilities(
+            for: moduleID,
+            manifest: module.manifest,
+            bridge: bridge
+        )
+        let transition = await module.handle(
+            command: .refresh(reason: .scheduled),
+            capabilities: capabilities,
+            bridge: bridge
+        )
+
+        // Drain effects from the transition.
+        for effect in transition.effects {
+            await executeEffect(effect, for: moduleID)
+        }
+
+        if transition.refreshProjection {
             scheduler.recordSuccess(moduleID: moduleID)
             logger.runtime("Refreshed \(moduleID)")
-        } catch {
-            let fallback = context.cacheStore.load(moduleID: moduleID)?.markedStale(reason: error.localizedDescription)
-            let snapshot = fallback ?? ModuleSnapshot(
-                id: moduleID,
-                title: module.manifest.displayName,
-                subtitle: error.localizedDescription,
-                systemImage: module.manifest.systemImage,
-                freshness: .unavailable(error.localizedDescription),
-                signals: [StatusSignal(
-                    title: "Error",
-                    message: error.localizedDescription,
-                    systemImage: "exclamationmark.octagon",
-                    severity: .critical,
-                    priority: 100
-                )]
-            )
-            snapshots[moduleID] = snapshot
-            context.widgetBridge.publish(snapshot)
-            let delay = scheduler.recordFailure(moduleID: moduleID)
-            logger.warning("Refresh failed for \(moduleID); retry in \(delay)s: \(error.localizedDescription)")
         }
     }
 
@@ -120,12 +125,25 @@ final class ModuleRuntime: ObservableObject {
             return
         }
 
-        do {
-            let event = try await module.handle(action: action, context: context)
-            await apply(event)
-        } catch {
-            userNotice = error.localizedDescription
-            logger.error("Action \(action.id) failed for \(moduleID): \(error.localizedDescription)")
+        let bridge = KernelBridge { [weak self] effects in
+            guard let self else { return }
+            for effect in effects {
+                Task { await self.executeEffect(effect, for: moduleID) }
+            }
+        }
+        let capabilities = capabilityFactory.makeCapabilities(
+            for: moduleID,
+            manifest: module.manifest,
+            bridge: bridge
+        )
+        let transition = await module.handle(
+            command: .userAction(actionID: action.id, payload: nil),
+            capabilities: capabilities,
+            bridge: bridge
+        )
+
+        for effect in transition.effects {
+            await executeEffect(effect, for: moduleID)
         }
     }
 
@@ -135,8 +153,8 @@ final class ModuleRuntime: ObservableObject {
 
     func publishSnapshot(_ snapshot: ModuleSnapshot) {
         snapshots[snapshot.id] = snapshot
-        context.cacheStore.save(snapshot)
-        context.widgetBridge.publish(snapshot)
+        cacheStore.save(snapshot)
+        widgetBridge.publish(snapshot)
     }
 
     func record(for moduleID: ModuleID) -> ModuleRecord? {
@@ -159,8 +177,8 @@ final class ModuleRuntime: ObservableObject {
         settingsStore.setEnabled(false, moduleID: moduleID)
         try registry.removeExternalPackage(moduleID: moduleID)
         if removeData {
-            context.cacheStore.clear(moduleID: moduleID)
-            context.widgetBridge.remove(moduleID: moduleID)
+            cacheStore.clear(moduleID: moduleID)
+            widgetBridge.remove(moduleID: moduleID)
         }
         settingsStore.removeModuleState(moduleID: moduleID)
         reloadModules(selecting: enabledModuleIDs.first)
@@ -172,6 +190,73 @@ final class ModuleRuntime: ObservableObject {
         }
         return registry.externalStorageLocation(moduleID: moduleID)
     }
+
+    // MARK: - Effect Execution
+
+    /// Executes a single Effect produced by a module. This is the unified
+    /// side-effect exit point — all module effects flow through here.
+    private func executeEffect(_ effect: Effect, for moduleID: ModuleID) async {
+        switch effect {
+        case .publishSnapshot(let envelope):
+            // Extract a ModuleSnapshot from the envelope for legacy consumers
+            // (ModuleRuntime.snapshots, cacheStore, widgetBridge).
+            let snapshot = ProjectionBuilder.buildSnapshot(from: envelope)
+            snapshots[moduleID] = snapshot
+            cacheStore.save(snapshot)
+            widgetBridge.publish(envelope)
+
+        case .persistDomainState(let data):
+            logger.runtime("persistDomainState for \(moduleID) (\(data.count) bytes)")
+
+        case .copyToClipboard(let value):
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(value, forType: .string)
+            userNotice = "Copied"
+
+        case .openURL(let url):
+            NSWorkspace.shared.open(url)
+
+        case .showNotice(let message):
+            userNotice = message
+            logger.info("Notice for \(moduleID): \(message)")
+
+        case .openModuleSettings:
+            openSettingsAction?()
+
+        case .requestRefresh(let reason):
+            await refresh(moduleID: moduleID)
+
+        case .requestFileImport:
+            logger.runtime("requestFileImport for \(moduleID) (capability wiring pending)")
+
+        case .scheduleLocal(let command, let delay):
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                guard let module = self.modules[moduleID] else { return }
+                let bridge = KernelBridge { [weak self] effects in
+                    guard let self else { return }
+                    for effect in effects {
+                        Task { await self.executeEffect(effect, for: moduleID) }
+                    }
+                }
+                let capabilities = self.capabilityFactory.makeCapabilities(
+                    for: moduleID,
+                    manifest: module.manifest,
+                    bridge: bridge
+                )
+                let _ = await module.handle(
+                    command: command, capabilities: capabilities, bridge: bridge
+                )
+            }
+
+        case .networkRequest:
+            logger.warning("networkRequest effect should use NetworkCapability instead (module \(moduleID))")
+        }
+    }
+
+    /// Closure set by AppEnvironment to open the settings window.
+    /// Replaces the old `context.platformActions.showSettingsWindow()`.
+    var openSettingsAction: (() -> Void)?
 
     private func reloadModules(selecting preferredModuleID: ModuleID?) {
         let records = registry.makeRecords()
@@ -189,24 +274,26 @@ final class ModuleRuntime: ObservableObject {
             selectedModuleID = enabledModuleIDs.first ?? orderedModuleIDs.first
         }
     }
+}
 
-    private func apply(_ event: ModuleEvent) async {
-        switch event {
-        case .none:
-            break
-        case .didUpdateSnapshot(let snapshot):
-            snapshots[snapshot.id] = snapshot
-            context.cacheStore.save(snapshot)
-            context.widgetBridge.publish(snapshot)
-        case .copyToPasteboard(let value):
-            context.platformActions.copyToPasteboard(value)
-            userNotice = "Copied"
-        case .refreshRequested(let moduleID), .stateChanged(let moduleID):
-            await refresh(moduleID: moduleID)
-        case .userNotice(let message):
-            userNotice = message
-        case .openSettings:
-            context.platformActions.showSettingsWindow()
-        }
+// MARK: - KernelBridge
+
+/// A lightweight `ModuleBridge` implementation that buffers effects and
+/// forwards them to a handler closure. Used by `ModuleRuntime` to give
+/// modules a bridge when dispatching commands.
+@MainActor
+final class KernelBridge: ModuleBridge {
+    private let handler: ([Effect]) -> Void
+
+    init(handler: @escaping ([Effect]) -> Void) {
+        self.handler = handler
+    }
+
+    func submit(_ effects: [Effect]) {
+        handler(effects)
+    }
+
+    func submit(_ effect: Effect) {
+        submit([effect])
     }
 }

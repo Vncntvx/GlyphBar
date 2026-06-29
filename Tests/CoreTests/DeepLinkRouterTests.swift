@@ -66,17 +66,16 @@ struct DeepLinkRouterTests {
         let defaults = UserDefaults(suiteName: "DeepLinkRouterTests.\(UUID().uuidString)")!
         let logger = GlyphLogger()
         let cache = CacheStore(defaults: defaults)
-        let context = ModuleContext(
-            logger: logger,
-            cacheStore: cache,
-            secureStore: SecureStore(defaults: defaults),
-            permissionCenter: PermissionCenter(defaults: defaults),
-            settingsStore: AppSettingsStore(defaults: defaults),
-            platformActions: PlatformActions(),
-            widgetBridge: WidgetDataBridge(defaults: defaults)
-        )
+        let widgetBridge = WidgetDataBridge(defaults: defaults)
+        let settingsStore = AppSettingsStore(defaults: defaults)
         let registry = ModuleRegistry()
         registry.register { ClockModule() }
-        return ModuleRuntime(registry: registry, context: context, settingsStore: context.settingsStore)
+        return ModuleRuntime(
+            registry: registry,
+            cacheStore: cache,
+            widgetBridge: widgetBridge,
+            settingsStore: settingsStore,
+            logger: logger
+        )
     }
 }

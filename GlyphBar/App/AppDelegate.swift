@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Settings { SettingsRootView(environment: env) }
         }
         NSApp.addSceneRepresentation(settingsScene)
-        env.platformActions.openSettings = { settingsScene.environment.openSettings() }
+        env.openSettingsAction = { settingsScene.environment.openSettings() }
 
         Task { @MainActor in
             env.start()

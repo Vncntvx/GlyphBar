@@ -34,9 +34,7 @@ final class AppEnvironment: ObservableObject {
     let secureStore: SecureStore
     let permissionCenter: PermissionCenter
     let settingsStore: AppSettingsStore
-    let platformActions: PlatformActions
     let widgetBridge: WidgetDataBridge
-    let context: ModuleContext
     let registry: ModuleRegistry
     let runtime: ModuleRuntime
     let settingsNavigation: SettingsNavigationState
@@ -46,6 +44,9 @@ final class AppEnvironment: ObservableObject {
     let logsWindowCoordinator: LogsWindowCoordinator
     let router: DeepLinkRouter
 
+    /// Bound by `AppDelegate` to the hosted scene's `openSettings` action.
+    var openSettingsAction: (() -> Void)?
+
     private init() {
         let logger = GlyphLogger()
         let logsWindowCoordinator = LogsWindowCoordinator(logger: logger)
@@ -53,65 +54,76 @@ final class AppEnvironment: ObservableObject {
         let secureStore = SecureStore()
         let permissionCenter = PermissionCenter()
         let settingsStore = AppSettingsStore()
-        let platformActions = PlatformActions()
         let widgetBridge = WidgetDataBridge()
         let settingsNavigation = SettingsNavigationState()
-        var context = ModuleContext(
-            logger: logger,
-            cacheStore: cacheStore,
-            secureStore: secureStore,
-            permissionCenter: permissionCenter,
-            settingsStore: settingsStore,
-            platformActions: platformActions,
-            widgetBridge: widgetBridge
-        )
 
-        // P1.13: build per-module capabilities and inject into module inits.
-        let deepSeekSecretStore = ModuleSecretStore(moduleID: "deepseek")
-        let deepSeekSettings = ModuleSettingsNamespace(moduleID: "deepseek")
-        let deepSeekCache = ModuleCacheNamespace(moduleID: "deepseek")
-        let deepSeekNetwork = NetworkCapability()
-        let deepSeekFileImport = FileImportCapability(moduleID: "deepseek")
-
-        let counterSettings = ModuleSettingsNamespace(moduleID: "counter")
-        let counterCache = ModuleCacheNamespace(moduleID: "counter")
-
-        let notesSettings = ModuleSettingsNamespace(moduleID: "notesQuick")
-        let notesCache = ModuleCacheNamespace(moduleID: "notesQuick")
-
-        let clockSettings = ModuleSettingsNamespace(moduleID: "clock")
-
-        let systemMetrics = SystemMetricsCapability()
+        // Build modules using CapabilityFactory — no per-module hardcoded
+        // capability construction. The factory grants capabilities based on
+        // each module's manifest permissions.
+        let capabilityFactory = CapabilityFactory(logger: logger)
 
         let registry = ModuleRegistry()
         registry.register {
-            DeepSeekModule(
-                secretStore: deepSeekSecretStore,
-                settings: deepSeekSettings,
-                cache: deepSeekCache,
-                network: deepSeekNetwork,
-                fileImport: deepSeekFileImport
+            let caps = capabilityFactory.makeCapabilities(
+                for: "deepseek",
+                manifest: DeepSeekModule.staticManifest,
+                bridge: KernelBridge { _ in }
+            )
+            return DeepSeekModule(
+                secretStore: caps.secretStore,
+                settings: caps.settings,
+                cache: caps.cache,
+                network: caps.network,
+                fileImport: caps.fileImport
             )
         }
-        registry.register { ClockModule(settings: clockSettings) }
-        registry.register { SystemPulseModule(systemMetrics: systemMetrics) }
-        registry.register { NotesQuickModule(settings: notesSettings, cache: notesCache) }
-        registry.register { CounterModule(settings: counterSettings, cache: counterCache) }
+        registry.register {
+            let caps = capabilityFactory.makeCapabilities(
+                for: "clock",
+                manifest: ClockModule.staticManifest,
+                bridge: KernelBridge { _ in }
+            )
+            return ClockModule(settings: caps.settings)
+        }
+        registry.register {
+            let caps = capabilityFactory.makeCapabilities(
+                for: "systemPulse",
+                manifest: SystemPulseModule.staticManifest,
+                bridge: KernelBridge { _ in }
+            )
+            return SystemPulseModule(systemMetrics: caps.systemMetrics)
+        }
+        registry.register {
+            let caps = capabilityFactory.makeCapabilities(
+                for: "notesQuick",
+                manifest: NotesQuickModule.staticManifest,
+                bridge: KernelBridge { _ in }
+            )
+            return NotesQuickModule(settings: caps.settings, cache: caps.cache)
+        }
+        registry.register {
+            let caps = capabilityFactory.makeCapabilities(
+                for: "counter",
+                manifest: CounterModule.staticManifest,
+                bridge: KernelBridge { _ in }
+            )
+            return CounterModule(settings: caps.settings, cache: caps.cache)
+        }
         registry.register { NetworkMockModule() }
 
-        // P1.13: register capabilities in context for future kernel use.
-        context.registerCapability(deepSeekSecretStore)
-        context.registerCapability(deepSeekSettings)
-        context.registerCapability(deepSeekCache)
-        context.registerCapability(deepSeekNetwork)
-        context.registerCapability(deepSeekFileImport)
-        context.registerCapability(systemMetrics)
-
-        let runtime = ModuleRuntime(registry: registry, context: context, settingsStore: settingsStore)
-        context.publishSnapshot = { [weak runtime] snapshot in
-            runtime?.publishSnapshot(snapshot)
+        let runtime = ModuleRuntime(
+            registry: registry,
+            cacheStore: cacheStore,
+            widgetBridge: widgetBridge,
+            settingsStore: settingsStore,
+            logger: logger
+        )
+        runtime.openSettingsAction = { [weak settingsNavigation] in
+            settingsNavigation?.open(section: .general)
+            NSApp.activate()
         }
-        let appMenuCoordinator = AppMenuCoordinator(runtime: runtime, platformActions: platformActions)
+
+        let appMenuCoordinator = AppMenuCoordinator(runtime: runtime)
         let quickPanelCoordinator = QuickPanelCoordinator(
             runtime: runtime,
             menuCoordinator: appMenuCoordinator,
@@ -130,7 +142,7 @@ final class AppEnvironment: ObservableObject {
             openPanel: { quickPanelCoordinator.show(relativeTo: nil) },
             openSettings: { section, moduleID in
                 settingsNavigation.open(section: section, moduleID: moduleID)
-                platformActions.showSettingsWindow()
+                NSApp.activate()
             },
             openLogs: { logsWindowCoordinator.open() },
             importModule: {
@@ -144,9 +156,7 @@ final class AppEnvironment: ObservableObject {
         self.secureStore = secureStore
         self.permissionCenter = permissionCenter
         self.settingsStore = settingsStore
-        self.platformActions = platformActions
         self.widgetBridge = widgetBridge
-        self.context = context
         self.registry = registry
         self.runtime = runtime
         self.settingsNavigation = settingsNavigation
@@ -156,7 +166,7 @@ final class AppEnvironment: ObservableObject {
         self.statusItemController = statusItemController
         self.router = router
 
-        // P1.16: module ordering is driven by manifest.priority, not hardcoded.
+        // Module ordering is driven by manifest.priority, not hardcoded.
         // DeepSeek has priority: 100 in its manifest; others default to 0.
         // The runtime's orderedModuleIDs sorts by settingsStore.moduleOrder
         // first, then falls back to module ID. We seed moduleOrder with
@@ -196,7 +206,7 @@ final class AppEnvironment: ObservableObject {
 
     func openSettings(section: SettingsSection = .general, moduleID: ModuleID? = nil) {
         settingsNavigation.open(section: section, moduleID: moduleID)
-        platformActions.showSettingsWindow()
+        NSApp.activate()
     }
 
     func openLogsWindow() {
@@ -220,7 +230,7 @@ final class AppEnvironment: ObservableObject {
         do {
             let moduleID = try runtime.importModule(from: url)
             settingsNavigation.open(section: .modules, moduleID: moduleID)
-            platformActions.showSettingsWindow()
+            NSApp.activate()
             Task {
                 await runtime.refresh(moduleID: moduleID)
             }
@@ -228,7 +238,7 @@ final class AppEnvironment: ObservableObject {
             runtime.userNotice = error.localizedDescription
             logger.error(error.localizedDescription)
             settingsNavigation.open(section: .modules)
-            platformActions.showSettingsWindow()
+            NSApp.activate()
         }
     }
 }

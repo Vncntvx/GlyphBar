@@ -18,11 +18,10 @@
 		B00000000000000000000109 /* App/Settings/ModuleManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000109 /* App/Settings/ModuleManagementView.swift */; };
 		B0000000000000000000010B /* App/Routing/DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010B /* App/Routing/DeepLinkRouter.swift */; };
 		B0000000000000000000010C /* Core/Modules/ModuleTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */; };
-		B0000000000000000000010D /* Core/Modules/StatusModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010D /* Core/Modules/StatusModule.swift */; };
+
 		B0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */; };
 		B0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */; };
-		B00000000000000000000110 /* Core/Status/StatusComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000110 /* Core/Status/StatusComposer.swift */; };
-		B0000000000000000000020B /* Core/Status/StatusRotationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000210 /* Core/Status/StatusRotationEngine.swift */; };
+
 
 		B00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift */; };
 		B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */; };
@@ -30,7 +29,7 @@
 		B00000000000000000000114 /* Core/Storage/CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000114 /* Core/Storage/CacheStore.swift */; };
 		B00000000000000000000115 /* Core/Security/SecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000115 /* Core/Security/SecureStore.swift */; };
 		B00000000000000000000116 /* Core/Logging/GlyphLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000116 /* Core/Logging/GlyphLogger.swift */; };
-		B00000000000000000000117 /* Core/Platform/PlatformActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000117 /* Core/Platform/PlatformActions.swift */; };
+
 		B00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift */; };
 		B00000000000000000000119 /* DesignSystem/GlyphControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000119 /* DesignSystem/GlyphControls.swift */; };
 		B0000000000000000000011A /* DesignSystem/GlyphStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000011A /* DesignSystem/GlyphStates.swift */; };
@@ -130,6 +129,7 @@
 		BACA349F8CCDC42EF9451C5C /* KernelTests/WidgetSnapshotBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A24B61B1261ED4DA4AF7AE98 /* KernelTests/WidgetSnapshotBridgeTests.swift */; };
 		BE284AF448A7641A08E89206 /* PropertyTests/ArbiterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8FB243B954CE46B9A55010B /* PropertyTests/ArbiterTests.swift */; };
 		B59973B5EFC8D472A847EA17 /* PropertyTests/ArbiterPropertyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1283FEEFD1546F89267A79 /* PropertyTests/ArbiterPropertyTests.swift */; };
+		BC2C784D4B7C94BA6948053E /* Kernel/Capabilities/CapabilityFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38E6E942B9B04C39B7F6562 /* Kernel/Capabilities/CapabilityFactory.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -178,11 +178,8 @@
 		A00000000000000000000109 /* App/Settings/ModuleManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/ModuleManagementView.swift; sourceTree = "<group>"; };
 		A0000000000000000000010B /* App/Routing/DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Routing/DeepLinkRouter.swift; sourceTree = "<group>"; };
 		A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Modules/ModuleTypes.swift; sourceTree = "<group>"; };
-		A0000000000000000000010D /* Core/Modules/StatusModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Modules/StatusModule.swift; sourceTree = "<group>"; };
 		A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ModuleRegistry.swift; sourceTree = "<group>"; };
 		A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ModuleRuntime.swift; sourceTree = "<group>"; };
-		A00000000000000000000110 /* Core/Status/StatusComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Status/StatusComposer.swift; sourceTree = "<group>"; };
-		A00000000000000000000210 /* Core/Status/StatusRotationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Status/StatusRotationEngine.swift; sourceTree = "<group>"; };
 
 		A00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Refresh/RefreshScheduler.swift; sourceTree = "<group>"; };
 		A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Permissions/PermissionCenter.swift; sourceTree = "<group>"; };
@@ -190,7 +187,6 @@
 		A00000000000000000000114 /* Core/Storage/CacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Storage/CacheStore.swift; sourceTree = "<group>"; };
 		A00000000000000000000115 /* Core/Security/SecureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Security/SecureStore.swift; sourceTree = "<group>"; };
 		A00000000000000000000116 /* Core/Logging/GlyphLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Logging/GlyphLogger.swift; sourceTree = "<group>"; };
-		A00000000000000000000117 /* Core/Platform/PlatformActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Platform/PlatformActions.swift; sourceTree = "<group>"; };
 		A00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/GlyphSurfaces.swift; sourceTree = "<group>"; };
 		A00000000000000000000119 /* DesignSystem/GlyphControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/GlyphControls.swift; sourceTree = "<group>"; };
 		A0000000000000000000011A /* DesignSystem/GlyphStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/GlyphStates.swift; sourceTree = "<group>"; };
@@ -288,6 +284,7 @@
 		A24B61B1261ED4DA4AF7AE98 /* KernelTests/WidgetSnapshotBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KernelTests/WidgetSnapshotBridgeTests.swift; sourceTree = "<group>"; };
 		A8FB243B954CE46B9A55010B /* PropertyTests/ArbiterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyTests/ArbiterTests.swift; sourceTree = "<group>"; };
 		AE1283FEEFD1546F89267A79 /* PropertyTests/ArbiterPropertyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyTests/ArbiterPropertyTests.swift; sourceTree = "<group>"; };
+		A38E6E942B9B04C39B7F6562 /* Kernel/Capabilities/CapabilityFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Capabilities/CapabilityFactory.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -390,6 +387,7 @@
 				ADD0EC2D5D2AC47969E44350 /* Kernel/Capabilities/Capability.swift */,
 				A83B51DEB5B31464B9FD7EF3 /* Kernel/Capabilities/ModuleBridge.swift */,
 				A2C4210828CCC492F912D2FB /* Kernel/Capabilities/GrantedCapabilities.swift */,
+				A38E6E942B9B04C39B7F6562 /* Kernel/Capabilities/CapabilityFactory.swift */,
 				A9A9C96E191A743B08B87EEA /* Kernel/Capabilities/SystemMetricsCapability.swift */,
 				AB6316DB289E24253BD77CAE /* Kernel/Capabilities/LoggingCapability.swift */,
 				A4D22E528CC084D0EA3FB945 /* Kernel/Capabilities/ClipboardCapability.swift */,
@@ -398,18 +396,14 @@
 				AE570BCB7F39F4B528129752 /* Kernel/Capabilities/ModuleSettingsNamespace.swift */,
 				A6C44D39DDE96430D95FC307 /* Kernel/Capabilities/ModuleCacheNamespace.swift */,
 				AB056A138EC9042B89B6E24D /* Kernel/Capabilities/ModuleSecretStore.swift */,
-				A0000000000000000000010D /* Core/Modules/StatusModule.swift */,
 				A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */,
 				A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */,
-				A00000000000000000000110 /* Core/Status/StatusComposer.swift */,
-				A00000000000000000000210 /* Core/Status/StatusRotationEngine.swift */,
 				A00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift */,
 				A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */,
 				A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */,
 				A00000000000000000000114 /* Core/Storage/CacheStore.swift */,
 				A00000000000000000000115 /* Core/Security/SecureStore.swift */,
 				A00000000000000000000116 /* Core/Logging/GlyphLogger.swift */,
-				A00000000000000000000117 /* Core/Platform/PlatformActions.swift */,
 				A00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift */,
 				A00000000000000000000119 /* DesignSystem/GlyphControls.swift */,
 				A0000000000000000000011A /* DesignSystem/GlyphStates.swift */,
@@ -651,6 +645,7 @@
 				B7F97C2F1EAB74674958C881 /* Kernel/Capabilities/Capability.swift in Sources */,
 				BE7F813816D0F4BEDA07D843 /* Kernel/Capabilities/ModuleBridge.swift in Sources */,
 				BE465A9C217AB4E8EB561B18 /* Kernel/Capabilities/GrantedCapabilities.swift in Sources */,
+				BC2C784D4B7C94BA6948053E /* Kernel/Capabilities/CapabilityFactory.swift in Sources */,
 				B6190199965E34DE4830435D /* Kernel/Capabilities/SystemMetricsCapability.swift in Sources */,
 				B3ABBA45F3F8947218DA956F /* Kernel/Capabilities/LoggingCapability.swift in Sources */,
 				BA53DD850EE7E4F1D8D082B3 /* Kernel/Capabilities/ClipboardCapability.swift in Sources */,
@@ -659,18 +654,14 @@
 				B1634F1A270644BAFBECD2C7 /* Kernel/Capabilities/ModuleSettingsNamespace.swift in Sources */,
 				B56B56296B8EA4934AB9C1DB /* Kernel/Capabilities/ModuleCacheNamespace.swift in Sources */,
 				B34C33DF60563427DB507FEC /* Kernel/Capabilities/ModuleSecretStore.swift in Sources */,
-				B0000000000000000000010D /* Core/Modules/StatusModule.swift in Sources */,
 				B0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift in Sources */,
 				B0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift in Sources */,
-				B00000000000000000000110 /* Core/Status/StatusComposer.swift in Sources */,
-				B0000000000000000000020B /* Core/Status/StatusRotationEngine.swift in Sources */,
 				B00000000000000000000111 /* Core/Refresh/RefreshScheduler.swift in Sources */,
 				B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */,
 				B00000000000000000000113 /* Core/Storage/AppSettingsStore.swift in Sources */,
 				B00000000000000000000114 /* Core/Storage/CacheStore.swift in Sources */,
 				B00000000000000000000115 /* Core/Security/SecureStore.swift in Sources */,
 				B00000000000000000000116 /* Core/Logging/GlyphLogger.swift in Sources */,
-				B00000000000000000000117 /* Core/Platform/PlatformActions.swift in Sources */,
 				B00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift in Sources */,
 				B00000000000000000000119 /* DesignSystem/GlyphControls.swift in Sources */,
 				B0000000000000000000011A /* DesignSystem/GlyphStates.swift in Sources */,

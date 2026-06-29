@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class SystemPulseModule: StatusModule, TypedModuleContribution {
+final class SystemPulseModule: TypedModuleContribution {
     private var previousCPUTicks: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)?
 
     // P1.13: SystemMetricsCapability injected; no direct mach/ProcessInfo calls
@@ -15,47 +15,33 @@ final class SystemPulseModule: StatusModule, TypedModuleContribution {
         self.systemMetrics = systemMetrics
     }
 
-    var manifest: ModuleManifest {
-        ModuleManifest(
-            id: "systemPulse",
-            displayName: "System Pulse",
-            subtitle: "Real-time CPU, memory, storage, and battery",
-            systemImage: "waveform.path.ecg",
-            version: "1.1.0",
-            author: "Wenjie Xu",
-            capabilities: [.statusItem, .panel, .widgets, .actions, .deepLinks],
-            permissions: [.systemMetrics],
-            defaultRefreshPolicy: .interval(seconds: 5),
-            actions: [
-                ModuleAction(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh)
-            ],
-            widgets: [
-                ModuleWidgetDescriptor(
-                    id: "systemPulse.metrics",
-                    title: "System Pulse",
-                    subtitle: "System metrics",
-                    systemImage: "waveform.path.ecg",
-                    supportedFamilies: ["small", "medium", "large"]
-                )
-            ]
-        )
-    }
+    var manifest: ModuleManifest { Self.staticManifest }
 
-    // MARK: - StatusModule (legacy bridge)
+    static let staticManifest = ModuleManifest(
+        id: "systemPulse",
+        displayName: "System Pulse",
+        subtitle: "Real-time CPU, memory, storage, and battery",
+        systemImage: "waveform.path.ecg",
+        version: "1.1.0",
+        author: "Wenjie Xu",
+        capabilities: [.statusItem, .panel, .widgets, .actions, .deepLinks],
+        permissions: [.systemMetrics],
+        defaultRefreshPolicy: .interval(seconds: 5),
+        actions: [
+            ModuleAction(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh)
+        ],
+        widgets: [
+            ModuleWidgetDescriptor(
+                id: "systemPulse.metrics",
+                title: "System Pulse",
+                subtitle: "System metrics",
+                systemImage: "waveform.path.ecg",
+                supportedFamilies: ["small", "medium", "large"]
+            )
+        ]
+    )
 
-    func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
-        buildSnapshot()
-    }
-
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        action.id == "refresh" ? .refreshRequested(manifest.id) : .none
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { _ in })))
-    }
-
-    // MARK: - TypedModuleContribution (P1.13)
+    // MARK: - TypedModuleContribution
 
     func handle(
         command: Command,

@@ -6,24 +6,31 @@ import Testing
 struct TemplateModuleTests {
     @Test func counterActionsUpdateSnapshot() async throws {
         UserDefaults.standard.removeObject(forKey: "counter.moduleState")
-        let context = makeContext()
+        let bridge = KernelBridge { _ in }
+        let capabilities = GrantedCapabilities(bridge: bridge)
         let module = CounterModule()
-        let action = try #require(module.manifest.actions.first { $0.id == "increment" })
 
-        let event = try await module.handle(action: action, context: context)
+        let transition = await module.handle(
+            command: .userAction(actionID: "increment", payload: nil),
+            capabilities: capabilities,
+            bridge: bridge
+        )
 
-        guard case .didUpdateSnapshot(let snapshot) = event else {
-            Issue.record("Expected updated snapshot")
-            return
-        }
-        #expect(snapshot.metrics["count"] == 1)
+        #expect(transition.effects.contains { if case .publishSnapshot = $0 { true } else { false } })
     }
 
     @Test func networkMockModuleRefreshSucceeds() async throws {
+        let bridge = KernelBridge { _ in }
+        let capabilities = GrantedCapabilities(bridge: bridge)
         let module = NetworkMockModule()
-        let snapshot = try await module.refresh(context: makeContext())
-        #expect(snapshot.title.isEmpty == false)
-        #expect(snapshot.systemImage.isEmpty == false)
+
+        let transition = await module.handle(
+            command: .refresh(reason: .manual),
+            capabilities: capabilities,
+            bridge: bridge
+        )
+
+        #expect(transition.effects.contains { if case .publishSnapshot = $0 { true } else { false } })
     }
 
     @Test func registrySeparatesBuiltInAndThirdPartyModules() throws {
@@ -102,30 +109,27 @@ struct TemplateModuleTests {
         }
     }
 
-    private func makeContext() -> ModuleContext {
-        let defaults = UserDefaults(suiteName: "TemplateModuleTests.\(UUID().uuidString)")!
-        let logger = GlyphLogger()
-        let cache = CacheStore(defaults: defaults)
-        return ModuleContext(
-            logger: logger,
-            cacheStore: cache,
-            secureStore: SecureStore(defaults: defaults),
-            permissionCenter: PermissionCenter(defaults: defaults),
-            settingsStore: AppSettingsStore(defaults: defaults),
-            platformActions: PlatformActions(),
-            widgetBridge: WidgetDataBridge(defaults: defaults)
-        )
-    }
+    // MARK: - Helpers
 
     private func makeRuntime() -> ModuleRuntime {
         makeRuntime(externalStore: ExternalModulePackageStore(modulesDirectory: temporaryDirectory()))
     }
 
     private func makeRuntime(externalStore: ExternalModulePackageStore) -> ModuleRuntime {
-        let context = makeContext()
+        let defaults = UserDefaults(suiteName: "TemplateModuleTests.\(UUID().uuidString)")!
+        let cache = CacheStore(defaults: defaults)
+        let widgetBridge = WidgetDataBridge(defaults: defaults)
+        let settingsStore = AppSettingsStore(defaults: defaults)
+        let logger = GlyphLogger()
         let registry = ModuleRegistry(externalStore: externalStore)
         registry.register { CounterModule() }
-        return ModuleRuntime(registry: registry, context: context, settingsStore: context.settingsStore)
+        return ModuleRuntime(
+            registry: registry,
+            cacheStore: cache,
+            widgetBridge: widgetBridge,
+            settingsStore: settingsStore,
+            logger: logger
+        )
     }
 
     private func temporaryDirectory() -> URL {

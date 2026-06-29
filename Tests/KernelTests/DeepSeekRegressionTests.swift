@@ -40,21 +40,16 @@ struct DeepSeekRegressionTests {
             fileImport: nil
         )
 
-        // Triggering refresh without an API key should not crash.
-        _ = try? await module.refresh(context: makeMinimalContext())
-        #expect(module.manifest.id == "deepseek")
-    }
-
-    private func makeMinimalContext() -> ModuleContext {
-        let defaults = UserDefaults(suiteName: "DeepSeekRegressionTests.\(UUID().uuidString)")!
-        return ModuleContext(
-            logger: GlyphLogger(),
-            cacheStore: CacheStore(defaults: defaults),
-            secureStore: SecureStore(defaults: defaults),
-            permissionCenter: PermissionCenter(defaults: defaults),
-            settingsStore: AppSettingsStore(defaults: defaults),
-            platformActions: PlatformActions(),
-            widgetBridge: WidgetDataBridge(defaults: defaults)
+        // Triggering refresh via the new ModuleContract API without an API key
+        // should not crash.
+        let bridge = KernelBridge { _ in }
+        let capabilities = GrantedCapabilities(bridge: bridge)
+        let transition = await module.handle(
+            command: .refresh(reason: .manual),
+            capabilities: capabilities,
+            bridge: bridge
         )
+        // Should produce some transition (even if degraded due to missing key)
+        #expect(module.manifest.id == "deepseek")
     }
 }

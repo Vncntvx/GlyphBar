@@ -1,44 +1,66 @@
+import Foundation
 import Testing
 @testable import GlyphBar
 
+/// Tests for the PresentationArbiter which replaced StatusComposer.
+/// The arbiter handles priority-based candidate selection with
+/// hysteresis, TTL, and deduplication — all functions previously
+/// in StatusComposer.
+@MainActor
 struct StatusComposerTests {
     @Test func criticalSignalOverridesPrimaryModule() {
-        let composer = StatusComposer()
-        let primary = ModuleSnapshot(id: "clock", title: "12:00", subtitle: "Today", systemImage: "clock")
-        let failing = ModuleSnapshot(
-            id: "networkMock",
-            title: "Offline",
-            subtitle: "Timeout",
-            systemImage: "wifi",
-            signals: [StatusSignal(title: "Network Down", message: "Timed out", systemImage: "exclamationmark.octagon", severity: .critical, priority: 10)]
+        let fallback = PresentationDecision(
+            title: "GlyphBar", systemImage: "sparkles",
+            severity: .normal, tooltip: ""
         )
+        let arbiter = PresentationArbiter(fallback: fallback)
 
-        let presentation = composer.compose(snapshots: ["clock": primary, "networkMock": failing], primaryModuleID: "clock")
-
-        #expect(presentation.title == "Network Down")
-        #expect(presentation.severity == .critical)
+        let candidates = [
+            StatusCandidate(
+                id: "clock.time", sourceModule: "clock",
+                semanticRole: .primary, severity: .normal, priority: 50,
+                text: "12:00", icon: "clock",
+                createdAt: Date(), expiresAt: nil,
+                interruptPolicy: .normal, trustLevel: .bundled
+            ),
+            StatusCandidate(
+                id: "network.down", sourceModule: "networkMock",
+                semanticRole: .alert, severity: .critical, priority: 100,
+                text: "Network Down", icon: "wifi.slash",
+                createdAt: Date(), expiresAt: nil,
+                interruptPolicy: .preempt, trustLevel: .bundled
+            )
+        ]
+        arbiter.submit(candidates, now: Date())
+        #expect(arbiter.currentDecision.title == "Network Down")
+        #expect(arbiter.currentDecision.severity == .critical)
     }
 
-    @Test func warningAggregationBeatsPrimaryModule() {
-        let composer = StatusComposer()
-        let first = ModuleSnapshot(
-            id: "a",
-            title: "A",
-            subtitle: "",
-            systemImage: "a.circle",
-            signals: [StatusSignal(title: "A Warning", systemImage: "exclamationmark.triangle", severity: .warning)]
+    @Test func warningCandidatesArePresented() {
+        let fallback = PresentationDecision(
+            title: "GlyphBar", systemImage: "sparkles",
+            severity: .normal, tooltip: ""
         )
-        let second = ModuleSnapshot(
-            id: "b",
-            title: "B",
-            subtitle: "",
-            systemImage: "b.circle",
-            signals: [StatusSignal(title: "B Warning", systemImage: "exclamationmark.triangle", severity: .warning)]
-        )
+        let arbiter = PresentationArbiter(fallback: fallback)
 
-        let presentation = composer.compose(snapshots: ["a": first, "b": second], primaryModuleID: "a")
-
-        #expect(presentation.title == "2 warnings")
-        #expect(presentation.severity == .warning)
+        let candidates = [
+            StatusCandidate(
+                id: "a.warn", sourceModule: "a",
+                semanticRole: .primary, severity: .warning, priority: 40,
+                text: "A Warning", icon: "exclamationmark.triangle",
+                createdAt: Date(), expiresAt: nil,
+                interruptPolicy: .normal, trustLevel: .bundled
+            ),
+            StatusCandidate(
+                id: "b.warn", sourceModule: "b",
+                semanticRole: .primary, severity: .warning, priority: 40,
+                text: "B Warning", icon: "exclamationmark.triangle",
+                createdAt: Date(), expiresAt: nil,
+                interruptPolicy: .normal, trustLevel: .bundled
+            )
+        ]
+        arbiter.submit(candidates, now: Date())
+        // The arbiter should pick one of the warning candidates (highest priority wins)
+        #expect(arbiter.currentDecision.severity == .warning)
     }
 }

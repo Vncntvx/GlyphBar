@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class NotesQuickModule: StatusModule, TypedModuleContribution {
+final class NotesQuickModule: TypedModuleContribution {
     struct Note: Identifiable, Codable, Hashable {
         let id: UUID
         var text: String
@@ -36,67 +36,35 @@ final class NotesQuickModule: StatusModule, TypedModuleContribution {
         self.notes = Self.loadState(from: settings) ?? []
     }
 
-    var manifest: ModuleManifest {
-        ModuleManifest(
-            id: "notesQuick",
-            displayName: "Notes Quick",
-            subtitle: "Pinned and recent local notes",
-            systemImage: "note.text",
-            version: "1.1.0",
-            author: "Wenjie Xu",
-            capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
-            permissions: [],
-            defaultRefreshPolicy: .manual,
-            actions: [
-                ModuleAction(id: "addNote", title: "Add Note", systemImage: "plus"),
-                ModuleAction(id: "pinFirst", title: "Pin First", systemImage: "pin"),
-                ModuleAction(id: "clearCompleted", title: "Clear Done", systemImage: "checkmark.circle", role: .destructive)
-            ],
-            widgets: [
-                ModuleWidgetDescriptor(
-                    id: "notesQuick.pinned",
-                    title: "Pinned Notes",
-                    subtitle: "Recent notes",
-                    systemImage: "note.text",
-                    supportedFamilies: ["small", "medium", "large"]
-                )
-            ]
-        )
-    }
+    var manifest: ModuleManifest { Self.staticManifest }
 
-    // MARK: - StatusModule (legacy bridge)
+    static let staticManifest = ModuleManifest(
+        id: "notesQuick",
+        displayName: "Notes Quick",
+        subtitle: "Pinned and recent local notes",
+        systemImage: "note.text",
+        version: "1.1.0",
+        author: "Wenjie Xu",
+        capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
+        permissions: [],
+        defaultRefreshPolicy: .manual,
+        actions: [
+            ModuleAction(id: "addNote", title: "Add Note", systemImage: "plus"),
+            ModuleAction(id: "pinFirst", title: "Pin First", systemImage: "pin"),
+            ModuleAction(id: "clearCompleted", title: "Clear Done", systemImage: "checkmark.circle", role: .destructive)
+        ],
+        widgets: [
+            ModuleWidgetDescriptor(
+                id: "notesQuick.pinned",
+                title: "Pinned Notes",
+                subtitle: "Recent notes",
+                systemImage: "note.text",
+                supportedFamilies: ["small", "medium", "large"]
+            )
+        ]
+    )
 
-    func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
-        buildSnapshot()
-    }
-
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        switch action.id {
-        case "addNote":
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            notes.insert(Note(
-                text: "New note at \(formatter.string(from: Date()))",
-                createdAt: Date()
-            ), at: 0)
-            return .refreshRequested(manifest.id)
-        case "pinFirst":
-            guard let idx = notes.firstIndex(where: { !$0.isComplete }) else { return .none }
-            notes[idx].isPinned.toggle()
-            return .refreshRequested(manifest.id)
-        case "clearCompleted":
-            notes.removeAll(where: \.isComplete)
-            return .refreshRequested(manifest.id)
-        default:
-            return .none
-        }
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { _ in })))
-    }
-
-    // MARK: - TypedModuleContribution (P1.13)
+    // MARK: - TypedModuleContribution
 
     func handle(
         command: Command,
@@ -111,8 +79,22 @@ final class NotesQuickModule: StatusModule, TypedModuleContribution {
                 refreshProjection: true
             )
         case .userAction(let actionID, _):
-            let action = ModuleAction(id: actionID, title: actionID, systemImage: "")
-            _ = try? await handle(action: action, context: legacyContextPlaceholder)
+            switch actionID {
+            case "addNote":
+                let formatter = DateFormatter()
+                formatter.timeStyle = .short
+                notes.insert(Note(
+                    text: "New note at \(formatter.string(from: Date()))",
+                    createdAt: Date()
+                ), at: 0)
+            case "pinFirst":
+                guard let idx = notes.firstIndex(where: { !$0.isComplete }) else { return .empty }
+                notes[idx].isPinned.toggle()
+            case "clearCompleted":
+                notes.removeAll(where: \.isComplete)
+            default:
+                return .empty
+            }
             return DomainTransition(
                 effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
                 health: .healthy,
@@ -159,18 +141,6 @@ final class NotesQuickModule: StatusModule, TypedModuleContribution {
     }
 
     // MARK: - Internals
-
-    private var legacyContextPlaceholder: ModuleContext {
-        ModuleContext(
-            logger: GlyphLogger(),
-            cacheStore: CacheStore(),
-            secureStore: SecureStore(),
-            permissionCenter: PermissionCenter(),
-            settingsStore: AppSettingsStore(),
-            platformActions: PlatformActions(),
-            widgetBridge: WidgetDataBridge()
-        )
-    }
 
     private func addNote(text: String) {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }

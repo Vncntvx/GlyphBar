@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class CounterModule: StatusModule, TypedModuleContribution {
+final class CounterModule: TypedModuleContribution {
     private var count: Int
     private var stepSize: Int
     private var minValue: Int?
@@ -27,65 +27,35 @@ final class CounterModule: StatusModule, TypedModuleContribution {
         self.lastModified = state?.lastModified
     }
 
-    var manifest: ModuleManifest {
-        ModuleManifest(
-            id: "counter",
-            displayName: "Counter",
-            subtitle: "Persistent counter with adjustable step",
-            systemImage: "number.circle",
-            version: "1.1.0",
-            author: "Wenjie Xu",
-            capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
-            permissions: [],
-            defaultRefreshPolicy: .manual,
-            actions: [
-                ModuleAction(id: "increment", title: "Increment", systemImage: "plus"),
-                ModuleAction(id: "decrement", title: "Decrement", systemImage: "minus"),
-                ModuleAction(id: "reset", title: "Reset", systemImage: "arrow.counterclockwise", role: .destructive)
-            ],
-            widgets: [
-                ModuleWidgetDescriptor(
-                    id: "counter.value",
-                    title: "Counter",
-                    subtitle: "Current count",
-                    systemImage: "number.circle",
-                    supportedFamilies: ["small", "medium", "large"]
-                )
-            ]
-        )
-    }
+    var manifest: ModuleManifest { Self.staticManifest }
 
-    // MARK: - StatusModule (legacy bridge, kept for ModuleRuntime compatibility)
+    static let staticManifest = ModuleManifest(
+        id: "counter",
+        displayName: "Counter",
+        subtitle: "Persistent counter with adjustable step",
+        systemImage: "number.circle",
+        version: "1.1.0",
+        author: "Wenjie Xu",
+        capabilities: [.statusItem, .panel, .widgets, .actions, .cachedState, .deepLinks],
+        permissions: [],
+        defaultRefreshPolicy: .manual,
+        actions: [
+            ModuleAction(id: "increment", title: "Increment", systemImage: "plus"),
+            ModuleAction(id: "decrement", title: "Decrement", systemImage: "minus"),
+            ModuleAction(id: "reset", title: "Reset", systemImage: "arrow.counterclockwise", role: .destructive)
+        ],
+        widgets: [
+            ModuleWidgetDescriptor(
+                id: "counter.value",
+                title: "Counter",
+                subtitle: "Current count",
+                systemImage: "number.circle",
+                supportedFamilies: ["small", "medium", "large"]
+            )
+        ]
+    )
 
-    func refresh(context: ModuleContext) async throws -> ModuleSnapshot {
-        buildSnapshot()
-    }
-
-    func handle(action: ModuleAction, context: ModuleContext) async throws -> ModuleEvent {
-        switch action.id {
-        case "increment":
-            let newValue = count + stepSize
-            if let max = maxValue, newValue > max { return .none }
-            count = newValue
-        case "decrement":
-            let newValue = count - stepSize
-            if let min = minValue, newValue < min { return .none }
-            count = newValue
-        case "reset":
-            count = 0
-        default:
-            return .none
-        }
-        lastModified = Date()
-        persistState()
-        return .didUpdateSnapshot(buildSnapshot())
-    }
-
-    func makePanelView(context: ModuleContext, snapshot: ModuleSnapshot?) -> AnyView {
-        AnyView(panelContent(context: PanelHostContext(moduleID: manifest.id, dispatch: { _ in })))
-    }
-
-    // MARK: - TypedModuleContribution (P1.13)
+    // MARK: - TypedModuleContribution
 
     func handle(
         command: Command,
@@ -100,8 +70,22 @@ final class CounterModule: StatusModule, TypedModuleContribution {
                 refreshProjection: true
             )
         case .userAction(let actionID, _):
-            let action = ModuleAction(id: actionID, title: actionID, systemImage: "")
-            _ = try? await handle(action: action, context: legacyContextPlaceholder)
+            switch actionID {
+            case "increment":
+                let newValue = count + stepSize
+                if let max = maxValue, newValue > max { return .empty }
+                count = newValue
+            case "decrement":
+                let newValue = count - stepSize
+                if let min = minValue, newValue < min { return .empty }
+                count = newValue
+            case "reset":
+                count = 0
+            default:
+                return .empty
+            }
+            lastModified = Date()
+            persistState()
             return DomainTransition(
                 effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
                 health: .healthy,
@@ -158,18 +142,6 @@ final class CounterModule: StatusModule, TypedModuleContribution {
     }
 
     // MARK: - Internals
-
-    private var legacyContextPlaceholder: ModuleContext {
-        ModuleContext(
-            logger: GlyphLogger(),
-            cacheStore: CacheStore(),
-            secureStore: SecureStore(),
-            permissionCenter: PermissionCenter(),
-            settingsStore: AppSettingsStore(),
-            platformActions: PlatformActions(),
-            widgetBridge: WidgetDataBridge()
-        )
-    }
 
     private func adjust(by direction: Int, context: PanelHostContext) {
         let newValue = count + (direction * stepSize)
