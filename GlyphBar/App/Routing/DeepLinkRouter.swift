@@ -6,6 +6,7 @@ enum DeepLinkRoute: Equatable {
     case appModules
     case appLogs
     case appImportModule
+    case appRefreshAll
     case module(ModuleID)
     case moduleSettings(ModuleID)
     case moduleWidget(ModuleID)
@@ -59,6 +60,7 @@ final class DeepLinkRouter {
             case "modules": return .appModules
             case "logs": return .appLogs
             case "import-module", "import": return .appImportModule
+            case "refresh", "refresh-all": return .appRefreshAll
             default: return nil
             }
 
@@ -124,6 +126,10 @@ final class DeepLinkRouter {
             openLogs()
         case .appImportModule:
             importModule()
+        case .appRefreshAll:
+            Task {
+                await runtime?.refreshEnabledModules()
+            }
         case .module(let moduleID), .moduleWidget(let moduleID):
             runtime?.setSelectedModule(moduleID)
             showModule(moduleID)

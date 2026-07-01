@@ -252,7 +252,7 @@ final class StatusItemController: NSObject {
         let enabledSnapshots = runtime.snapshots.filter { settingsStore.isEnabled($0.key) }
 
         for (id, snapshot) in enabledSnapshots {
-            if let module = runtime.modules[id] as? any ModuleContract {
+            if let module = runtime.modules[id] {
                 candidates.append(contentsOf: module.statusCandidates())
             } else {
                 // Fallback: derive candidates from snapshot signals.
@@ -318,7 +318,7 @@ final class StatusItemController: NSObject {
         let enabledSnapshots = runtime.snapshots.filter { settingsStore.isEnabled($0.key) }
 
         for (id, snapshot) in enabledSnapshots {
-            if let module = runtime.modules[id] as? any ModuleContract {
+            if let module = runtime.modules[id] {
                 candidates.append(contentsOf: module.statusCandidates())
             } else {
                 let projection = ProjectionBuilder.build(from: snapshot)

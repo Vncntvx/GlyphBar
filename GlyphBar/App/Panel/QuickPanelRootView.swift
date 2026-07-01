@@ -390,19 +390,8 @@ private struct ModulePanelHost: View {
 
     var body: some View {
         let context = PanelHostContext(moduleID: contribution.manifest.id) { command in
-            // P1.14: dispatch through the runtime (P1.15 wires the kernel).
-            switch command {
-            case .refresh:
-                Task { await runtime.refresh(moduleID: contribution.manifest.id) }
-            case .userAction(let actionID, let payload):
-                // Preserve payload — panel interactions carry user input (note text, UUIDs, etc.)
-                runtime.dispatch(
-                    command: .userAction(actionID: actionID, payload: payload),
-                    moduleID: contribution.manifest.id
-                )
-            default:
-                break
-            }
+            // Preserve payload — panel interactions carry user input (note text, UUIDs, etc.).
+            runtime.dispatch(command: command, moduleID: contribution.manifest.id)
         }
         return contribution.panelContribution(context: context)
     }
@@ -585,9 +574,7 @@ private struct ModuleActionStrip: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 Button {
-                    Task {
-                        await runtime.refresh(moduleID: module.manifest.id)
-                    }
+                    runtime.dispatch(command: .refresh(reason: .manual), moduleID: module.manifest.id)
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
@@ -663,4 +650,3 @@ private struct PanelFooter: View {
         return "\(source) · \(module.manifest.version) · Not refreshed"
     }
 }
-

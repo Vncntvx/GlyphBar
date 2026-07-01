@@ -74,10 +74,7 @@ final class AppMenuCoordinator: NSObject {
             return
         }
         let enabled = !runtime.settingsStore.isEnabled(moduleID)
-        runtime.settingsStore.setEnabled(enabled, moduleID: moduleID)
-        Task {
-            await runtime.refresh(moduleID: moduleID)
-        }
+        runtime.setModuleEnabled(enabled, moduleID: moduleID)
     }
 
     @objc private func quit() {

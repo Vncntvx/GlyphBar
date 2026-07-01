@@ -5,26 +5,42 @@ import Foundation
 /// Replaces the `rotationTimer` that was embedded in `StatusItemController`.
 @MainActor
 final class PresentationTicker {
-    private var tickTask: Task<Void, Never>?
+    private let clock: SchedulerClock
+    private var handle: ScheduledHandle?
+    private var interval: TimeInterval = 1.0
+    private var tick: (() -> Void)?
     private(set) var isRunning = false
+
+    init(clock: SchedulerClock = SystemSchedulerClock()) {
+        self.clock = clock
+    }
 
     /// Start the ticker with the given interval and tick callback.
     func start(interval: TimeInterval = 1.0, tick: @escaping () -> Void) {
         stop()
+        self.interval = interval
+        self.tick = tick
         isRunning = true
-        tickTask = Task { [weak self] in
-            while self?.isRunning == true {
-                try? await Task.sleep(for: .seconds(interval))
-                guard self?.isRunning == true else { return }
-                tick()
+        scheduleNextTick()
+    }
+
+    private func scheduleNextTick() {
+        handle = clock.schedule(after: interval) { [weak self] in
+            Task { @MainActor in
+                guard let self, self.isRunning else { return }
+                self.tick?()
+                self.scheduleNextTick()
             }
         }
     }
 
     /// Stop the ticker.
     func stop() {
-        tickTask?.cancel()
-        tickTask = nil
+        if let handle {
+            clock.cancel(handle)
+        }
+        handle = nil
+        tick = nil
         isRunning = false
     }
 
