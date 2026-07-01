@@ -33,7 +33,6 @@ final class AppEnvironment {
 
     let logger: GlyphLogger
     let cacheStore: CacheStore
-    let secureStore: SecureStore
     let permissionCenter: PermissionCenter
     let settingsStore: AppSettingsStore
     let widgetBridge: WidgetDataBridge
@@ -54,7 +53,6 @@ final class AppEnvironment {
         let logger = GlyphLogger()
         let logsWindowCoordinator = LogsWindowCoordinator(logger: logger)
         let cacheStore = CacheStore()
-        let secureStore = SecureStore()
         let permissionCenter = PermissionCenter()
         let settingsStore = AppSettingsStore()
         let widgetBridge = WidgetDataBridge()
@@ -63,7 +61,7 @@ final class AppEnvironment {
         // Build modules using CapabilityFactory — no per-module hardcoded
         // capability construction. The factory grants capabilities based on
         // each module's manifest permissions.
-        let capabilityFactory = CapabilityFactory(logger: logger)
+        let capabilityFactory = CapabilityFactory(logger: logger, permissionCenter: permissionCenter)
 
         let registry = ModuleRegistry()
         registry.register {
@@ -121,7 +119,8 @@ final class AppEnvironment {
             cacheStore: cacheStore,
             widgetBridge: widgetBridge,
             settingsStore: settingsStore,
-            logger: logger
+            logger: logger,
+            permissionCenter: permissionCenter
         )
         runtime.openSettingsAction = { [weak settingsNavigation] in
             settingsNavigation?.open(section: .general)
@@ -159,7 +158,6 @@ final class AppEnvironment {
 
         self.logger = logger
         self.cacheStore = cacheStore
-        self.secureStore = secureStore
         self.permissionCenter = permissionCenter
         self.settingsStore = settingsStore
         self.widgetBridge = widgetBridge

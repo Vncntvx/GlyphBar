@@ -137,7 +137,10 @@ private struct ModuleManagementDetailView: View {
                     }
                     if selectedModuleID == "deepseek" {
                         Section {
-                            DeepSeekConfigSection(secureStore: environment.secureStore)
+                            DeepSeekConfigSection(
+                                runtime: runtime,
+                                secretStore: ModuleSecretStore(moduleID: "deepseek")
+                            )
                         } header: {
                             Text("Configuration")
                         } footer: {
@@ -269,7 +272,7 @@ private struct ModuleManagementDetailView: View {
     private func enabledBinding(_ moduleID: ModuleID) -> Binding<Bool> {
         Binding(
             get: { settingsStore.isEnabled(moduleID) },
-            set: { settingsStore.setEnabled($0, moduleID: moduleID) }
+            set: { runtime.setModuleEnabled($0, moduleID: moduleID) }
         )
     }
 
@@ -315,7 +318,8 @@ private struct ModuleManagementDetailView: View {
 // MARK: - DeepSeek Configuration Section
 
 	private struct DeepSeekConfigSection: View {
-	    let secureStore: SecureStore
+	    let runtime: ModuleRuntime
+	    let secretStore: ModuleSecretStore
 	    @State private var keyInput: String = ""
 	    @State private var isEditingKey = false
 	    @State private var isValidatingKey = false
@@ -326,7 +330,6 @@ private struct ModuleManagementDetailView: View {
 
 	    private let apiKeyName = "deepseek.apiKey"
 	    private let cookieKey = "deepseek.platformCookie"
-	    private let rawTokenKey = "deepseek.rawUserToken"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -340,11 +343,17 @@ private struct ModuleManagementDetailView: View {
             // P1.13 bypass #6: cookie via Keychain (ModuleSecretStore), not UserDefaults.
             LoginSheet(
                 onLogin: { cookie in
-                    secureStore.setSecret(cookie, for: cookieKey)
+                    runtime.dispatch(
+                        command: .userAction(actionID: "setPlatformCookie", payload: .init(text: cookie)),
+                        moduleID: "deepseek"
+                    )
                     refreshState()
                 },
                 onRawToken: { raw in
-                    secureStore.setSecret(raw, for: rawTokenKey)
+                    runtime.dispatch(
+                        command: .userAction(actionID: "setRawUserToken", payload: .init(text: raw)),
+                        moduleID: "deepseek"
+                    )
                 }
             )
         }
@@ -357,9 +366,9 @@ private struct ModuleManagementDetailView: View {
     }
 
     private func refreshState() {
-        hasApiKey = secureStore.secret(for: apiKeyName)?.isEmpty == false
-        // P1.13 bypass #4: read cookie via secureStore (legacy plaintext fallback).
-        hasCookie = secureStore.secret(for: cookieKey)?.isEmpty == false
+        hasApiKey = secretStore.secret(for: apiKeyName)?.isEmpty == false
+        // ModuleSecretStore migrates any legacy plaintext value on read.
+        hasCookie = secretStore.secret(for: cookieKey)?.isEmpty == false
     }
 
     private func validateAndSave(_ key: String) {
@@ -370,7 +379,10 @@ private struct ModuleManagementDetailView: View {
                 // P1.13 bypass #1: use NetworkCapability (no URLSession.shared in modules).
                 try await DeepSeekModule.validateApiKey(key, network: NetworkCapability())
                 await MainActor.run {
-                    secureStore.setSecret(key, for: apiKeyName)
+                    runtime.dispatch(
+                        command: .userAction(actionID: "setApiKey", payload: .init(text: key)),
+                        moduleID: "deepseek"
+                    )
                     isValidatingKey = false
                     isEditingKey = false
                     keyValidationError = nil
@@ -388,14 +400,15 @@ private struct ModuleManagementDetailView: View {
     private func triggerExport() {
         Task {
             // P1.13 bypass: UsageExportService uses capabilities, not UserDefaults.
-            let secretStore = ModuleSecretStore(moduleID: "deepseek")
             let svc = UsageExportService(secretStore: secretStore)
             do {
                 let items = try await svc.export()
+                let data = try JSONEncoder().encode(items)
+                await runtime.dispatchAndWait(
+                    command: .userAction(actionID: "importUsageItems", payload: .init(data: data)),
+                    moduleID: "deepseek"
+                )
                 await MainActor.run {
-                    if let ds = AppEnvironment.shared.runtime.modules["deepseek"] as? DeepSeekModule {
-                        ds.importExportedItems(items)
-                    }
                     // P1.13 bypass #7: exports now go to temp directory.
                     let dir = FileManager.default.temporaryDirectory.appending(path: "GlyphBarExports")
                     let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path(percentEncoded: false)))?.filter { !$0.hasPrefix(".") } ?? []
@@ -427,9 +440,15 @@ private struct ModuleManagementDetailView: View {
                     .buttonStyle(.bordered).controlSize(.small)
                     .disabled(isValidatingKey)
                 } else if hasApiKey {
-                    Button("Change") { keyInput = secureStore.secret(for: apiKeyName) ?? ""; isEditingKey = true; keyValidationError = nil }
+                    Button("Change") { keyInput = secretStore.secret(for: apiKeyName) ?? ""; isEditingKey = true; keyValidationError = nil }
                         .buttonStyle(.bordered).controlSize(.small)
-                    Button("Remove") { secureStore.setSecret(nil, for: apiKeyName); refreshState() }
+                    Button("Remove") {
+                        runtime.dispatch(
+                            command: .userAction(actionID: "clearApiKey", payload: nil),
+                            moduleID: "deepseek"
+                        )
+                        refreshState()
+                    }
                         .buttonStyle(.bordered).controlSize(.small)
                 }
             }
@@ -484,8 +503,10 @@ private struct ModuleManagementDetailView: View {
                     Button("Re-login") { showLoginSheet = true }.buttonStyle(.bordered).controlSize(.small)
                     Button("Logout") {
                         // Clear cookie from secure store (Keychain-backed).
-                        secureStore.setSecret(nil, for: cookieKey)
-                        secureStore.setSecret(nil, for: rawTokenKey)
+                        runtime.dispatch(
+                            command: .userAction(actionID: "clearPlatformCookie", payload: nil),
+                            moduleID: "deepseek"
+                        )
                         // Clear WKWebView cookies so next login starts fresh.
                         WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
                             for c in cookies {

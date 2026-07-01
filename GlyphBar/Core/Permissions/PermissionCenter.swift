@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class PermissionCenter {
     private(set) var grantedPermissions: Set<ModulePermission>

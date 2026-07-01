@@ -19,6 +19,7 @@ final class ModuleRuntime {
     private let widgetBridge: WidgetDataBridge
     private let capabilityFactory: CapabilityFactory
     private let supervisor: ModuleSupervisor
+    private var scheduledLocalTasks: [ModuleID: [Task<Void, Never>]] = [:]
 
     init(
         registry: ModuleRegistry,
@@ -26,6 +27,7 @@ final class ModuleRuntime {
         widgetBridge: WidgetDataBridge,
         settingsStore: AppSettingsStore,
         logger: GlyphLogger = GlyphLogger(),
+        permissionCenter: PermissionCenter? = nil,
         scheduler: RefreshScheduler? = nil
     ) {
         let records = registry.makeRecords()
@@ -36,7 +38,7 @@ final class ModuleRuntime {
         self.widgetBridge = widgetBridge
         self.settingsStore = settingsStore
         self.logger = logger
-        self.capabilityFactory = CapabilityFactory(logger: logger)
+        self.capabilityFactory = CapabilityFactory(logger: logger, permissionCenter: permissionCenter)
         self.supervisor = ModuleSupervisor(capabilityFactory: self.capabilityFactory, logger: logger)
 
         // Use the new environment-aware scheduler by default
@@ -62,12 +64,18 @@ final class ModuleRuntime {
 
         // Register all modules with the supervisor
         for (id, module) in modules {
-            supervisor.register(moduleID: id, module: module)
+            supervisor.register(
+                moduleID: id,
+                module: module,
+                sourceKind: records[id]?.sourceKind ?? .builtIn
+            )
         }
 
         // Wire scheduler to dispatch refreshes through supervisor
         self.scheduler.onRefreshDue = { [weak self] moduleID in
-            self?.supervisor.dispatch(.refresh(reason: .scheduled), for: moduleID)
+            Task { @MainActor [weak self] in
+                await self?.refresh(moduleID: moduleID)
+            }
         }
     }
 
@@ -120,41 +128,24 @@ final class ModuleRuntime {
     }
 
     func refresh(moduleID: ModuleID) async {
-        guard let module = modules[moduleID] else {
-            return
-        }
+        guard modules[moduleID] != nil else { return }
+        let transition = await supervisor.perform(.refresh(reason: .scheduled), for: moduleID)
 
-        let bridge = KernelBridge { [weak self] effects in
-            guard let self else { return }
-            for effect in effects {
-                Task { await self.executeEffect(effect, for: moduleID) }
-            }
-        }
-        let capabilities = capabilityFactory.makeCapabilities(
-            for: moduleID,
-            manifest: module.manifest,
-            bridge: bridge
-        )
-        let transition = await module.handle(
-            command: .refresh(reason: .scheduled),
-            capabilities: capabilities,
-            bridge: bridge
-        )
-
-        // Drain effects from the transition.
-        for effect in transition.effects {
-            await executeEffect(effect, for: moduleID)
-        }
-
-        if transition.refreshProjection {
+        if transition?.refreshProjection == true {
             scheduler.recordSuccess(moduleID: moduleID)
             logger.runtime("Refreshed \(moduleID)")
+        } else if transition?.health?.isUnhealthy == true {
+            scheduler.recordFailure(moduleID: moduleID)
         }
     }
 
-    func dispatch(action: ModuleAction, moduleID: ModuleID) async {
+    @discardableResult
+    func dispatch(action: ModuleAction, moduleID: ModuleID) async -> DomainTransition? {
         // Route through supervisor for serial processing + generation tracking
-        supervisor.dispatch(.userAction(actionID: action.id, payload: nil), for: moduleID)
+        return await dispatchAndWait(
+            command: .userAction(actionID: action.id, payload: nil),
+            moduleID: moduleID
+        )
     }
 
     /// Dispatch a command with payload through the supervisor.
@@ -162,6 +153,26 @@ final class ModuleRuntime {
     /// (e.g. panel interactions that carry user input).
     func dispatch(command: Command, moduleID: ModuleID) {
         supervisor.dispatch(command, for: moduleID)
+    }
+
+    /// Dispatch a command and wait for the module transition. This is the
+    /// headless API used by tests, deep links, and runtime operations that need
+    /// deterministic completion.
+    @discardableResult
+    func dispatchAndWait(command: Command, moduleID: ModuleID) async -> DomainTransition? {
+        await supervisor.perform(command, for: moduleID)
+    }
+
+    func setModuleEnabled(_ enabled: Bool, moduleID: ModuleID) {
+        settingsStore.setEnabled(enabled, moduleID: moduleID)
+        if enabled, let module = modules[moduleID] {
+            let policy = settingsStore.refreshPolicies[moduleID] ?? module.manifest.defaultRefreshPolicy
+            scheduler.register(id: moduleID, policy: policy)
+            Task { await refresh(moduleID: moduleID) }
+        } else {
+            scheduler.unregister(id: moduleID)
+            cancelScheduledLocalTasks(for: moduleID)
+        }
     }
 
     func setSelectedModule(_ moduleID: ModuleID?) {
@@ -182,7 +193,7 @@ final class ModuleRuntime {
     func importModule(from sourceURL: URL, replacing: Bool = false) throws -> ModuleID {
         let package = try registry.importExternalPackage(from: sourceURL, replacing: replacing)
         reloadModules(selecting: package.moduleManifest.id)
-        settingsStore.setEnabled(true, moduleID: package.moduleManifest.id)
+        setModuleEnabled(true, moduleID: package.moduleManifest.id)
         return package.moduleManifest.id
     }
 
@@ -194,6 +205,7 @@ final class ModuleRuntime {
         settingsStore.setEnabled(false, moduleID: moduleID)
         supervisor.unregister(moduleID: moduleID)
         scheduler.unregister(id: moduleID)
+        cancelScheduledLocalTasks(for: moduleID)
         try registry.removeExternalPackage(moduleID: moduleID)
         if removeData {
             cacheStore.clear(moduleID: moduleID)
@@ -247,28 +259,21 @@ final class ModuleRuntime {
             logger.runtime("requestFileImport for \(moduleID) (capability wiring pending)")
 
         case .scheduleLocal(let command, let delay):
-            Task {
+            let task = Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(delay))
-                guard let module = self.modules[moduleID] else { return }
-                let bridge = KernelBridge { [weak self] effects in
-                    guard let self else { return }
-                    for effect in effects {
-                        Task { await self.executeEffect(effect, for: moduleID) }
-                    }
-                }
-                let capabilities = self.capabilityFactory.makeCapabilities(
-                    for: moduleID,
-                    manifest: module.manifest,
-                    bridge: bridge
-                )
-                let _ = await module.handle(
-                    command: command, capabilities: capabilities, bridge: bridge
-                )
+                guard let self, !Task.isCancelled, self.modules[moduleID] != nil else { return }
+                await self.dispatchAndWait(command: command, moduleID: moduleID)
             }
+            scheduledLocalTasks[moduleID, default: []].append(task)
 
         case .networkRequest:
             logger.warning("networkRequest effect should use NetworkCapability instead (module \(moduleID))")
         }
+    }
+
+    private func cancelScheduledLocalTasks(for moduleID: ModuleID) {
+        scheduledLocalTasks[moduleID]?.forEach { $0.cancel() }
+        scheduledLocalTasks[moduleID] = nil
     }
 
     /// Closure set by AppEnvironment to open the settings window.
@@ -276,6 +281,13 @@ final class ModuleRuntime {
 
     private func reloadModules(selecting preferredModuleID: ModuleID?) {
         let records = registry.makeRecords()
+        let removedIDs = Set(modules.keys).subtracting(records.keys)
+        for id in removedIDs {
+            supervisor.unregister(moduleID: id)
+            scheduler.unregister(id: id)
+            cancelScheduledLocalTasks(for: id)
+        }
+
         moduleRecords = records
         modules = records.mapValues(\.module)
 
@@ -284,7 +296,11 @@ final class ModuleRuntime {
 
         // Re-register all modules with the supervisor
         for (id, module) in modules {
-            supervisor.register(moduleID: id, module: module)
+            supervisor.register(
+                moduleID: id,
+                module: module,
+                sourceKind: records[id]?.sourceKind ?? .builtIn
+            )
         }
 
         if let preferredModuleID, modules[preferredModuleID] != nil {

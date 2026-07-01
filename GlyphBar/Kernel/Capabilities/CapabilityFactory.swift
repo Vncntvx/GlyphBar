@@ -11,14 +11,19 @@ import Foundation
 @MainActor
 final class CapabilityFactory {
     private let logger: GlyphLogger
+    private let permissionCenter: PermissionCenter?
 
     // Shared capabilities (no per-module state needed)
     private lazy var sharedNetwork = NetworkCapability()
     private lazy var sharedSystemMetrics = SystemMetricsCapability()
     private lazy var sharedClipboard = ClipboardCapability()
 
-    init(logger: GlyphLogger = GlyphLogger()) {
+    init(
+        logger: GlyphLogger = GlyphLogger(),
+        permissionCenter: PermissionCenter? = nil
+    ) {
         self.logger = logger
+        self.permissionCenter = permissionCenter
     }
 
     /// Build `GrantedCapabilities` for a module, granting only the capabilities
@@ -26,9 +31,10 @@ final class CapabilityFactory {
     func makeCapabilities(
         for moduleID: ModuleID,
         permissions: [ModulePermission],
+        sourceKind: ModuleSourceKind = .builtIn,
         bridge: ModuleBridge
     ) -> GrantedCapabilities {
-        var secretStore: ModuleSecretStore?
+        let secretStore: ModuleSecretStore? = nil
         var cache: ModuleCacheNamespace?
         var settings: ModuleSettingsNamespace?
         var network: NetworkCapability?
@@ -37,7 +43,7 @@ final class CapabilityFactory {
         var logging: LoggingCapability?
         var systemMetrics: SystemMetricsCapability?
 
-        for permission in permissions {
+        for permission in permissions where isAllowed(permission, sourceKind: sourceKind) {
             switch permission {
             case .pasteboard:
                 clipboard = sharedClipboard
@@ -87,6 +93,7 @@ final class CapabilityFactory {
     func makeCapabilities(
         for moduleID: ModuleID,
         manifest: ModuleManifest,
+        sourceKind: ModuleSourceKind = .builtIn,
         bridge: ModuleBridge
     ) -> GrantedCapabilities {
         var secretStore: ModuleSecretStore?
@@ -99,7 +106,7 @@ final class CapabilityFactory {
         var systemMetrics: SystemMetricsCapability?
 
         // Grant based on permissions
-        for permission in manifest.permissions {
+        for permission in manifest.permissions where isAllowed(permission, sourceKind: sourceKind) {
             switch permission {
             case .pasteboard:
                 clipboard = sharedClipboard
@@ -118,21 +125,22 @@ final class CapabilityFactory {
         }
 
         // Grant based on capabilities (supplements permissions)
+        let storageAllowed = isAllowed(.appGroupStorage, sourceKind: sourceKind)
         for capability in manifest.capabilities {
             switch capability {
             case .settings:
-                if settings == nil {
+                if storageAllowed, settings == nil {
                     settings = ModuleSettingsNamespace(moduleID: moduleID)
                 }
             case .cachedState:
-                if cache == nil {
+                if storageAllowed, cache == nil {
                     cache = ModuleCacheNamespace(moduleID: moduleID)
                 }
             case .storage:
-                if cache == nil {
+                if storageAllowed, cache == nil {
                     cache = ModuleCacheNamespace(moduleID: moduleID)
                 }
-                if settings == nil {
+                if storageAllowed, settings == nil {
                     settings = ModuleSettingsNamespace(moduleID: moduleID)
                 }
             default:
@@ -146,7 +154,9 @@ final class CapabilityFactory {
         // a secret in their health model.
         // For P1, modules that need a secretStore get it if they have
         // .appGroupStorage permission (the only current consumer is DeepSeek).
-        if manifest.permissions.contains(.appGroupStorage) && secretStore == nil {
+        if manifest.permissions.contains(.appGroupStorage),
+           isAllowed(.appGroupStorage, sourceKind: sourceKind),
+           secretStore == nil {
             secretStore = ModuleSecretStore(moduleID: moduleID)
         }
 
@@ -164,5 +174,17 @@ final class CapabilityFactory {
             systemMetrics: systemMetrics,
             bridge: bridge
         )
+    }
+
+    private func isAllowed(_ permission: ModulePermission, sourceKind: ModuleSourceKind) -> Bool {
+        switch sourceKind {
+        case .builtIn:
+            return true
+        case .thirdParty:
+            guard let permissionCenter else {
+                return true
+            }
+            return permissionCenter.isGranted(permission)
+        }
     }
 }
