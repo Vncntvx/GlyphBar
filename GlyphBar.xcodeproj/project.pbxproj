@@ -169,6 +169,13 @@
 		BB99AAEC2189C4DB3B982854 /* KernelTests/CapabilityEnforcementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC3366CA770C64F778B2DDC3 /* KernelTests/CapabilityEnforcementTests.swift */; };
 		B873307FDD9D541528EE3CD0 /* ModuleTests/ClockCounterCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0787BFE3B0C94F91BFC64AA /* ModuleTests/ClockCounterCommandTests.swift */; };
 		BE5378B1A8D55427D986B38D /* Modules/DeepSeekModule/UsageRecordStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E66A076CB0B4305B6F0684 /* Modules/DeepSeekModule/UsageRecordStore.swift */; };
+		BBC6995A734DB4577930DE9F /* Core/Runtime/ExternalModuleSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB9B050FD2164785B727890 /* Core/Runtime/ExternalModuleSchema.swift */; };
+		B2B27C769CCD5417591A6417 /* Core/Runtime/ExternalModulePackageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A146F09A2DF1C46AC8E0ABAE /* Core/Runtime/ExternalModulePackageStore.swift */; };
+		B05954AFCC48F4717B008F99 /* Core/Runtime/DeclarativeModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A745C79AD33874B6A867CFFB /* Core/Runtime/DeclarativeModule.swift */; };
+		B9EEC71E0ED7345139B340D7 /* Core/Runtime/DeclarativeModulePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A727BA7C289BF4D4E9B1F991 /* Core/Runtime/DeclarativeModulePanel.swift */; };
+		BEBF93A3E617E43CFB214CBE /* Modules/NotesQuickModule/NotesQuickModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110BAF94FCD7478FAA19700 /* Modules/NotesQuickModule/NotesQuickModel.swift */; };
+		B0E41267221EA473185D8DF8 /* Modules/NotesQuickModule/NotesQuickStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9500FD26D3D3440F897401E /* Modules/NotesQuickModule/NotesQuickStateStore.swift */; };
+		B9BD8B3F7792242DBA45A0FF /* Modules/NotesQuickModule/NotesQuickPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0FA04B1D49274C3E9ECBD5B /* Modules/NotesQuickModule/NotesQuickPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -363,6 +370,13 @@
 		AC3366CA770C64F778B2DDC3 /* KernelTests/CapabilityEnforcementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KernelTests/CapabilityEnforcementTests.swift; sourceTree = "<group>"; };
 		A0787BFE3B0C94F91BFC64AA /* ModuleTests/ClockCounterCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/ClockCounterCommandTests.swift; sourceTree = "<group>"; };
 		A0E66A076CB0B4305B6F0684 /* Modules/DeepSeekModule/UsageRecordStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/UsageRecordStore.swift; sourceTree = "<group>"; };
+		AFB9B050FD2164785B727890 /* Core/Runtime/ExternalModuleSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ExternalModuleSchema.swift; sourceTree = "<group>"; };
+		A146F09A2DF1C46AC8E0ABAE /* Core/Runtime/ExternalModulePackageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ExternalModulePackageStore.swift; sourceTree = "<group>"; };
+		A745C79AD33874B6A867CFFB /* Core/Runtime/DeclarativeModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/DeclarativeModule.swift; sourceTree = "<group>"; };
+		A727BA7C289BF4D4E9B1F991 /* Core/Runtime/DeclarativeModulePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/DeclarativeModulePanel.swift; sourceTree = "<group>"; };
+		A110BAF94FCD7478FAA19700 /* Modules/NotesQuickModule/NotesQuickModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/NotesQuickModule/NotesQuickModel.swift; sourceTree = "<group>"; };
+		A9500FD26D3D3440F897401E /* Modules/NotesQuickModule/NotesQuickStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/NotesQuickModule/NotesQuickStateStore.swift; sourceTree = "<group>"; };
+		A0FA04B1D49274C3E9ECBD5B /* Modules/NotesQuickModule/NotesQuickPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/NotesQuickModule/NotesQuickPanel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -504,6 +518,10 @@
 				A6C44D39DDE96430D95FC307 /* Kernel/Capabilities/ModuleCacheNamespace.swift */,
 				AB056A138EC9042B89B6E24D /* Kernel/Capabilities/ModuleSecretStore.swift */,
 				A0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift */,
+				AFB9B050FD2164785B727890 /* Core/Runtime/ExternalModuleSchema.swift */,
+				A146F09A2DF1C46AC8E0ABAE /* Core/Runtime/ExternalModulePackageStore.swift */,
+				A745C79AD33874B6A867CFFB /* Core/Runtime/DeclarativeModule.swift */,
+				A727BA7C289BF4D4E9B1F991 /* Core/Runtime/DeclarativeModulePanel.swift */,
 				A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */,
 				A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */,
 				A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */,
@@ -520,6 +538,9 @@
 				AB40D0A29C4B64E53A58ECBA /* Modules/DeepSeekModule/LoginWebView.swift */,
 				A0000000000000000000011C /* Modules/SystemPulseModule/SystemPulseModule.swift */,
 				A0000000000000000000011D /* Modules/NotesQuickModule/NotesQuickModule.swift */,
+				A110BAF94FCD7478FAA19700 /* Modules/NotesQuickModule/NotesQuickModel.swift */,
+				A9500FD26D3D3440F897401E /* Modules/NotesQuickModule/NotesQuickStateStore.swift */,
+				A0FA04B1D49274C3E9ECBD5B /* Modules/NotesQuickModule/NotesQuickPanel.swift */,
 				A0000000000000000000011E /* Modules/CounterModule/CounterModule.swift */,
 				A0000000000000000000011F /* Modules/NetworkMockModule/NetworkMockModule.swift */,
 				A00000000000000000000120 /* WidgetShared/AppGroup.swift */,
@@ -801,6 +822,10 @@
 				B56B56296B8EA4934AB9C1DB /* Kernel/Capabilities/ModuleCacheNamespace.swift in Sources */,
 				B34C33DF60563427DB507FEC /* Kernel/Capabilities/ModuleSecretStore.swift in Sources */,
 				B0000000000000000000010E /* Core/Runtime/ModuleRegistry.swift in Sources */,
+				BBC6995A734DB4577930DE9F /* Core/Runtime/ExternalModuleSchema.swift in Sources */,
+				B2B27C769CCD5417591A6417 /* Core/Runtime/ExternalModulePackageStore.swift in Sources */,
+				B05954AFCC48F4717B008F99 /* Core/Runtime/DeclarativeModule.swift in Sources */,
+				B9EEC71E0ED7345139B340D7 /* Core/Runtime/DeclarativeModulePanel.swift in Sources */,
 				B0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift in Sources */,
 				B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */,
 				B00000000000000000000113 /* Core/Storage/AppSettingsStore.swift in Sources */,
@@ -817,6 +842,9 @@
 				B2CEFB3A8DAF5437EA078FAF /* Modules/DeepSeekModule/LoginWebView.swift in Sources */,
 				B0000000000000000000011C /* Modules/SystemPulseModule/SystemPulseModule.swift in Sources */,
 				B0000000000000000000011D /* Modules/NotesQuickModule/NotesQuickModule.swift in Sources */,
+				BEBF93A3E617E43CFB214CBE /* Modules/NotesQuickModule/NotesQuickModel.swift in Sources */,
+				B0E41267221EA473185D8DF8 /* Modules/NotesQuickModule/NotesQuickStateStore.swift in Sources */,
+				B9BD8B3F7792242DBA45A0FF /* Modules/NotesQuickModule/NotesQuickPanel.swift in Sources */,
 				B0000000000000000000011E /* Modules/CounterModule/CounterModule.swift in Sources */,
 				B0000000000000000000011F /* Modules/NetworkMockModule/NetworkMockModule.swift in Sources */,
 				B00000000000000000000120 /* WidgetShared/AppGroup.swift in Sources */,
