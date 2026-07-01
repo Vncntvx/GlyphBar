@@ -9,6 +9,7 @@ import Foundation
 @MainActor
 final class ModuleSupervisor {
     private var actors: [ModuleID: ModuleActor] = [:]
+    private var sourceKinds: [ModuleID: ModuleSourceKind] = [:]
     private let capabilityFactory: CapabilityFactory
     private let logger: GlyphLogger
 
@@ -24,7 +25,11 @@ final class ModuleSupervisor {
     }
 
     /// Register a module with the supervisor, creating an actor for it.
-    func register(moduleID: ModuleID, module: any ModuleContract) {
+    func register(
+        moduleID: ModuleID,
+        module: any ModuleContract,
+        sourceKind: ModuleSourceKind = .builtIn
+    ) {
         let actor = ModuleActor(instanceID: moduleID)
         actor.onExecute = { [weak self] id, command, token in
             guard let self else { return .empty }
@@ -34,12 +39,14 @@ final class ModuleSupervisor {
             self?.onOperationalStateChange?(id, state)
         }
         actors[moduleID] = actor
+        sourceKinds[moduleID] = sourceKind
     }
 
     /// Remove a module's actor from the supervisor.
     func unregister(moduleID: ModuleID) {
         actors[moduleID]?.cancelInFlight()
         actors.removeValue(forKey: moduleID)
+        sourceKinds.removeValue(forKey: moduleID)
     }
 
     /// Dispatch a command to a specific module's actor.
@@ -49,6 +56,17 @@ final class ModuleSupervisor {
             return
         }
         actor.enqueue(command)
+    }
+
+    /// Dispatch a command and wait for the module's transition. This is the
+    /// headless/testing path and is also used by runtime refreshes that need to
+    /// record scheduler success/failure deterministically.
+    func perform(_ command: Command, for moduleID: ModuleID) async -> DomainTransition? {
+        guard let actor = actors[moduleID] else {
+            logger.warning("Supervisor: no actor for module \(moduleID)")
+            return nil
+        }
+        return await actor.perform(command)
     }
 
     /// Dispatch a command to all registered module actors (parallel).
@@ -100,14 +118,19 @@ final class ModuleSupervisor {
         let capabilities = capabilityFactory.makeCapabilities(
             for: moduleID,
             manifest: module.manifest,
+            sourceKind: sourceKinds[moduleID] ?? .builtIn,
             bridge: bridge
         )
 
-        return await module.handle(
+        let transition = await module.handle(
             command: command,
             capabilities: capabilities,
             bridge: bridge
         )
+        if !transition.effects.isEmpty {
+            await onEffects?(moduleID, transition.effects)
+        }
+        return transition
     }
 
     // MARK: - Supervision Policy

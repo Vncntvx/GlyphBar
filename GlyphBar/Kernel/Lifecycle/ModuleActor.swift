@@ -14,12 +14,14 @@ final class ModuleActor {
     private(set) var operationalState: ModuleOperationalState
     private(set) var generation: GenerationToken
     private let scope: CancellationScope
-    private var commandQueue: [Command] = []
+    private var commandQueue: [PendingCommand] = []
 
     /// Handler called when the actor needs to execute a command against
     /// the actual module. The actor awaits the result, checks generation,
     /// and applies the state transition.
-    var onExecute: ((ModuleID, Command, GenerationToken) async -> DomainTransition)?    /// Handler called when the actor's operational state changes.
+    var onExecute: ((ModuleID, Command, GenerationToken) async -> DomainTransition)?
+
+    /// Handler called when the actor's operational state changes.
     var onStateChange: ((ModuleID, ModuleOperationalState) -> Void)?
 
     init(instanceID: ModuleID) {
@@ -33,17 +35,38 @@ final class ModuleActor {
     /// coalesced: if a `.refresh` is already queued, only the latest
     /// reason is kept.
     func enqueue(_ command: Command) {
-        switch command {
+        enqueue(PendingCommand(command: command, continuation: nil))
+    }
+
+    /// Enqueue a command and wait until the module has handled it.
+    func perform(_ command: Command) async -> DomainTransition {
+        await withCheckedContinuation { continuation in
+            enqueue(PendingCommand(command: command, continuation: continuation))
+        }
+    }
+
+    private func enqueue(_ pending: PendingCommand) {
+        switch pending.command {
         case .refresh(let newReason):
-            // Coalesce: replace any queued .refresh with the latest reason
-            if let existingIndex = commandQueue.firstIndex(where: { if case .refresh = $0 { true } else { false } }) {
-                commandQueue[existingIndex] = .refresh(reason: newReason)
+            // Coalesce fire-and-forget refreshes only. Awaited commands keep
+            // their continuation so tests and callers can observe completion.
+            if pending.continuation == nil,
+               let existingIndex = commandQueue.firstIndex(where: { queued in
+                   if case .refresh = queued.command {
+                       return queued.continuation == nil
+                   }
+                   return false
+               }) {
+                commandQueue[existingIndex] = PendingCommand(
+                    command: .refresh(reason: newReason),
+                    continuation: nil
+                )
             } else {
-                commandQueue.append(command)
+                commandQueue.append(pending)
             }
         default:
             // User actions and other commands are never coalesced
-            commandQueue.append(command)
+            commandQueue.append(pending)
         }
 
         // If not currently processing, start the drain loop
@@ -54,6 +77,11 @@ final class ModuleActor {
     /// from the old task are discarded.
     func cancelInFlight() {
         scope.cancel()
+        let pending = commandQueue
+        commandQueue.removeAll()
+        for command in pending {
+            command.continuation?.resume(returning: .empty)
+        }
         operationalState = .idle
     }
 
@@ -83,14 +111,17 @@ final class ModuleActor {
 
     private func drainQueue() async {
         while !commandQueue.isEmpty {
-            let command = commandQueue.removeFirst()
+            let pending = commandQueue.removeFirst()
+            let command = pending.command
 
             // Skip refreshes if we can't currently refresh
             if case .refresh = command, !operationalState.canRefresh {
+                pending.continuation?.resume(returning: .empty)
                 continue
             }
 
-            await executeCommand(command)
+            let transition = await executeCommand(command)
+            pending.continuation?.resume(returning: transition)
         }
     }
 
@@ -131,5 +162,10 @@ final class ModuleActor {
 
         onStateChange?(instanceID, operationalState)
         return transition
+    }
+
+    private struct PendingCommand {
+        var command: Command
+        var continuation: CheckedContinuation<DomainTransition, Never>?
     }
 }
