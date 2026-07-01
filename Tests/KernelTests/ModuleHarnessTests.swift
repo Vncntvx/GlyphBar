@@ -16,7 +16,8 @@ final class HarnessReferenceModule: TypedModuleContribution {
             permissions: [],
             defaultRefreshPolicy: .manual,
             actions: [
-                ModuleAction(id: "increment", title: "Increment", systemImage: "plus")
+                ModuleAction(id: "increment", title: "Increment", systemImage: "plus"),
+                ModuleAction(id: "scheduleIncrement", title: "Schedule Increment", systemImage: "timer")
             ],
             widgets: [
                 ModuleWidgetDescriptor(
@@ -40,6 +41,17 @@ final class HarnessReferenceModule: TypedModuleContribution {
             break
         case .userAction(let actionID, let payload) where actionID == "increment":
             value += Int(payload?.text ?? "1") ?? 1
+        case .userAction(let actionID, let payload) where actionID == "scheduleIncrement":
+            return DomainTransition(
+                effects: [
+                    .scheduleLocal(
+                        .userAction(actionID: "increment", payload: payload),
+                        after: 10
+                    )
+                ],
+                health: .healthy,
+                refreshProjection: false
+            )
         default:
             return .empty
         }
@@ -144,5 +156,77 @@ struct ModuleHarnessTests {
         #expect(runtime.snapshots["harness.reference"]?.metrics["value"] == 3)
         #expect(CacheStore(defaults: defaults).load(moduleID: "harness.reference")?.title == "3")
         #expect(widgetBridge.read(moduleID: "harness.reference")?.title == "3")
+    }
+
+    @Test func runtimeScheduledLocalCommandFiresThroughVirtualClock() async {
+        let suiteName = "RuntimeScheduleLocalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let registry = ModuleRegistry()
+        registry.register { HarnessReferenceModule() }
+        let clock = VirtualClock()
+        let runtime = ModuleRuntime(
+            registry: registry,
+            cacheStore: CacheStore(defaults: defaults),
+            widgetBridge: WidgetDataBridge(defaults: defaults),
+            settingsStore: AppSettingsStore(defaults: defaults),
+            logger: GlyphLogger(),
+            localTaskClock: clock
+        )
+        runtime.settingsStore.setEnabled(true, moduleID: "harness.reference")
+
+        await runtime.dispatchAndWait(
+            command: .userAction(actionID: "scheduleIncrement", payload: .init(text: "4")),
+            moduleID: "harness.reference"
+        )
+
+        #expect(runtime.snapshots["harness.reference"] == nil)
+
+        clock.advance(by: 10)
+        await yieldUntil {
+            runtime.snapshots["harness.reference"]?.metrics["value"] == 4
+        }
+
+        #expect(runtime.snapshots["harness.reference"]?.metrics["value"] == 4)
+    }
+
+    @Test func runtimeCancelsScheduledLocalCommandWhenModuleIsDisabled() async {
+        let suiteName = "RuntimeScheduleLocalCancelTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let registry = ModuleRegistry()
+        registry.register { HarnessReferenceModule() }
+        let clock = VirtualClock()
+        let runtime = ModuleRuntime(
+            registry: registry,
+            cacheStore: CacheStore(defaults: defaults),
+            widgetBridge: WidgetDataBridge(defaults: defaults),
+            settingsStore: AppSettingsStore(defaults: defaults),
+            logger: GlyphLogger(),
+            localTaskClock: clock
+        )
+        runtime.settingsStore.setEnabled(true, moduleID: "harness.reference")
+
+        await runtime.dispatchAndWait(
+            command: .userAction(actionID: "scheduleIncrement", payload: .init(text: "4")),
+            moduleID: "harness.reference"
+        )
+        runtime.setModuleEnabled(false, moduleID: "harness.reference")
+
+        clock.advance(by: 10)
+        await yieldUntil {
+            runtime.snapshots["harness.reference"] != nil
+        }
+
+        #expect(runtime.snapshots["harness.reference"] == nil)
+    }
+
+    private func yieldUntil(_ condition: @MainActor () -> Bool) async {
+        for _ in 0..<10 {
+            if condition() { return }
+            await Task.yield()
+        }
     }
 }

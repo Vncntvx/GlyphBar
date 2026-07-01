@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 import Observation
 
@@ -19,7 +18,9 @@ final class ModuleRuntime {
     private let widgetBridge: WidgetDataBridge
     private let capabilityFactory: CapabilityFactory
     private let supervisor: ModuleSupervisor
-    private var scheduledLocalTasks: [ModuleID: [Task<Void, Never>]] = [:]
+    private let effectExecutor: EffectExecutor
+    private let localTaskClock: SchedulerClock
+    private var scheduledLocalHandles: [ModuleID: [ScheduledHandle]] = [:]
 
     init(
         registry: ModuleRegistry,
@@ -28,7 +29,8 @@ final class ModuleRuntime {
         settingsStore: AppSettingsStore,
         logger: GlyphLogger = GlyphLogger(),
         permissionCenter: PermissionCenter? = nil,
-        scheduler: RefreshScheduler? = nil
+        scheduler: RefreshScheduler? = nil,
+        localTaskClock: SchedulerClock? = nil
     ) {
         let records = registry.makeRecords()
         self.registry = registry
@@ -38,6 +40,12 @@ final class ModuleRuntime {
         self.widgetBridge = widgetBridge
         self.settingsStore = settingsStore
         self.logger = logger
+        self.effectExecutor = EffectExecutor(
+            widgetBridge: widgetBridge,
+            cacheStore: cacheStore,
+            logger: logger
+        )
+        self.localTaskClock = localTaskClock ?? SystemSchedulerClock()
         self.capabilityFactory = CapabilityFactory(logger: logger, permissionCenter: permissionCenter)
         self.supervisor = ModuleSupervisor(capabilityFactory: self.capabilityFactory, logger: logger)
 
@@ -54,11 +62,24 @@ final class ModuleRuntime {
             }
         }
 
-        // Wire supervisor to execute effects
+        effectExecutor.onSnapshotPublished = { [weak self] moduleID, snapshot in
+            self?.snapshots[moduleID] = snapshot
+        }
+        effectExecutor.onNotice = { [weak self] message in
+            self?.userNotice = message
+        }
+        effectExecutor.requestRefreshAction = { [weak self] moduleID, _ in
+            await self?.refresh(moduleID: moduleID)
+        }
+        effectExecutor.scheduleLocalAction = { [weak self] moduleID, command, delay in
+            self?.scheduleLocal(command, for: moduleID, after: delay)
+        }
+
+        // Wire supervisor to the unified effect executor.
         supervisor.onEffects = { [weak self] moduleID, effects in
             guard let self else { return }
             for effect in effects {
-                await self.executeEffect(effect, for: moduleID)
+                await self.effectExecutor.execute(effect, for: moduleID)
             }
         }
 
@@ -222,62 +243,30 @@ final class ModuleRuntime {
         return registry.externalStorageLocation(moduleID: moduleID)
     }
 
-    // MARK: - Effect Execution
+    // MARK: - Local Scheduling
 
-    /// Executes a single Effect produced by a module. This is the unified
-    /// side-effect exit point — all module effects flow through here.
-    private func executeEffect(_ effect: Effect, for moduleID: ModuleID) async {
-        switch effect {
-        case .publishSnapshot(let envelope):
-            let snapshot = ProjectionBuilder.buildSnapshot(from: envelope)
-            snapshots[moduleID] = snapshot
-            cacheStore.save(snapshot)
-            widgetBridge.publish(envelope)
-
-        case .persistDomainState(let data):
-            logger.runtime("persistDomainState for \(moduleID) (\(data.count) bytes)")
-
-        case .copyToClipboard(let value):
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(value, forType: .string)
-            userNotice = "Copied"
-
-        case .openURL(let url):
-            NSWorkspace.shared.open(url)
-
-        case .showNotice(let message):
-            userNotice = message
-            logger.info("Notice for \(moduleID): \(message)")
-
-        case .openModuleSettings:
-            openSettingsAction?()
-
-        case .requestRefresh(let reason):
-            await refresh(moduleID: moduleID)
-
-        case .requestFileImport:
-            logger.runtime("requestFileImport for \(moduleID) (capability wiring pending)")
-
-        case .scheduleLocal(let command, let delay):
-            let task = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(delay))
-                guard let self, !Task.isCancelled, self.modules[moduleID] != nil else { return }
-                await self.dispatchAndWait(command: command, moduleID: moduleID)
-            }
-            scheduledLocalTasks[moduleID, default: []].append(task)
-
-        case .networkRequest:
-            logger.warning("networkRequest effect should use NetworkCapability instead (module \(moduleID))")
+    private func scheduleLocal(_ command: Command, for moduleID: ModuleID, after delay: TimeInterval) {
+        let handle = localTaskClock.schedule(after: delay) { [weak self] in
+            guard let self,
+                  self.modules[moduleID] != nil,
+                  self.settingsStore.isEnabled(moduleID)
+            else { return }
+            self.supervisor.dispatch(command, for: moduleID)
         }
+        scheduledLocalHandles[moduleID, default: []].append(handle)
     }
 
     private func cancelScheduledLocalTasks(for moduleID: ModuleID) {
-        scheduledLocalTasks[moduleID]?.forEach { $0.cancel() }
-        scheduledLocalTasks[moduleID] = nil
+        scheduledLocalHandles[moduleID]?.forEach { localTaskClock.cancel($0) }
+        scheduledLocalHandles[moduleID] = nil
     }
 
     /// Closure set by AppEnvironment to open the settings window.
-    var openSettingsAction: (() -> Void)?
+    var openSettingsAction: (() -> Void)? {
+        didSet {
+            effectExecutor.openSettingsAction = openSettingsAction
+        }
+    }
 
     private func reloadModules(selecting preferredModuleID: ModuleID?) {
         let records = registry.makeRecords()

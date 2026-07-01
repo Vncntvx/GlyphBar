@@ -11,7 +11,11 @@ final class PresentationTicker {
     private var tick: (() -> Void)?
     private(set) var isRunning = false
 
-    init(clock: SchedulerClock = SystemSchedulerClock()) {
+    convenience init() {
+        self.init(clock: SystemSchedulerClock())
+    }
+
+    init(clock: SchedulerClock) {
         self.clock = clock
     }
 
@@ -26,11 +30,9 @@ final class PresentationTicker {
 
     private func scheduleNextTick() {
         handle = clock.schedule(after: interval) { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isRunning else { return }
-                self.tick?()
-                self.scheduleNextTick()
-            }
+            guard let self, self.isRunning else { return }
+            self.tick?()
+            self.scheduleNextTick()
         }
     }
 

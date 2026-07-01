@@ -115,7 +115,6 @@
 		B2EF17695CDA341E9AF93C42 /* Presentation/Host/PanelHostContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA2908814C7415BAF9F7EB /* Presentation/Host/PanelHostContext.swift */; };
 		BF74723335BFB4F508125281 /* Presentation/Host/ModuleContribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */; };
 		BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */; };
-		B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */; };
 		B55ABC9EA912A432E9087F2A /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */; };
 		B8A786956D5CB4AB985605FC /* Presentation/StatusBar/StatusItemRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF924D09DCD5A44F48948129 /* Presentation/StatusBar/StatusItemRenderer.swift */; };
 		B6070732B58AC4CD48080CFF /* Kernel/Contracts/ModuleCoreTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B9312E9A9894F0EBE8D306 /* Kernel/Contracts/ModuleCoreTypes.swift */; };
@@ -309,7 +308,6 @@
 		AAAA2908814C7415BAF9F7EB /* Presentation/Host/PanelHostContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Host/PanelHostContext.swift; sourceTree = "<group>"; };
 		AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/Host/ModuleContribution.swift; sourceTree = "<group>"; };
 		A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Effect/EffectExecutor.swift; sourceTree = "<group>"; };
-		A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Kernel.swift; sourceTree = "<group>"; };
 		A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Projection/WidgetBridge/WidgetEnvelopeBridge.swift; sourceTree = "<group>"; };
 		AF924D09DCD5A44F48948129 /* Presentation/StatusBar/StatusItemRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/StatusBar/StatusItemRenderer.swift; sourceTree = "<group>"; };
 		A0B9312E9A9894F0EBE8D306 /* Kernel/Contracts/ModuleCoreTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Contracts/ModuleCoreTypes.swift; sourceTree = "<group>"; };
@@ -435,7 +433,6 @@
 				A0000000000000000000010B /* App/Routing/DeepLinkRouter.swift */,
 				A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */,
 				A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */,
-				A43134CDB8BC041B298F02BE /* Kernel/Kernel.swift */,
 				A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */,
 				AB5CE3906333142438E2AECA /* Execution/Scheduler/SchedulerClock.swift */,
 				AF3CB8DD251F64899BCDDB33 /* Execution/Scheduler/SystemSchedulerClock.swift */,
@@ -732,7 +729,6 @@
 				B0000000000000000000010B /* App/Routing/DeepLinkRouter.swift in Sources */,
 				B0000000000000000000010C /* Core/Modules/ModuleTypes.swift in Sources */,
 				B55ABC9EA912A432E9087F2A /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */,
-				B5FDEE29741144A408397D77 /* Kernel/Kernel.swift in Sources */,
 				BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */,
 				BBD4558F476094E06AA79F52 /* Execution/Scheduler/SchedulerClock.swift in Sources */,
 				B6EEC7837190B4A2CA81D9B4 /* Execution/Scheduler/SystemSchedulerClock.swift in Sources */,

@@ -56,7 +56,7 @@ final class XPCModuleHost: NSObject, XPCModuleHostProtocol {
 
     /// Handle effect submissions from XPC process.
     nonisolated func submitEffects(_ effectsData: Data) {
-        // P4: decode effects and route to EffectExecutor
+        // Decode effects and route them through the runtime EffectExecutor.
         // For now, log that effects were received
     }
 }

@@ -49,8 +49,6 @@ enum UsageCSVParser {
         let modelIdx = header.firstIndex(where: lowerMatches("model"))
         let amountIdx = header.firstIndex(where: lowerMatches("amount", "value", "tokens"))
 
-        var groups: [String: [String: Int]] = [:] // date -> model -> aggregated tokens? Not great for this format.
-
         // For amount format, we need to group by date+model and accumulate by type
         // Key: "date|model" -> type -> amount
         var raw: [String: [String: Int]] = [:]

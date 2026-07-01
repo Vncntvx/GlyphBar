@@ -96,9 +96,8 @@ GlyphBar/
 │   │                        ModuleSecretStore、ModuleCacheNamespace、ModuleSettingsNamespace
 │   │                        NetworkCapability、FileImportCapability、ClipboardCapability
 │   │                        LoggingCapability、SystemMetricsCapability、CapabilityBroker
-│   ├── Lifecycle/          # ModuleSupervisor、ModuleActor、ModuleOperationalState
-│   │                        GenerationToken、CancellationScope
-│   └── Kernel.swift        # 微内核编排入口
+│   └── Lifecycle/          # ModuleSupervisor、ModuleActor、ModuleHarness
+│                            ModuleOperationalState、GenerationToken、CancellationScope
 ├── Projection/             # 投影层
 │   ├── SnapshotEnvelope.swift
 │   ├── ProjectionSet.swift

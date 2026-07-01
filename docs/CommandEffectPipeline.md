@@ -178,10 +178,10 @@ protocol ModuleBridge: AnyObject {
 
 `ModuleBridge` 是 `GrantedCapabilities` 中**始终授予**的能力。模块在 `handle()` 内部可以通过 `bridge.submit()` 提交额外的 Effect，但通常建议通过 `DomainTransition.effects` 返回——`bridge.submit()` 主要用于面板等异步场景。
 
-两种实现：
+当前实现：
 
-1. **Kernel**：微内核本身实现 `ModuleBridge`，缓冲提交的 Effect，在 `handle()` 返回后统一排空
-2. **KernelBridge**：轻量闭包实现，用于 `ModuleSupervisor` 中将 Effect 路由回 supervisor 的 `onEffects` 回调
+1. **KernelBridge**：轻量闭包实现，用于 `ModuleSupervisor` 中将 Effect 路由回 supervisor 的 `onEffects` 回调
+2. **ModuleRuntime**：将 `onEffects` 接到 `EffectExecutor`，并为 refresh、scheduled local command、settings window、notice 等 runtime 行为提供注入回调
 
 ## EffectExecutor — 全局副作用出口
 
@@ -193,6 +193,10 @@ final class EffectExecutor {
     private let widgetBridge: WidgetDataBridge
     private let cacheStore: CacheStore
     private let logger: GlyphLogger
+    var onSnapshotPublished: ((ModuleID, ModuleSnapshot) -> Void)?
+    var onNotice: ((String) -> Void)?
+    var requestRefreshAction: ((ModuleID, Command.RefreshReason) async -> Void)?
+    var scheduleLocalAction: ((ModuleID, Command, TimeInterval) -> Void)?
     var openSettingsAction: (() -> Void)?
 
     func execute(_ effect: Effect, for moduleID: String) async
@@ -203,15 +207,15 @@ final class EffectExecutor {
 
 | Effect | EffectExecutor 执行 |
 |--------|-------------------|
-| `.publishSnapshot(envelope)` | `widgetBridge.publish(envelope)` |
+| `.publishSnapshot(envelope)` | 构建 `ModuleSnapshot`、写入 `CacheStore`、发布到 `WidgetDataBridge`、回调 runtime 更新 snapshot |
 | `.persistDomainState(data)` | 日志记录（完整接线待完成） |
 | `.copyToClipboard(text)` | `NSPasteboard.general.clearContents()` + `setString()` |
 | `.openURL(url)` | `NSWorkspace.shared.open(url)` |
-| `.showNotice(message)` | 日志记录 |
+| `.showNotice(message)` | 更新 runtime notice + 日志记录 |
 | `.openModuleSettings` | `openSettingsAction?()` + `NSApp.activate()` |
 | `.requestFileImport(types)` | 日志记录（能力接线待完成） |
-| `.requestRefresh(reason)` | 日志记录（内核接线待完成） |
-| `.scheduleLocal(cmd, after:)` | `Task.sleep` 后日志记录 |
+| `.requestRefresh(reason)` | 通过 runtime 回调再次 dispatch refresh |
+| `.scheduleLocal(cmd, after:)` | 通过 runtime 注入的 `SchedulerClock` 安排 command，可在 module disable/unload 时取消 |
 | `.networkRequest(req)` | 警告：建议使用 `NetworkCapability` |
 
 ## 完整数据流示例
@@ -221,10 +225,10 @@ final class EffectExecutor {
 ```
 1. 用户点击菜单栏 → Refresh
 2. DeepLinkRouter / Menu → ModuleRuntime.refresh(moduleID:)
-3. ModuleRuntime → ModuleActor.enqueue(.refresh(reason: .manual))
+3. ModuleRuntime → ModuleSupervisor.perform(.refresh(reason: .manual))
 4. ModuleActor → ClockModule.handle(command: .refresh(reason: .manual),
                                       capabilities: granted,
-                                      bridge: kernelBridge)
+                                      bridge: KernelBridge)
 5. ClockModule:
    - 读取当前时间
    - 构建 SnapshotEnvelope
@@ -234,10 +238,10 @@ final class EffectExecutor {
        refreshProjection: true
      )
 6. ModuleActor → EffectExecutor.execute(.publishSnapshot(envelope), for: "clock")
-7. EffectExecutor → WidgetDataBridge.publish(envelope)
+7. EffectExecutor → CacheStore.save(snapshot) + WidgetDataBridge.publish(envelope)
 8. WidgetDataBridge → 写入 App Group UserDefaults + WidgetCenter.reloadAllTimelines()
-9. 同时: ModuleActor → Kernel → buildProjection() → 更新 ProjectionSet
-10. 同时: ModuleActor → Kernel → statusCandidates() → PresentationArbiter.submit()
+9. EffectExecutor 回调 ModuleRuntime 更新 `snapshots[moduleID]`
+10. StatusItemController 收集 enabled snapshots/status candidates → PresentationArbiter.submit()
 11. PresentationArbiter → StatusItemRenderer → 更新 NSStatusItem
 ```
 

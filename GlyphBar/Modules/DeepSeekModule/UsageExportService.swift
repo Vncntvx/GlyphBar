@@ -124,9 +124,8 @@ final class UsageExportService: NSObject {
                 self.exportTriggerTime = Date()
                 Task { @MainActor in
                     try? await Task.sleep(for: .seconds(1))
-                    wv.evaluateJavaScript(Self.clickJS) { r, _ in
-                        log.info("FollowUp: \(String(describing: r), privacy: .public)")
-                    }
+                    let result = try? await wv.evaluateJavaScript(Self.clickJS)
+                    log.info("FollowUp: \(String(describing: result), privacy: .public)")
                 }
                 self.pollForFile(retries: 16)
             } else if self.clickAttempts < self.maxRetries {

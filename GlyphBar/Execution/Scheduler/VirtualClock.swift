@@ -6,21 +6,19 @@ import Foundation
 final class VirtualClock: SchedulerClock {
     private var currentTime: Date = Date(timeIntervalSince1970: 1000000)
     private var nextHandleID: UInt64 = 1
-    private var pending: [(fireAt: Date, handleID: UInt64, block: @Sendable () -> Void)] = []
+    private var pending: [(fireAt: Date, handleID: UInt64, block: @MainActor @Sendable () -> Void)] = []
 
     func now() -> Date { currentTime }
 
-    func schedule(after: TimeInterval, _ block: @escaping @Sendable () -> Void) -> ScheduledHandle {
+    func schedule(after: TimeInterval, _ block: @escaping @MainActor @Sendable () -> Void) -> ScheduledHandle {
         let handleID = nextHandleID
         nextHandleID += 1
         let fireAt = currentTime.advanced(by: after)
         pending.append((fireAt: fireAt, handleID: handleID, block: block))
         return ScheduledHandle.make(
             id: handleID,
-            cancel: { @Sendable [weak self] in
-                Task { @MainActor in
-                    self?.pending.removeAll { $0.handleID == handleID }
-                }
+            cancel: { [weak self] in
+                self?.pending.removeAll { $0.handleID == handleID }
             }
         )
     }

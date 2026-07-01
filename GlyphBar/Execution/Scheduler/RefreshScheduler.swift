@@ -25,7 +25,11 @@ final class RefreshScheduler {
     /// Wired to `Supervisor.dispatch(.refresh(.scheduled), for:)`.
     var onRefreshDue: ((ModuleID) -> Void)?
 
-    init(clock: SchedulerClock = SystemSchedulerClock()) {
+    convenience init() {
+        self.init(clock: SystemSchedulerClock())
+    }
+
+    init(clock: SchedulerClock) {
         self.clock = clock
     }
 
@@ -138,9 +142,7 @@ final class RefreshScheduler {
         let intervalWithBackoff = effective * backoffFactor
 
         let handle = clock.schedule(after: intervalWithBackoff) { [weak self] in
-            Task { @MainActor in
-                self?.fireRefresh(for: moduleID)
-            }
+            self?.fireRefresh(for: moduleID)
         }
         scheduledHandles[moduleID] = handle
     }
