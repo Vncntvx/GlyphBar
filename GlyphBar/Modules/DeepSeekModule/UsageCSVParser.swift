@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Parsed Usage Item
 
-struct ParsedUsageItem {
+struct ParsedUsageItem: Codable {
     let date: String       // yyyy-MM-dd
     let model: String      // deepseek-chat or deepseek-reasoner
     var totalTokens: Int

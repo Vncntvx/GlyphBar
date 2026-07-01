@@ -51,5 +51,62 @@ struct DeepSeekRegressionTests {
         )
         // Should produce some transition (even if degraded due to missing key)
         #expect(module.manifest.id == "deepseek")
+        #expect(transition.refreshProjection == true)
+    }
+
+    @Test func deepSeekSetApiKeyCommandWritesModuleSecretStore() async {
+        let suiteName = "DeepSeekRegressionTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let secretStore = ModuleSecretStore(
+            moduleID: "deepseek",
+            backend: InMemorySecretStoreBackend()
+        )
+        let harness = ModuleHarness(module: DeepSeekModule(secretStore: secretStore))
+
+        await harness.dispatch(.userAction(actionID: "setApiKey", payload: .init(text: "sk-test")))
+
+        #expect(secretStore.secret(for: "deepseek.apiKey") == "sk-test")
+        #expect(harness.latestSnapshot?.id == "deepseek")
+    }
+
+    @Test func deepSeekImportUsageItemsCommandPublishesSnapshot() async {
+        let suiteName = "DeepSeekRegressionTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let cache = ModuleCacheNamespace(moduleID: "deepseek", defaults: defaults)
+        let module = DeepSeekModule(
+            secretStore: ModuleSecretStore(
+                moduleID: "deepseek",
+                backend: InMemorySecretStoreBackend()
+            ),
+            cache: cache
+        )
+        let harness = ModuleHarness(module: module)
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withFullDate]
+        let today = dateFormatter.string(from: Date())
+        let items = [
+            ParsedUsageItem(
+                date: today,
+                model: "deepseek-v4-flash",
+                totalTokens: 1200,
+                promptTokens: 800,
+                completionTokens: 400,
+                inputCacheHitTokens: 300,
+                inputCacheMissTokens: 500,
+                cost: 1.25,
+                requestCount: 4
+            )
+        ]
+        let data = try? JSONEncoder().encode(items)
+
+        await harness.dispatch(.userAction(actionID: "importUsageItems", payload: .init(data: data)))
+
+        #expect(harness.latestSnapshot?.metrics["todayCost"] == 1.25)
+        #expect(harness.latestSnapshot?.metrics["monthlyCost"] == 1.25)
+        #expect(harness.latestSnapshot?.metrics["totalBalance"] == 0)
     }
 }

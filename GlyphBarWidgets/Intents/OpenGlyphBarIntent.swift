@@ -33,10 +33,15 @@ struct OpenGlyphBarIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        // openAppWhenRun = true ensures the system launches GlyphBar.
-        // Module routing is handled via the app's DeepLinkRouter when it
-        // receives the glyphbar:// URL.
-        .result()
+        .result(opensIntent: OpenURLIntent(Self.url(moduleID: moduleID)))
+    }
+
+    static func url(moduleID: String) -> URL {
+        let trimmed = moduleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return URL(string: "glyphbar://app/panel")!
+        }
+        return URL(string: "glyphbar://module/\(trimmed)")!
     }
 }
 
@@ -61,9 +66,7 @@ struct RefreshAllModulesIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        // When the app is running, this triggers a full refresh cycle
-        // via ModuleRuntime.refreshEnabledModules().
-        .result()
+        .result(opensIntent: OpenURLIntent(URL(string: "glyphbar://app/refresh")!))
     }
 }
 
@@ -98,6 +101,6 @@ struct OpenModuleIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        .result()
+        .result(opensIntent: OpenURLIntent(OpenGlyphBarIntent.url(moduleID: moduleID)))
     }
 }

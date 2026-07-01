@@ -29,3 +29,24 @@ struct WidgetModuleSnapshot: Identifiable, Codable, Hashable, Sendable {
         unavailableReason == nil
     }
 }
+
+struct WidgetContentSections: Hashable, Sendable {
+    var unavailableReason: String?
+    var metrics: [WidgetMetric]
+    var notes: [String]
+
+    init(
+        snapshot: WidgetModuleSnapshot,
+        metricLimit: Int,
+        noteLimit: Int
+    ) {
+        unavailableReason = snapshot.unavailableReason
+        if snapshot.unavailableReason == nil {
+            metrics = Array(snapshot.metrics.prefix(metricLimit))
+            notes = Array(snapshot.notes.prefix(noteLimit))
+        } else {
+            metrics = []
+            notes = []
+        }
+    }
+}

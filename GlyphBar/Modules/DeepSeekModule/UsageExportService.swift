@@ -14,18 +14,14 @@ final class UsageExportService: NSObject {
     private var exportTriggerTime: Date?
     private var isLoggedIn = false
 
-    // P1.13 bypass #3/#4: read cookie/token via capabilities, not UserDefaults.
     private let secretStore: ModuleSecretStore?
-    private let settings: ModuleSettingsNamespace?
     private let cache: ModuleCacheNamespace?
 
     init(
         secretStore: ModuleSecretStore? = nil,
-        settings: ModuleSettingsNamespace? = nil,
         cache: ModuleCacheNamespace? = nil
     ) {
         self.secretStore = secretStore
-        self.settings = settings
         self.cache = cache
         super.init()
     }
@@ -73,8 +69,7 @@ final class UsageExportService: NSObject {
             let config = WKWebViewConfiguration()
             config.websiteDataStore = .default()
 
-            // P1.13 bypass #4: rawUserToken via settings capability.
-            let rawToken = settings?["deepseek.rawUserToken"] ?? ""
+            let rawToken = secretStore?.secret(for: "deepseek.rawUserToken") ?? ""
             let tokenJS: String
             if !rawToken.isEmpty {
                 let escaped = rawToken.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
@@ -350,7 +345,7 @@ final class UsageExportService: NSObject {
 // MARK: - WKDownloadDelegate
 
 extension UsageExportService: WKDownloadDelegate {
-    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String) async -> URL {
+    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String) async -> URL? {
         let filename = suggestedFilename.isEmpty ? "export-\(Date().timeIntervalSince1970).csv" : suggestedFilename
         let dest = exportsDir.appending(path: filename)
         try? FileManager.default.removeItem(at: dest)

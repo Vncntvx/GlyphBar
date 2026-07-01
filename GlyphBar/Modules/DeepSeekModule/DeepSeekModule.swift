@@ -136,7 +136,7 @@ final class DeepSeekModule: TypedModuleContribution {
     private let apiBase = "https://api.deepseek.com"
 
     // P1.13: capabilities injected at init (no UserDefaults.standard, no
-    // URLSession.shared, no direct secureStore/cacheStore access via context).
+    // URLSession.shared, no direct global secret/cache access via context).
     private let secretStore: ModuleSecretStore?
     private let settings: ModuleSettingsNamespace?
     private let cache: ModuleCacheNamespace?
@@ -145,8 +145,6 @@ final class DeepSeekModule: TypedModuleContribution {
 
     private let exportService: UsageExportService
     private let store: UsageRecordStore
-
-    private var didMigrateSecrets = false
 
     init(
         secretStore: ModuleSecretStore? = nil,
@@ -163,14 +161,6 @@ final class DeepSeekModule: TypedModuleContribution {
         self.store = UsageRecordStore(cache: cache)
         self.exportService = UsageExportService(secretStore: secretStore, cache: cache)
         loadState()
-    }
-
-    /// P1.13 bypass #9: Keychain migration on first access.
-    /// Idempotent — checks legacy plaintext, writes to Keychain if absent.
-    private func migrateSecretsIfNeeded() {
-        guard !didMigrateSecrets else { return }
-        didMigrateSecrets = true
-        secretStore?.migrateFromLegacyPlaintext(rawKeys: ["deepseek.apiKey", "deepseek.platformCookie"])
     }
 
     /// Validates an API key by calling the /user/balance endpoint.
@@ -211,8 +201,6 @@ final class DeepSeekModule: TypedModuleContribution {
         capabilities: GrantedCapabilities,
         bridge: ModuleBridge
     ) async -> DomainTransition {
-        migrateSecretsIfNeeded()
-
         switch command {
         case .refresh:
             do {
@@ -233,11 +221,57 @@ final class DeepSeekModule: TypedModuleContribution {
                     refreshProjection: false
                 )
             }
-        case .userAction(let actionID, _):
-            if actionID == "refresh" {
+        case .userAction(let actionID, let payload):
+            switch actionID {
+            case "refresh":
                 return await handle(command: .refresh(reason: .manual), capabilities: capabilities, bridge: bridge)
+            case "setApiKey":
+                let key = payload?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !key.isEmpty else { return .empty }
+                secretStore?.setSecret(key, for: "deepseek.apiKey")
+                lastErrorMessage = nil
+            case "clearApiKey":
+                cached = nil
+                lastErrorMessage = nil
+                secretStore?.setSecret(nil, for: "deepseek.apiKey")
+            case "setPlatformCookie":
+                let cookie = payload?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !cookie.isEmpty else { return .empty }
+                secretStore?.setSecret(cookie, for: "deepseek.platformCookie")
+                cookieExpired = false
+                lastErrorMessage = nil
+            case "setRawUserToken":
+                let token = payload?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !token.isEmpty else { return .empty }
+                secretStore?.setSecret(token, for: "deepseek.rawUserToken")
+            case "clearPlatformCookie":
+                secretStore?.setSecret(nil, for: "deepseek.platformCookie")
+                secretStore?.setSecret(nil, for: "deepseek.rawUserToken")
+                cookieExpired = false
+            case "importUsageItems":
+                guard let data = payload?.data,
+                      let items = try? JSONDecoder().decode([ParsedUsageItem].self, from: data) else {
+                    return .empty
+                }
+                applyExportedItems(items)
+                persistCache()
+            case "fetchUsage":
+                await fetchUsageExport()
+            default:
+                return .empty
             }
-            return .empty
+            return DomainTransition(
+                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                health: .healthy,
+                refreshProjection: true
+            )
+        case .importData(let url):
+            importCSV(url: url)
+            return DomainTransition(
+                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                health: .healthy,
+                refreshProjection: true
+            )
         default:
             return .empty
         }
@@ -279,17 +313,16 @@ final class DeepSeekModule: TypedModuleContribution {
     }
 
     func panelContent(context: PanelHostContext) -> some View {
-        migrateSecretsIfNeeded()
         return DeepSeekPanel(
             snapshot: buildSnapshot(), cached: cached, lastErrorMessage: lastErrorMessage,
             cookieExpired: cookieExpired, isExporting: isExporting,
             hasApiKey: secretStore?.secret(for: "deepseek.apiKey")?.isEmpty == false,
             hasCookie: secretStore?.secret(for: "deepseek.platformCookie")?.isEmpty == false,
-            onSetKey: { [weak self] in self?.secretStore?.setSecret($0, for: "deepseek.apiKey") },
-            onClearKey: { [weak self] in
-                self?.cached = nil
-                self?.lastErrorMessage = nil
-                self?.secretStore?.setSecret(nil, for: "deepseek.apiKey")
+            onSetKey: { key in
+                context.dispatch(.userAction(actionID: "setApiKey", payload: .init(text: key)))
+            },
+            onClearKey: {
+                context.dispatch(.userAction(actionID: "clearApiKey", payload: nil))
             },
             onRefresh: { [weak self] in
                 // P1.13 bypass #10: dispatch via PanelHostContext instead of direct refresh+cacheStore.
@@ -301,13 +334,15 @@ final class DeepSeekModule: TypedModuleContribution {
                 context.dispatch(.userAction(actionID: "fetchUsage", payload: nil))
                 _ = self
             },
+            onSetCookie: { cookie in
+                context.dispatch(.userAction(actionID: "setPlatformCookie", payload: .init(text: cookie)))
+            },
             onImportCSV: { [weak self] in
                 // P1.13 bypass #8: fileImport via capability (not NSOpenPanel).
                 Task { @MainActor [weak self] in
                     guard let self, let cap = self.fileImport else { return }
                     if let url = cap.requestImport(allowedTypes: ["csv", "zip"]) {
-                        self.importCSV(url: url)
-                        context.dispatch(.refresh(reason: .manual))
+                        context.dispatch(.importData(url))
                     }
                 }
             }
@@ -321,6 +356,26 @@ final class DeepSeekModule: TypedModuleContribution {
         lastErrorMessage = nil; cookieExpired = false
 
         let apiKey = secretStore?.secret(for: "deepseek.apiKey") ?? ""
+        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            cached = nil
+            return ModuleSnapshot(
+                id: manifest.id,
+                title: "DeepSeek",
+                subtitle: "API key not configured",
+                systemImage: manifest.systemImage,
+                freshness: .unavailable("API key not configured"),
+                signals: [
+                    StatusSignal(
+                        id: "ds.unav",
+                        title: "Missing API Key",
+                        message: "Configure a DeepSeek API key to refresh balance.",
+                        systemImage: "key.slash",
+                        severity: .warning,
+                        priority: 90
+                    )
+                ]
+            )
+        }
         let balance = try? await fetchBalance(apiKey: apiKey)
         let totalBal = Double(balance?.balanceInfos.first?.totalBalance ?? "0") ?? 0
         let granted = Double(balance?.balanceInfos.first?.grantedBalance ?? "0") ?? 0
@@ -462,7 +517,7 @@ private struct DeepSeekPanel: View {
     let snapshot: ModuleSnapshot?; let cached: CachedData?; let lastErrorMessage: String?
     let cookieExpired: Bool; let isExporting: Bool; let hasApiKey: Bool; let hasCookie: Bool
     var onSetKey: (String) -> Void; var onClearKey: () -> Void; var onRefresh: () -> Void
-    var onFetchUsage: () -> Void; var onImportCSV: () -> Void
+    var onFetchUsage: () -> Void; var onSetCookie: (String) -> Void; var onImportCSV: () -> Void
 
     @State private var apiKeyInput = ""; @State private var showKeyField = false; @State private var showLoginSheet = false
 
@@ -475,11 +530,7 @@ private struct DeepSeekPanel: View {
         }
         .padding(14)
         .sheet(isPresented: $showLoginSheet) { LoginSheet { cookie in
-            // P1.13 bypass #6: cookie via capability (not UserDefaults.standard.set).
-            // For now, this still needs a way to set the cookie. The LoginSheet
-            // callback is handled by the module owner. P1.14 wires this through
-            // PanelHostContext.dispatch.
-            _ = cookie
+            onSetCookie(cookie)
             showLoginSheet = false
             onRefresh()
         }}

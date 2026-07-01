@@ -6,6 +6,12 @@ struct ModuleWidgetView: View {
     let entry: ModuleWidgetEntry
 
     var body: some View {
+        let sections = WidgetContentSections(
+            snapshot: entry.snapshot,
+            metricLimit: family == .systemSmall ? 2 : 4,
+            noteLimit: family == .systemSmall ? 2 : 4
+        )
+
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: entry.snapshot.symbol)
@@ -25,30 +31,39 @@ struct ModuleWidgetView: View {
                     .lineLimit(2)
             }
 
-            if let reason = entry.snapshot.unavailableReason {
+            if let reason = sections.unavailableReason {
                 Text(reason)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
-            } else if !entry.snapshot.metrics.isEmpty {
-                VStack(spacing: 4) {
-                    ForEach(Array(entry.snapshot.metrics.prefix(family == .systemSmall ? 2 : 4))) { metric in
-                        WidgetMetricRow(metric: metric)
-                    }
-                }
-            } else if !entry.snapshot.notes.isEmpty {
-                VStack(alignment: .leading, spacing: 3) {
-                    ForEach(Array(entry.snapshot.notes.prefix(family == .systemSmall ? 2 : 4)), id: \.self) { note in
-                        Text(note)
-                            .font(.caption)
-                            .lineLimit(1)
-                    }
-                }
+            } else {
+                contentSections(sections)
             }
 
             Spacer(minLength: 0)
         }
         .containerBackground(.regularMaterial, for: .widget)
         .widgetURL(URL(string: "glyphbar://module/\(entry.moduleID)"))
+    }
+
+    @ViewBuilder
+    private func contentSections(_ sections: WidgetContentSections) -> some View {
+        if !sections.metrics.isEmpty {
+            VStack(spacing: 4) {
+                ForEach(sections.metrics) { metric in
+                    WidgetMetricRow(metric: metric)
+                }
+            }
+        }
+
+        if !sections.notes.isEmpty {
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(sections.notes, id: \.self) { note in
+                    Text(note)
+                        .font(.caption)
+                        .lineLimit(1)
+                }
+            }
+        }
     }
 }
