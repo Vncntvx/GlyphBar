@@ -163,7 +163,8 @@ struct PresentationTickerTests {
     @Test func presentationTickerDoesNotTriggerRefresh() async {
         // The ticker should only drive display updates (arbiter tick),
         // never trigger a data refresh.
-        let ticker = PresentationTicker()
+        let clock = VirtualClock()
+        let ticker = PresentationTicker(clock: clock)
         var refreshCount = 0
         var tickCount = 0
 
@@ -172,11 +173,11 @@ struct PresentationTickerTests {
             // This is a presentation tick, NOT a refresh
         }
 
-        // Wait briefly for at least one tick
-        try? await Task.sleep(for: .milliseconds(200))
+        clock.advance(by: 0.1)
+        await Task.yield()
 
         ticker.stop()
-        #expect(tickCount >= 1)
+        #expect(tickCount == 1)
         #expect(refreshCount == 0)  // Ticker must NOT trigger refreshes
     }
 }

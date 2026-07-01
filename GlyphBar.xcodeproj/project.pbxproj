@@ -26,7 +26,6 @@
 		B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */; };
 		B00000000000000000000113 /* Core/Storage/AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */; };
 		B00000000000000000000114 /* Core/Storage/CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000114 /* Core/Storage/CacheStore.swift */; };
-		B00000000000000000000115 /* Core/Security/SecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000115 /* Core/Security/SecureStore.swift */; };
 		B00000000000000000000116 /* Core/Logging/GlyphLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000116 /* Core/Logging/GlyphLogger.swift */; };
 
 		B00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift */; };
@@ -165,6 +164,11 @@
 		B599BB93D1DC04207A6FC97F /* ControlPlaneTests/PlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E53CC6BF97848F698D3388 /* ControlPlaneTests/PlatformTests.swift */; };
 		B36697F3B19E5450B9D506DA /* ContractTests/BuiltInModuleContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7CA92141A1904FDA96B2730 /* ContractTests/BuiltInModuleContractTests.swift */; };
 		B1678B432093D4BBEBB6F671 /* ContractTests/ThirdPartyModuleContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A877183E44AEA4E94BCB4F19 /* ContractTests/ThirdPartyModuleContractTests.swift */; };
+		BC74B3E11F15F4E25BAE5960 /* Kernel/Lifecycle/ModuleHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA5DF0648E81947AAAA73CBE /* Kernel/Lifecycle/ModuleHarness.swift */; };
+		B7A65F2997A834B76B792E32 /* CoreTests/WidgetContentSectionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4EF34F1DCCE04B509A2EE06 /* CoreTests/WidgetContentSectionsTests.swift */; };
+		B94DB6EE354A4474B852E892 /* KernelTests/ModuleHarnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD42FB1BA3B364D5396E9E60 /* KernelTests/ModuleHarnessTests.swift */; };
+		BB99AAEC2189C4DB3B982854 /* KernelTests/CapabilityEnforcementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC3366CA770C64F778B2DDC3 /* KernelTests/CapabilityEnforcementTests.swift */; };
+		B873307FDD9D541528EE3CD0 /* ModuleTests/ClockCounterCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0787BFE3B0C94F91BFC64AA /* ModuleTests/ClockCounterCommandTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -219,7 +223,6 @@
 		A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Permissions/PermissionCenter.swift; sourceTree = "<group>"; };
 		A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Storage/AppSettingsStore.swift; sourceTree = "<group>"; };
 		A00000000000000000000114 /* Core/Storage/CacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Storage/CacheStore.swift; sourceTree = "<group>"; };
-		A00000000000000000000115 /* Core/Security/SecureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Security/SecureStore.swift; sourceTree = "<group>"; };
 		A00000000000000000000116 /* Core/Logging/GlyphLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Logging/GlyphLogger.swift; sourceTree = "<group>"; };
 		A00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/GlyphSurfaces.swift; sourceTree = "<group>"; };
 		A00000000000000000000119 /* DesignSystem/GlyphControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/GlyphControls.swift; sourceTree = "<group>"; };
@@ -355,6 +358,11 @@
 		A1E53CC6BF97848F698D3388 /* ControlPlaneTests/PlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPlaneTests/PlatformTests.swift; sourceTree = "<group>"; };
 		A7CA92141A1904FDA96B2730 /* ContractTests/BuiltInModuleContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/BuiltInModuleContractTests.swift; sourceTree = "<group>"; };
 		A877183E44AEA4E94BCB4F19 /* ContractTests/ThirdPartyModuleContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/ThirdPartyModuleContractTests.swift; sourceTree = "<group>"; };
+		AA5DF0648E81947AAAA73CBE /* Kernel/Lifecycle/ModuleHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Lifecycle/ModuleHarness.swift; sourceTree = "<group>"; };
+		A4EF34F1DCCE04B509A2EE06 /* CoreTests/WidgetContentSectionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/WidgetContentSectionsTests.swift; sourceTree = "<group>"; };
+		AD42FB1BA3B364D5396E9E60 /* KernelTests/ModuleHarnessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KernelTests/ModuleHarnessTests.swift; sourceTree = "<group>"; };
+		AC3366CA770C64F778B2DDC3 /* KernelTests/CapabilityEnforcementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KernelTests/CapabilityEnforcementTests.swift; sourceTree = "<group>"; };
+		A0787BFE3B0C94F91BFC64AA /* ModuleTests/ClockCounterCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/ClockCounterCommandTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -442,6 +450,7 @@
 				A610C3AD9F29E4C0AAFDC6F4 /* Kernel/Lifecycle/CancellationScope.swift */,
 				A9ED24AF7038D4B7AB7F9BDF /* Kernel/Lifecycle/ModuleActor.swift */,
 				A1D7BE6E8BE3C401EA9F8712 /* Kernel/Lifecycle/ModuleSupervisor.swift */,
+				AA5DF0648E81947AAAA73CBE /* Kernel/Lifecycle/ModuleHarness.swift */,
 				AA4EA078B51DD471FBF7D14A /* Presentation/Host/ModuleContribution.swift */,
 				AAAA2908814C7415BAF9F7EB /* Presentation/Host/PanelHostContext.swift */,
 				AB8BE202DB7CE4122B84C6DA /* Kernel/Contracts/ModuleContract.swift */,
@@ -500,7 +509,6 @@
 				A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */,
 				A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */,
 				A00000000000000000000114 /* Core/Storage/CacheStore.swift */,
-				A00000000000000000000115 /* Core/Security/SecureStore.swift */,
 				A00000000000000000000116 /* Core/Logging/GlyphLogger.swift */,
 				A00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift */,
 				A00000000000000000000119 /* DesignSystem/GlyphControls.swift */,
@@ -559,6 +567,8 @@
 				A7CA92141A1904FDA96B2730 /* ContractTests/BuiltInModuleContractTests.swift */,
 				A50B322DEB2C54375B9E767D /* KernelTests/ModuleCacheNamespaceTests.swift */,
 				A304FD97ECCA14BBE981974E /* KernelTests/ModuleSecretStoreTests.swift */,
+				AC3366CA770C64F778B2DDC3 /* KernelTests/CapabilityEnforcementTests.swift */,
+				AD42FB1BA3B364D5396E9E60 /* KernelTests/ModuleHarnessTests.swift */,
 				A821E65B5E2CD4FCDBAE48F5 /* KernelTests/EffectExecutorTests.swift */,
 				AA14A296F904A4A3697E0CC0 /* ExecutionTests/ExecutionModelTests.swift */,
 				AEFFECEE3654446CEA19C342 /* ControlPlaneTests/ControlPlaneTests.swift */,
@@ -569,8 +579,10 @@
 				A2D8E74FB1953F60C1A06D3K /* CoreTests/QuickPanelCoordinatorAPITests.swift */,
 				A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */,
 				A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */,
+				A4EF34F1DCCE04B509A2EE06 /* CoreTests/WidgetContentSectionsTests.swift */,
 					A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */,
 					A00000000000000000000306 /* ModuleTests/NotesQuickModuleTests.swift */,
+					A0787BFE3B0C94F91BFC64AA /* ModuleTests/ClockCounterCommandTests.swift */,
 				);
 				path = Tests;
 			sourceTree = "<group>";
@@ -735,6 +747,7 @@
 				B3DC14682470C4EB2A3D5A0F /* Kernel/Lifecycle/CancellationScope.swift in Sources */,
 				B5FA0F479CAE847068EE5BDA /* Kernel/Lifecycle/ModuleActor.swift in Sources */,
 				BA3715B118F144B86942657B /* Kernel/Lifecycle/ModuleSupervisor.swift in Sources */,
+				BC74B3E11F15F4E25BAE5960 /* Kernel/Lifecycle/ModuleHarness.swift in Sources */,
 				BF74723335BFB4F508125281 /* Presentation/Host/ModuleContribution.swift in Sources */,
 				B2EF17695CDA341E9AF93C42 /* Presentation/Host/PanelHostContext.swift in Sources */,
 				B35AD7DF0CDB044AFA2FD282 /* Kernel/Contracts/ModuleContract.swift in Sources */,
@@ -793,7 +806,6 @@
 				B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */,
 				B00000000000000000000113 /* Core/Storage/AppSettingsStore.swift in Sources */,
 				B00000000000000000000114 /* Core/Storage/CacheStore.swift in Sources */,
-				B00000000000000000000115 /* Core/Security/SecureStore.swift in Sources */,
 				B00000000000000000000116 /* Core/Logging/GlyphLogger.swift in Sources */,
 				B00000000000000000000118 /* DesignSystem/GlyphSurfaces.swift in Sources */,
 				B00000000000000000000119 /* DesignSystem/GlyphControls.swift in Sources */,
@@ -850,6 +862,8 @@
 				B36697F3B19E5450B9D506DA /* ContractTests/BuiltInModuleContractTests.swift in Sources */,
 				B6FE5742BB42F4C1182FB0F5 /* KernelTests/ModuleCacheNamespaceTests.swift in Sources */,
 				B39E811A8D62345D0907C754 /* KernelTests/ModuleSecretStoreTests.swift in Sources */,
+				BB99AAEC2189C4DB3B982854 /* KernelTests/CapabilityEnforcementTests.swift in Sources */,
+				B94DB6EE354A4474B852E892 /* KernelTests/ModuleHarnessTests.swift in Sources */,
 				BD61148F083BC4134B67198D /* KernelTests/EffectExecutorTests.swift in Sources */,
 				BB703965B94424F16BFA7ABB /* ExecutionTests/ExecutionModelTests.swift in Sources */,
 				B1EA775DA3C7648C595ED018 /* ControlPlaneTests/ControlPlaneTests.swift in Sources */,
@@ -860,8 +874,10 @@
 				B7F3C91DA4820E15D6E5B2RK /* CoreTests/QuickPanelCoordinatorAPITests.swift in Sources */,
 				B00000000000000000000403 /* CoreTests/RefreshSchedulerTests.swift in Sources */,
 				B00000000000000000000404 /* CoreTests/WidgetDataBridgeTests.swift in Sources */,
+				B7A65F2997A834B76B792E32 /* CoreTests/WidgetContentSectionsTests.swift in Sources */,
 					B00000000000000000000405 /* ModuleTests/TemplateModuleTests.swift in Sources */,
 					B00000000000000000000406 /* ModuleTests/NotesQuickModuleTests.swift in Sources */,
+					B873307FDD9D541528EE3CD0 /* ModuleTests/ClockCounterCommandTests.swift in Sources */,
 				);
 				runOnlyForDeploymentPostprocessing = 0;
 			};
@@ -1150,5 +1166,5 @@
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = A00000000000000000000001 /* Project object */;
+rootObject = A00000000000000000000001 /* Project object */;
 }

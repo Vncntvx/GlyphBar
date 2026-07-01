@@ -116,7 +116,7 @@ let capabilities = GrantedCapabilities(bridge: bridge)
 
 // 完整
 let capabilities = GrantedCapabilities(
-    secretStore: ModuleSecretStore(moduleID: "test", keychain: keychain),
+    secretStore: ModuleSecretStore(moduleID: "test", backend: InMemorySecretStoreBackend()),
     cache: ModuleCacheNamespace(moduleID: "test", defaults: defaults),
     settings: ModuleSettingsNamespace(moduleID: "test", defaults: defaults),
     network: NetworkCapability(),
@@ -127,6 +127,33 @@ let capabilities = GrantedCapabilities(
     bridge: bridge
 )
 ```
+
+### ModuleHarness
+
+模块行为测试优先使用 `ModuleHarness`。它复用生产 `ModuleSupervisor` 和 `CapabilityFactory`，但不创建 AppKit 窗口、StatusItem、QuickPanel 或 Settings UI。
+
+```swift
+@MainActor
+@Test func commandPublishesSnapshot() async {
+    let harness = ModuleHarness(module: MyModule())
+
+    let transition = await harness.dispatch(.refresh(reason: .manual))
+
+    #expect(transition.refreshProjection == true)
+    #expect(harness.latestSnapshot?.id == "myModule")
+    #expect(harness.latestWidgetSnapshot?.id == "myModule")
+}
+```
+
+用它覆盖：
+
+- command dispatch
+- refresh
+- emitted effects
+- latest snapshot
+- widget snapshot projection
+- start/stop/unload 行为
+- permission denied/granted 路径
 
 ### 临时目录
 
@@ -258,6 +285,8 @@ defer { try? FileManager.default.removeItem(at: root) }
 `DeepSeekRegressionTests` 是 P1.13 的反回归守卫：
 
 - **不再直接访问 `UserDefaults.standard`**：DeepSeek 必须使用 `ModuleSettingsNamespace`
+- **secret 只走 `ModuleSecretStore`**：没有明文 secret store 或 UserDefaults fallback
+- **设置与导入通过 command**：API key、cookie、usage import 都通过 `handle(command:)` 测试
 - **NetworkCapability 注入正确**：网络请求通过 `NetworkCapability` 而非 `URLSession.shared`
 
 ## 编写新测试的建议

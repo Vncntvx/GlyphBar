@@ -249,6 +249,57 @@ struct PanelHostContext {
 
 > **重要**：面板中的用户操作必须通过 `context.dispatch()` 发送 Command，不要直接调用模块方法或修改模块状态。这确保了单向数据流。
 
+## AI-native 模块模板
+
+新增原生模块时保持以下结构，AI 或开发者都应按同一顺序生成代码：
+
+1. `staticManifest`：声明稳定 `id`、显示信息、actions、widgets、required capabilities 和 permissions。
+2. 私有 `State` 模型：只包含领域状态；不要把 SwiftUI/AppKit 类型放入状态。
+3. `handle(command:capabilities:bridge:)`：唯一业务入口。所有设置修改、按钮、导入、刷新都在这里处理。
+4. 私有 handler 方法：例如 `handleRefresh`、`handleSetSetting`、`handleImportData`。
+5. `buildSnapshot()` / `buildProjection()`：从状态投影，不执行副作用。
+6. `statusCandidates()`：从当前状态生成候选，不读取 UI。
+7. `panelContent(context:)`：SwiftUI 只展示状态并通过 `context.dispatch()` 发送 command。
+8. Tests：至少覆盖 refresh、一个 user action、一个 settings command、permission denied/granted（若需要能力）、widget snapshot（若声明 widget）。
+
+禁止模式：
+
+- View/Binding 直接写模块核心状态。
+- 模块直接调用 `UserDefaults.standard`、`URLSession.shared`、`NSPasteboard`、`NSWorkspace`、`WidgetCenter`。
+- Settings 视图强转模块实例后调用业务方法。
+- secret 存入 UserDefaults 或任何名为 secure 但实际明文的存储。
+
+## Headless 测试
+
+使用 `ModuleHarness` 在不启动 AppKit 窗口、StatusItem、QuickPanel 或 Settings UI 的情况下测试模块：
+
+```swift
+@MainActor
+@Test func modulePublishesSnapshot() async {
+    let module = MyModule()
+    let harness = ModuleHarness(module: module)
+
+    let transition = await harness.dispatch(.userAction(actionID: "increment", payload: nil))
+
+    #expect(transition.refreshProjection == true)
+    #expect(harness.latestSnapshot?.id == "myModule")
+    #expect(harness.latestWidgetSnapshot?.title != nil)
+}
+```
+
+需要测试权限时，注入 `PermissionCenter`：
+
+```swift
+let permissions = PermissionCenter(defaults: defaults)
+let harness = ModuleHarness(
+    module: ThirdPartyLikeModule(),
+    sourceKind: .thirdParty,
+    permissionCenter: permissions
+)
+```
+
+第三方模块只有在 `PermissionCenter` 授权后才会获得 manifest 声明的敏感能力；内置模块按声明默认授予。
+
 ## DomainTransition 构建模式
 
 ### 成功刷新

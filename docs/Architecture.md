@@ -118,7 +118,6 @@ GlyphBar/
 │   ├── Runtime/            # ModuleRuntime、ModuleRegistry
 │   ├── Modules/            # ModuleTypes（ModuleManifest、ExternalModuleManifest 等）
 │   ├── Storage/            # CacheStore、AppSettingsStore
-│   ├── Security/           # SecureStore
 │   ├── Permissions/        # PermissionCenter
 │   ├── Refresh/            # RefreshScheduler（旧版）
 │   ├── Status/             # StatusComposer、StatusRotationEngine（旧版）
@@ -144,7 +143,7 @@ GlyphBar/
 
 `AppEnvironment` 是当前的组合根（singleton），负责：
 
-1. 创建所有基础设施：`GlyphLogger`、`CacheStore`、`SecureStore`、`PermissionCenter`、`AppSettingsStore`、`WidgetDataBridge`、`CapabilityFactory`
+1. 创建所有基础设施：`GlyphLogger`、`CacheStore`、`PermissionCenter`、`AppSettingsStore`、`WidgetDataBridge`、`CapabilityFactory`
 2. 通过 `ModuleRegistry` 注册所有内置模块，每个模块使用 `CapabilityFactory.makeCapabilities(for:manifest:bridge:)` 注入正确的能力集
 3. 创建 `ModuleRuntime`，连接 `openSettingsAction` 到设置界面
 4. 创建 UI 协调器：`AppMenuCoordinator`、`QuickPanelCoordinator`、`StatusItemController`、`DeepLinkRouter`、`LogsWindowCoordinator`
