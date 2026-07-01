@@ -71,7 +71,8 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
                 refreshProjection: true
             )
         case .userAction(let actionID, _):
-            if actionID == "copyTimestamp" {
+            switch actionID {
+            case "copyTimestamp":
                 let timestamp = ISO8601DateFormatter().string(from: Date())
                 return DomainTransition(
                     effects: [
@@ -81,10 +82,24 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
                     health: .healthy,
                     refreshProjection: true
                 )
-            }
-            if actionID == "toggleFormat" {
+            case "toggleFormat":
                 uses24HourClock.toggle()
                 persistState()
+            case "setFormat24h":
+                uses24HourClock = command.actionBool(default: uses24HourClock)
+                persistState()
+            case "setShowSeconds":
+                showSeconds = command.actionBool(default: showSeconds)
+                persistState()
+            case "setWorldTimezones":
+                if let zones = command.actionPayloadData([String].self) {
+                    worldTimezones = zones.filter { candidate in
+                        Self.availableTimezones.contains { $0.id == candidate }
+                    }
+                    persistState()
+                }
+            default:
+                return .empty
             }
             return DomainTransition(
                 effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
@@ -188,26 +203,30 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
             snapshot: buildSnapshot(),
             uses24HourClock: Binding(
                 get: { [weak self] in self?.uses24HourClock ?? true },
-                set: { [weak self] newValue in
-                    self?.uses24HourClock = newValue
-                    self?.persistState()
-                    context.dispatch(.userAction(actionID: "toggleFormat", payload: nil))
+                set: { newValue in
+                    context.dispatch(.userAction(
+                        actionID: "setFormat24h",
+                        payload: .init(text: newValue ? "true" : "false")
+                    ))
                 }
             ),
             showSeconds: Binding(
                 get: { [weak self] in self?.showSeconds ?? false },
-                set: { [weak self] newValue in
-                    self?.showSeconds = newValue
-                    self?.persistState()
-                    context.dispatch(.refresh(reason: .manual))
+                set: { newValue in
+                    context.dispatch(.userAction(
+                        actionID: "setShowSeconds",
+                        payload: .init(text: newValue ? "true" : "false")
+                    ))
                 }
             ),
             worldTimezones: Binding(
                 get: { [weak self] in self?.worldTimezones ?? [] },
-                set: { [weak self] newValue in
-                    self?.worldTimezones = newValue
-                    self?.persistState()
-                    context.dispatch(.refresh(reason: .manual))
+                set: { newValue in
+                    let data = try? JSONEncoder().encode(newValue)
+                    context.dispatch(.userAction(
+                        actionID: "setWorldTimezones",
+                        payload: .init(data: data)
+                    ))
                 }
             ),
             availableTimezones: Self.availableTimezones
@@ -279,6 +298,26 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
 
     private static func loadState(from settings: ModuleSettingsNamespace?) -> ClockState? {
         settings?.get(ClockState.self, forKey: stateKey)
+    }
+}
+
+private extension Command {
+    func actionBool(default defaultValue: Bool) -> Bool {
+        guard case .userAction(_, let payload) = self,
+              let text = payload?.text?.lowercased() else {
+            return defaultValue
+        }
+        if ["true", "1", "yes"].contains(text) { return true }
+        if ["false", "0", "no"].contains(text) { return false }
+        return defaultValue
+    }
+
+    func actionPayloadData<T: Decodable>(_ type: T.Type) -> T? {
+        guard case .userAction(_, let payload) = self,
+              let data = payload?.data else {
+            return nil
+        }
+        return try? JSONDecoder().decode(type, from: data)
     }
 }
 

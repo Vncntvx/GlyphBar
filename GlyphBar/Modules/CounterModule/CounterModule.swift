@@ -81,6 +81,15 @@ final class CounterModule: TypedModuleContribution {
                 count = newValue
             case "reset":
                 count = 0
+            case "setStepSize":
+                guard let step = command.actionInt, step > 0 else { return .empty }
+                stepSize = step
+            case "setBounds":
+                guard let bounds = command.actionPayloadData(CounterBounds.self) else { return .empty }
+                minValue = bounds.minValue
+                maxValue = bounds.maxValue
+                if let minValue, count < minValue { count = minValue }
+                if let maxValue, count > maxValue { count = maxValue }
             default:
                 return .empty
             }
@@ -125,40 +134,31 @@ final class CounterModule: TypedModuleContribution {
             count: count,
             stepSize: Binding(
                 get: { [weak self] in self?.stepSize ?? 1 },
-                set: { [weak self] in self?.stepSize = $0; self?.persistState() }
+                set: { newValue in
+                    context.dispatch(.userAction(actionID: "setStepSize", payload: .init(text: "\(newValue)")))
+                }
             ),
             minValue: Binding(
                 get: { [weak self] in self?.minValue },
-                set: { [weak self] in self?.minValue = $0; self?.persistState() }
+                set: { [weak self] newValue in
+                    let bounds = CounterBounds(minValue: newValue, maxValue: self?.maxValue)
+                    context.dispatch(.userAction(actionID: "setBounds", payload: .init(data: try? JSONEncoder().encode(bounds))))
+                }
             ),
             maxValue: Binding(
                 get: { [weak self] in self?.maxValue },
-                set: { [weak self] in self?.maxValue = $0; self?.persistState() }
+                set: { [weak self] newValue in
+                    let bounds = CounterBounds(minValue: self?.minValue, maxValue: newValue)
+                    context.dispatch(.userAction(actionID: "setBounds", payload: .init(data: try? JSONEncoder().encode(bounds))))
+                }
             ),
-            onIncrement: { [weak self] in self?.adjust(by: 1, context: context) },
-            onDecrement: { [weak self] in self?.adjust(by: -1, context: context) },
-            onReset: { [weak self] in self?.resetCounter(context: context) }
+            onIncrement: { context.dispatch(.userAction(actionID: "increment", payload: nil)) },
+            onDecrement: { context.dispatch(.userAction(actionID: "decrement", payload: nil)) },
+            onReset: { context.dispatch(.userAction(actionID: "reset", payload: nil)) }
         )
     }
 
     // MARK: - Internals
-
-    private func adjust(by direction: Int, context: PanelHostContext) {
-        let newValue = count + (direction * stepSize)
-        if let max = maxValue, direction > 0, newValue > max { return }
-        if let min = minValue, direction < 0, newValue < min { return }
-        count = newValue
-        lastModified = Date()
-        persistState()
-        context.dispatch(.refresh(reason: .manual))
-    }
-
-    private func resetCounter(context: PanelHostContext) {
-        count = 0
-        lastModified = Date()
-        persistState()
-        context.dispatch(.refresh(reason: .manual))
-    }
 
     private func buildSnapshot() -> ModuleSnapshot {
         var meta: [String: String] = [
@@ -213,6 +213,11 @@ final class CounterModule: TypedModuleContribution {
 
     private static let stateKey = "moduleState"
 
+    private struct CounterBounds: Codable {
+        var minValue: Int?
+        var maxValue: Int?
+    }
+
     private func persistState() {
         let state = CounterState(
             count: count, stepSize: stepSize,
@@ -224,6 +229,24 @@ final class CounterModule: TypedModuleContribution {
 
     private static func loadState(from settings: ModuleSettingsNamespace?) -> CounterState? {
         settings?.get(CounterState.self, forKey: stateKey)
+    }
+}
+
+private extension Command {
+    var actionInt: Int? {
+        guard case .userAction(_, let payload) = self,
+              let text = payload?.text else {
+            return nil
+        }
+        return Int(text)
+    }
+
+    func actionPayloadData<T: Decodable>(_ type: T.Type) -> T? {
+        guard case .userAction(_, let payload) = self,
+              let data = payload?.data else {
+            return nil
+        }
+        return try? JSONDecoder().decode(type, from: data)
     }
 }
 
