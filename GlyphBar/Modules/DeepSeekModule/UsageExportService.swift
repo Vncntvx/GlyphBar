@@ -26,7 +26,6 @@ final class UsageExportService: NSObject {
         super.init()
     }
 
-    // P1.13 bypass #7: use temp directory, not ~/.cache/GlyphBar.
     // WKWebView downloads need a writable directory; temp is appropriate for
     // ephemeral export files that are parsed and discarded.
     private var exportsDir: URL {
@@ -48,7 +47,6 @@ final class UsageExportService: NSObject {
     }
 
     func export() async throws -> [ParsedUsageItem] {
-        // P1.13 bypass #4: cookie via secretStore capability.
         guard let cookieStr = secretStore?.secret(for: "deepseek.platformCookie"),
               let tokenPart = cookieStr.components(separatedBy: "; ").first(where: { $0.hasPrefix("authToken=") }) else {
             throw ExportError.notLoggedIn

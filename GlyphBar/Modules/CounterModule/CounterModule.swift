@@ -9,7 +9,6 @@ final class CounterModule: TypedModuleContribution {
     private var maxValue: Int?
     private var lastModified: Date?
 
-    // P1.13: capabilities injected at init time (no UserDefaults.standard).
     private let settings: ModuleSettingsNamespace?
     private let cache: ModuleCacheNamespace?
 

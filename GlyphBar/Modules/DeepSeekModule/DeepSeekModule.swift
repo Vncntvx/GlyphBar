@@ -20,110 +20,6 @@ private struct BalanceResponse: Codable {
     enum CodingKeys: String, CodingKey { case isAvailable = "is_available", balanceInfos = "balance_infos" }
 }
 
-// MARK: - Usage Record Store (P1.13: uses ModuleCacheNamespace, no ~/.cache/GlyphBar)
-
-private struct UsageRecord: Codable {
-    var date: String; var model: String
-    var totalTokens: Int; var promptTokens: Int; var completionTokens: Int
-    var inputCacheHitTokens: Int; var inputCacheMissTokens: Int
-    var cost: Double; var requestCount: Int
-}
-
-@MainActor
-private final class UsageRecordStore {
-    private var records: [String: UsageRecord] = [:] // key = "date|model"
-    private let cache: ModuleCacheNamespace?
-
-    init(cache: ModuleCacheNamespace?) {
-        self.cache = cache
-        load()
-    }
-
-    func upsert(_ items: [ParsedUsageItem]) {
-        for item in items {
-            let key = "\(item.date)|\(item.model)"
-            records[key] = UsageRecord(
-                date: item.date, model: item.model,
-                totalTokens: item.totalTokens, promptTokens: item.promptTokens,
-                completionTokens: item.completionTokens,
-                inputCacheHitTokens: item.inputCacheHitTokens,
-                inputCacheMissTokens: item.inputCacheMissTokens,
-                cost: item.cost, requestCount: item.requestCount
-            )
-        }
-        save()
-    }
-
-    func dailyItems(days: Int) -> [CachedData.DailyItem] {
-        let all = records.values.sorted { $0.date < $1.date }
-        let recent = Array(all.suffix(days))
-        var map: [String: (t: Int, c: Double, ft: Int, pt: Int, fc: Double, pc: Double)] = [:]
-        for r in recent {
-            let isFlash = r.model.contains("flash") || r.model.contains("chat")
-            var e = map[r.date] ?? (0, 0, 0, 0, 0, 0)
-            e.t += r.totalTokens; e.c += r.cost
-            if isFlash { e.ft += r.totalTokens; e.fc += r.cost }
-            else { e.pt += r.totalTokens; e.pc += r.cost }
-            map[r.date] = e
-        }
-        return map.map { CachedData.DailyItem(date: $0.key, tokens: $0.value.t, cost: $0.value.c,
-            flashTokens: $0.value.ft, proTokens: $0.value.pt, flashCost: $0.value.fc, proCost: $0.value.pc) }
-            .sorted { $0.date < $1.date }
-    }
-
-    var totalTokens: Int { records.values.reduce(0) { $0 + $1.totalTokens } }
-    var totalCacheHit: Int { records.values.reduce(0) { $0 + $1.inputCacheHitTokens } }
-    var totalRequests: Int { records.values.reduce(0) { $0 + $1.requestCount } }
-    var hasData: Bool { !records.isEmpty }
-
-    func flashTokens() -> Int { records.values.filter { $0.model.contains("flash") || $0.model.contains("chat") }.reduce(0) { $0 + $1.totalTokens } }
-    func flashCost() -> Double { records.values.filter { $0.model.contains("flash") || $0.model.contains("chat") }.reduce(0) { $0 + $1.cost } }
-    func flashCacheHit() -> Int { records.values.filter { $0.model.contains("flash") || $0.model.contains("chat") }.reduce(0) { $0 + $1.inputCacheHitTokens } }
-    func flashCacheMiss() -> Int { records.values.filter { $0.model.contains("flash") || $0.model.contains("chat") }.reduce(0) { $0 + $1.inputCacheMissTokens } }
-    func proTokens() -> Int { records.values.filter { $0.model.contains("pro") || $0.model.contains("reasoner") }.reduce(0) { $0 + $1.totalTokens } }
-    func proCost() -> Double { records.values.filter { $0.model.contains("pro") || $0.model.contains("reasoner") }.reduce(0) { $0 + $1.cost } }
-    func proCacheHit() -> Int { records.values.filter { $0.model.contains("pro") || $0.model.contains("reasoner") }.reduce(0) { $0 + $1.inputCacheHitTokens } }
-    func proCacheMiss() -> Int { records.values.filter { $0.model.contains("pro") || $0.model.contains("reasoner") }.reduce(0) { $0 + $1.inputCacheMissTokens } }
-
-    func todayCost() -> Double {
-        let f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate]; let today = f.string(from: .now)
-        return records.values.filter { $0.date == today }.reduce(0) { $0 + $1.cost }
-    }
-
-    func monthlyCost() -> Double {
-        let f = ISO8601DateFormatter(); f.formatOptions = [.withFullDate]
-        let cal = Calendar.current; let today = Date()
-        let monthStart = f.string(from: cal.date(from: cal.dateComponents([.year, .month], from: today))!)
-        return records.values.filter { $0.date >= monthStart }.reduce(0) { $0 + $1.cost }
-    }
-
-    private func load() {
-        guard let cache, let data = cache.loadDomainState(),
-              let arr = try? JSONDecoder().decode([UsageRecord].self, from: data) else { return }
-        for r in arr { records["\(r.date)|\(r.model)"] = r }
-    }
-
-    private func save() {
-        let arr = Array(records.values)
-        guard let data = try? JSONEncoder().encode(arr) else { return }
-        cache?.saveDomainState(data)
-    }
-}
-
-private struct CachedData: Codable {
-    let totalBalance: Double; let grantedBalance: Double; let toppedUpBalance: Double
-    let isAvailable: Bool
-    var todayCost: Double; var monthlyCost: Double
-    var totalTokens: Int; var totalCacheHit: Int; var totalRequests: Int
-    var modelV4FlashTokens: Int; var modelV4FlashCost: Double; var modelV4FlashCacheHit: Int; var modelV4FlashCacheMiss: Int
-    var modelV4ProTokens: Int; var modelV4ProCost: Double; var modelV4ProCacheHit: Int; var modelV4ProCacheMiss: Int
-    var dailyItems: [DailyItem]; var lastUpdated: Date; var hasPlatformData: Bool
-    struct DailyItem: Codable {
-        let date: String; var tokens: Int; var cost: Double
-        var flashTokens: Int; var proTokens: Int; var flashCost: Double; var proCost: Double
-    }
-}
-
 // MARK: - Module
 
 @MainActor
@@ -135,8 +31,6 @@ final class DeepSeekModule: TypedModuleContribution {
 
     private let apiBase = "https://api.deepseek.com"
 
-    // P1.13: capabilities injected at init (no UserDefaults.standard, no
-    // URLSession.shared, no direct global secret/cache access via context).
     private let secretStore: ModuleSecretStore?
     private let settings: ModuleSettingsNamespace?
     private let cache: ModuleCacheNamespace?
@@ -164,7 +58,6 @@ final class DeepSeekModule: TypedModuleContribution {
     }
 
     /// Validates an API key by calling the /user/balance endpoint.
-    /// P1.13 bypass #1: uses NetworkCapability (no URLSession.shared).
     static func validateApiKey(_ key: String, network: NetworkCapability) async throws {
         let apiBase = "https://api.deepseek.com"
         let request = NetworkRequest(
@@ -204,8 +97,7 @@ final class DeepSeekModule: TypedModuleContribution {
         switch command {
         case .refresh:
             do {
-                let snap = try await refreshForKernel()
-                // P1.13 bypass #10: publish via bridge, not context.publishSnapshot?+cacheStore.
+                let snap = try await refreshSnapshot()
                 let envelope = ProjectionBuilder.buildEnvelope(from: snap)
                 return DomainTransition(
                     effects: [.publishSnapshot(envelope)],
@@ -299,7 +191,6 @@ final class DeepSeekModule: TypedModuleContribution {
                 trustLevel: .bundled
             ))
         }
-        // P1.13: rotation candidates for balance/cost/tokens.
         if let c = cached, c.totalBalance > 0 {
             candidates.append(StatusCandidate(
                 id: "ds.balance", sourceModule: manifest.id, semanticRole: .rotation,
@@ -325,12 +216,10 @@ final class DeepSeekModule: TypedModuleContribution {
                 context.dispatch(.userAction(actionID: "clearApiKey", payload: nil))
             },
             onRefresh: { [weak self] in
-                // P1.13 bypass #10: dispatch via PanelHostContext instead of direct refresh+cacheStore.
                 context.dispatch(.refresh(reason: .manual))
                 _ = self
             },
             onFetchUsage: { [weak self] in
-                // P1.13 bypass #11: schedule via dispatch (not untracked Task).
                 context.dispatch(.userAction(actionID: "fetchUsage", payload: nil))
                 _ = self
             },
@@ -338,7 +227,6 @@ final class DeepSeekModule: TypedModuleContribution {
                 context.dispatch(.userAction(actionID: "setPlatformCookie", payload: .init(text: cookie)))
             },
             onImportCSV: { [weak self] in
-                // P1.13 bypass #8: fileImport via capability (not NSOpenPanel).
                 Task { @MainActor [weak self] in
                     guard let self, let cap = self.fileImport else { return }
                     if let url = cap.requestImport(allowedTypes: ["csv", "zip"]) {
@@ -351,8 +239,8 @@ final class DeepSeekModule: TypedModuleContribution {
 
     // MARK: - Internals
 
-    /// Kernel-path refresh (P1.13: uses capabilities, no context).
-    private func refreshForKernel() async throws -> ModuleSnapshot {
+    /// Refresh path used by command handling.
+    private func refreshSnapshot() async throws -> ModuleSnapshot {
         lastErrorMessage = nil; cookieExpired = false
 
         let apiKey = secretStore?.secret(for: "deepseek.apiKey") ?? ""
@@ -458,10 +346,9 @@ final class DeepSeekModule: TypedModuleContribution {
         log.info("Store has \(dailies.count, privacy: .public) daily groups, monthly=¥\(String(format: "%.2f", self.store.monthlyCost()), privacy: .public)")
     }
 
-    // MARK: API (P1.13 bypass #2: NetworkCapability)
+    // MARK: API
 
     private func fetchBalance(apiKey: String) async throws -> BalanceResponse {
-        // P1.13 bypass #2: NetworkCapability required (no URLSession.shared).
         guard let network else {
             throw DeepSeekError.networkError("Network capability not available")
         }
@@ -481,8 +368,7 @@ final class DeepSeekModule: TypedModuleContribution {
     private func buildSnapshot() -> ModuleSnapshot {
         guard let c = cached else { return ModuleSnapshot(id: manifest.id, title: "DeepSeek", subtitle: "No data", systemImage: manifest.systemImage) }
         var sigs: [StatusSignal] = []
-        // P1.13 bypass #12: "Account Issue" stays as a signal but is also surfaced
-        // as health.misconfigured in handle(command:).
+        // "Account Issue" stays as a signal and is also surfaced as health.
         if !c.isAvailable { sigs.append(StatusSignal(id: "ds.unav", title: "Account Issue", message: "Account unavailable.", systemImage: "exclamationmark.triangle", severity: .warning, priority: 90)) }
         if cookieExpired { sigs.append(StatusSignal(id: "ds.cookie", title: "Session Expired", message: "Re-login needed.", systemImage: "person.badge.key", severity: .warning, priority: 80)) }
         return ModuleSnapshot(id: manifest.id, title: String(format: "¥%.2f", c.totalBalance),
@@ -491,7 +377,6 @@ final class DeepSeekModule: TypedModuleContribution {
             metrics: ["totalBalance": c.totalBalance, "todayCost": c.todayCost, "monthlyCost": c.monthlyCost])
     }
 
-    // P1.13 bypass #5: persist via ModuleCacheNamespace, not UserDefaults.
     private func persistCache() {
         guard let c = cached, let data = try? JSONEncoder().encode(c) else { return }
         cache?.saveDomainState(data)

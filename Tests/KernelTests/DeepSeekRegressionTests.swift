@@ -5,9 +5,8 @@ import Testing
 @MainActor
 struct DeepSeekRegressionTests {
     @Test func deepSeekModuleNoLongerTouchesUserDefaultsStandard() {
-        // P1.13 regression guard: DeepSeekModule must not hold a `defaults`
-        // property backed by UserDefaults.standard. The module's settings/cache
-        // must go through ModuleSettingsNamespace / ModuleCacheNamespace.
+        // DeepSeekModule must not hold a `defaults` property backed by
+        // UserDefaults.standard. Settings/cache must go through capabilities.
         //
         // This test creates a DeepSeekModule with nil capabilities and verifies
         // it doesn't crash (proving it doesn't require UserDefaults.standard).
@@ -27,10 +26,8 @@ struct DeepSeekRegressionTests {
     }
 
     @Test func deepSeekModuleUsesNetworkCapabilityForBalance() async {
-        // P1.13 bypass #2: fetchBalance must use NetworkCapability, not
-        // URLSession.shared. We can't easily test the actual network call,
-        // but we can verify the module compiles and initializes correctly
-        // with a NetworkCapability injected.
+        // Balance fetches must use NetworkCapability, not URLSession.shared.
+        // This verifies the module initializes with an injected capability.
         let network = NetworkCapability()
         let module = DeepSeekModule(
             secretStore: nil,

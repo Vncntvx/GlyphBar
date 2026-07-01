@@ -282,7 +282,7 @@ defer { try? FileManager.default.removeItem(at: root) }
 
 ## DeepSeek 回归测试
 
-`DeepSeekRegressionTests` 是 P1.13 的反回归守卫：
+`DeepSeekRegressionTests` 是 DeepSeek 模块能力注入和 command 流的反回归守卫：
 
 - **不再直接访问 `UserDefaults.standard`**：DeepSeek 必须使用 `ModuleSettingsNamespace`
 - **secret 只走 `ModuleSecretStore`**：没有明文 secret store 或 UserDefaults fallback

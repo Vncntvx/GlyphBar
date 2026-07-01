@@ -2,8 +2,6 @@ import Foundation
 
 typealias ModuleID = String
 
-// `Severity` moved to `GlyphBar/Kernel/Contracts/Severity.swift` (P1.2).
-
 enum ModuleCapability: String, Codable, CaseIterable, Sendable {
     case statusItem
     case panel

@@ -3,9 +3,6 @@ import Foundation
 
 /// Drains `Effect` values produced by modules. This is the unified
 /// side-effect exit point — all module effects flow through here.
-///
-/// P1 keeps the executor minimal — each effect maps to one side-effect.
-/// P2 may add batching, deduplication, and rate limiting.
 @MainActor
 final class EffectExecutor {
     private let widgetBridge: WidgetDataBridge

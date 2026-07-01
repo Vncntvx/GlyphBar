@@ -1,10 +1,10 @@
 import Foundation
 
 /// One candidate for the status bar slot, produced by a module. The arbiter
-/// (P1.6) picks a winner from the candidate pool each tick.
+/// picks a winner from the candidate pool each tick.
 struct StatusCandidate: Sendable, Identifiable {
     let id: String                 // deduplication key
-    let sourceModule: String       // P1 uses ModuleID
+    let sourceModule: String
     let semanticRole: SemanticRole
     let severity: Severity
     let priority: Int              // 0...1000

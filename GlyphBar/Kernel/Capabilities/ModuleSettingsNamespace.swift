@@ -15,7 +15,7 @@ final class ModuleSettingsNamespace: Capability {
         self.defaults = defaults
     }
 
-    /// String-typed convenience accessor (most common case for legacy bridges).
+    /// String-typed convenience accessor for simple module settings.
     subscript(rawKey: String) -> String? {
         get { defaults.string(forKey: key(for: rawKey)) }
         set {

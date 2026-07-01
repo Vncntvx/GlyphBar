@@ -14,9 +14,6 @@ final class NetworkMockModule: TypedModuleContribution {
     private var failureCount = 0
     private var useMockMode = false
 
-    // P1.13: NWPathMonitor is a built-in module privilege (team-lead approved).
-    // No UserDefaults.standard; state is ephemeral.
-
     init() {
         monitor.pathUpdateHandler = { [weak self] path in
             Task { @MainActor in

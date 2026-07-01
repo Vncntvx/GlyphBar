@@ -56,7 +56,6 @@ struct LoginWebView: NSViewRepresentable {
                     log.info("localStorage keys: \(dict.keys.sorted().joined(separator: ", "), privacy: .public)")
                     for key in ["userToken","token","authToken","accessToken","access_token","jwt","auth_token","session_token"] {
                         guard let raw = dict[key] else { continue }
-                        // P1.13 bypass #3: store rawUserToken in coordinator, not UserDefaults.
                         if key == "userToken" {
                             self.rawUserToken = raw
                             self.onRawTokenCaptured?(raw)
@@ -95,7 +94,6 @@ struct LoginWebView: NSViewRepresentable {
                 var parts: [String] = []
                 if let t = token { parts.append("authToken=\(t)"); log.info("Captured authToken") }
                 else { log.info("No auth token - capturing cookies only") }
-                // P1.13 bypass #3/#4: rawUserToken passed via callback, not UserDefaults.standard.
                 if let rawToken = self.rawUserToken {
                     parts.append("rawUserToken=\(rawToken)")
                 }

@@ -2,12 +2,8 @@ import AppKit
 
 /// Renders a `PresentationDecision` to the menu bar status item.
 ///
-/// Replaces the inline rendering that lived inside `StatusItemController` (P1.0).
 /// The controller now owns a `PresentationArbiter` (decides what to show) and a
 /// `StatusItemRenderer` (writes the decision to the NSStatusItem button).
-///
-/// P1 keeps the rendering minimal — title + image + tooltip + accessibility.
-/// P2 may add rich content (menu bar widgets, live activities).
 @MainActor
 final class StatusItemRenderer {
     private let statusItem: NSStatusItem

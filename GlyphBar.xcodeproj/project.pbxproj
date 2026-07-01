@@ -168,6 +168,7 @@
 		B94DB6EE354A4474B852E892 /* KernelTests/ModuleHarnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD42FB1BA3B364D5396E9E60 /* KernelTests/ModuleHarnessTests.swift */; };
 		BB99AAEC2189C4DB3B982854 /* KernelTests/CapabilityEnforcementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC3366CA770C64F778B2DDC3 /* KernelTests/CapabilityEnforcementTests.swift */; };
 		B873307FDD9D541528EE3CD0 /* ModuleTests/ClockCounterCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0787BFE3B0C94F91BFC64AA /* ModuleTests/ClockCounterCommandTests.swift */; };
+		BE5378B1A8D55427D986B38D /* Modules/DeepSeekModule/UsageRecordStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E66A076CB0B4305B6F0684 /* Modules/DeepSeekModule/UsageRecordStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -361,6 +362,7 @@
 		AD42FB1BA3B364D5396E9E60 /* KernelTests/ModuleHarnessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KernelTests/ModuleHarnessTests.swift; sourceTree = "<group>"; };
 		AC3366CA770C64F778B2DDC3 /* KernelTests/CapabilityEnforcementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KernelTests/CapabilityEnforcementTests.swift; sourceTree = "<group>"; };
 		A0787BFE3B0C94F91BFC64AA /* ModuleTests/ClockCounterCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/ClockCounterCommandTests.swift; sourceTree = "<group>"; };
+		A0E66A076CB0B4305B6F0684 /* Modules/DeepSeekModule/UsageRecordStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/UsageRecordStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -514,6 +516,7 @@
 				A99DB91499E99424FAC2F40E /* Modules/DeepSeekModule/DeepSeekModule.swift */,
 				A877ACBB40B714CAFBC4398F /* Modules/DeepSeekModule/UsageExportService.swift */,
 				AE6CAC4233ED648FF99E0E4C /* Modules/DeepSeekModule/UsageCSVParser.swift */,
+				A0E66A076CB0B4305B6F0684 /* Modules/DeepSeekModule/UsageRecordStore.swift */,
 				AB40D0A29C4B64E53A58ECBA /* Modules/DeepSeekModule/LoginWebView.swift */,
 				A0000000000000000000011C /* Modules/SystemPulseModule/SystemPulseModule.swift */,
 				A0000000000000000000011D /* Modules/NotesQuickModule/NotesQuickModule.swift */,
@@ -810,6 +813,7 @@
 				BD629F6CC3FDA441DA9768FF /* Modules/DeepSeekModule/DeepSeekModule.swift in Sources */,
 				BA037834C051D44CFB213F9F /* Modules/DeepSeekModule/UsageExportService.swift in Sources */,
 				B2E63DE050D64432E811F3D8 /* Modules/DeepSeekModule/UsageCSVParser.swift in Sources */,
+				BE5378B1A8D55427D986B38D /* Modules/DeepSeekModule/UsageRecordStore.swift in Sources */,
 				B2CEFB3A8DAF5437EA078FAF /* Modules/DeepSeekModule/LoginWebView.swift in Sources */,
 				B0000000000000000000011C /* Modules/SystemPulseModule/SystemPulseModule.swift in Sources */,
 				B0000000000000000000011D /* Modules/NotesQuickModule/NotesQuickModule.swift in Sources */,

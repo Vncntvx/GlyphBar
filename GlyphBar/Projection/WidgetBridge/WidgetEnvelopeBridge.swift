@@ -8,9 +8,8 @@ import WidgetKit
 /// `GlyphBar/Kernel/` and `GlyphBar/Projection/`, which are not compiled into
 /// the widget extension target.
 ///
-/// P1.12 introduces this so `EffectExecutor` can publish `SnapshotEnvelope`
-/// values directly (via `Effect.publishSnapshot`), without first converting
-/// back to the legacy `ModuleSnapshot` shape.
+/// Lets `EffectExecutor` publish `SnapshotEnvelope` values directly via
+/// `Effect.publishSnapshot`.
 extension WidgetDataBridge {
     /// Publishes an envelope's widget projection to the app group container
     /// and triggers `WidgetCenter.shared.reloadAllTimelines()`.

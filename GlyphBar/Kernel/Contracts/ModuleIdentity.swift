@@ -12,7 +12,6 @@ struct ModuleTypeID: Hashable, Sendable, Codable {
 }
 
 /// Unique identifier for a module instance (e.g. "deepseek.default", "deepseek.work").
-/// P3 introduces the type→instance split; existing modules default to instance=type.
 struct ModuleInstanceID: Hashable, Sendable, Codable {
     let value: String
 
@@ -21,11 +20,11 @@ struct ModuleInstanceID: Hashable, Sendable, Codable {
         ModuleInstanceID(value: "\(typeID.value).default")
     }
 
-    /// P3 transition: treat bare module IDs as default instances.
-    static func legacy(_ id: ModuleID) -> ModuleInstanceID {
+    /// Create an instance ID from the module ID used by the current runtime.
+    static func fromModuleID(_ id: ModuleID) -> ModuleInstanceID {
         ModuleInstanceID(value: id)
     }
 
-    /// The bare module ID string (for bridging to P1/P2 APIs).
+    /// The module ID string used by the current runtime.
     var moduleID: ModuleID { value }
 }

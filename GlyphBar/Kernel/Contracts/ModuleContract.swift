@@ -1,9 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// The kernel-level contract every module must satisfy. P1 modules still
-/// conform to the legacy `StatusModule` protocol; P1.13 migrates them to
-/// `ModuleContract` / `TypedModuleContribution`.
+/// The kernel-level contract every module must satisfy.
 @MainActor
 protocol ModuleContract: AnyObject {
     var manifest: ModuleManifest { get }

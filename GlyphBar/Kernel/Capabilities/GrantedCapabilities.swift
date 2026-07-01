@@ -4,8 +4,7 @@ import Foundation
 ///
 /// `bridge` is always present (modules need it to submit effects). All other
 /// capabilities are optional — the kernel grants them based on the module's
-/// declared manifest. P1 uses simple optional fields; P2 may switch to a
-/// type-erased dictionary if modules can declare custom capabilities.
+/// declared manifest and permission state.
 @MainActor
 struct GrantedCapabilities {
     let secretStore: ModuleSecretStore?

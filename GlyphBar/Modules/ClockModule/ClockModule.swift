@@ -7,7 +7,6 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
     private var showSeconds: Bool
     private var worldTimezones: [String]
 
-    // P1.13: settings via capability (no UserDefaults.standard).
     private let settings: ModuleSettingsNamespace?
 
     private static let availableTimezones: [(id: String, label: String)] = [
@@ -197,8 +196,7 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
     }
 
     func panelContent(context: PanelHostContext) -> some View {
-        // P1.13 mechanism D: Binding(set:) dispatches Command instead of
-        // Task { refresh; cacheStore.save }.
+        // Binding setters dispatch commands; module state remains behind handle(command:).
         ClockPanel(
             snapshot: buildSnapshot(),
             uses24HourClock: Binding(

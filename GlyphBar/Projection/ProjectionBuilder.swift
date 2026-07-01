@@ -1,8 +1,6 @@
 import Foundation
 
-/// Builds `ProjectionSet` / `SnapshotEnvelope` from the legacy `ModuleSnapshot`
-/// shape. P1.13 replaces this with per-module `buildProjection()` methods on
-/// `ModuleContract`; this enum is the bridge.
+/// Builds `ProjectionSet` / `SnapshotEnvelope` from a `ModuleSnapshot`.
 @MainActor
 enum ProjectionBuilder {
     static func build(from snapshot: ModuleSnapshot, health: ModuleHealth = .healthy) -> ProjectionSet {
@@ -97,8 +95,7 @@ enum ProjectionBuilder {
     }
 
     /// Reconstructs a `ModuleSnapshot` from a `SnapshotEnvelope`.
-    /// Used by `ModuleRuntime` to maintain the legacy `snapshots` dictionary
-    /// and `CacheStore`/`WidgetDataBridge` paths during the transition.
+    /// Used by `ModuleRuntime` to maintain the current snapshot cache.
     static func buildSnapshot(from envelope: SnapshotEnvelope) -> ModuleSnapshot {
         let projections = envelope.projections
         let metrics: [String: Double] = Dictionary(

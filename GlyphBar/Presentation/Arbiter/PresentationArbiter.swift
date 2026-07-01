@@ -3,7 +3,6 @@ import Foundation
 /// Status-bar arbiter. Consumes `StatusCandidate` pools from all modules and
 /// produces a single `PresentationDecision` per tick.
 ///
-/// P1 behaviour is equivalent to the legacy `StatusComposer`:
 ///   1. De-duplicate by `id`.
 ///   2. Filter expired (TTL) candidates.
 ///   3. Sort by severity (desc) → priority (desc) → trustLevel (desc) → createdAt (asc).
@@ -12,8 +11,6 @@ import Foundation
 ///   5. `preempt` interrupts immediately; `persistent` can't be preempted by
 ///      lower-severity candidates.
 ///
-/// Hysteresis and TTL were added in P1.6; the legacy `StatusComposer`
-/// behaviour is preserved as the baseline.
 @MainActor
 final class PresentationArbiter {
     private(set) var currentDecision: PresentationDecision

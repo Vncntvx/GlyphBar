@@ -6,7 +6,7 @@ import Testing
 
 @MainActor
 struct IngestionAPITests {
-    @Test func ingestionAPIPublishesSnapshotToKernel() {
+    @Test func ingestionAPIPublishesSnapshotToSubscribers() {
         let api = IngestionAPI()
         var receivedEvent: IngestionEvent?
 

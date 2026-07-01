@@ -156,8 +156,8 @@ struct ModuleIdentityTests {
         #expect(instanceID.value == "deepseek.default")
     }
 
-    @Test func legacyBridgesModuleID() {
-        let instanceID = ModuleInstanceID.legacy("clock")
+    @Test func instanceIDCanExposeRuntimeModuleID() {
+        let instanceID = ModuleInstanceID.fromModuleID("clock")
         #expect(instanceID.moduleID == "clock")
     }
 }

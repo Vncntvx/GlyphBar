@@ -3,9 +3,8 @@ import Foundation
 /// Strong-typed projection set. Each module produces one `ProjectionSet` per
 /// refresh; the kernel wraps it in a `SnapshotEnvelope` for publication.
 ///
-/// P1 uses optional struct fields (not `[any Projection]`) so the compiler
-/// enforces the schema. P3 may add a `custom: [String: AnySendable]` escape
-/// hatch for third-party modules.
+/// Uses optional struct fields rather than `[any Projection]` so the compiler
+/// enforces the projection schema.
 struct ProjectionSet: Sendable {
     var summary: SummaryProjection?
     var metrics: MetricsProjection?

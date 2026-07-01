@@ -1,7 +1,6 @@
 import Foundation
 
 /// Clock-driven refresh scheduler with environment awareness.
-/// Replaces the legacy `RefreshScheduler` (which was just a backoff state machine).
 ///
 /// The scheduler registers modules with their refresh policies, then uses
 /// a `SchedulerClock` to fire `Command.refresh(.scheduled)` at the right time.

@@ -340,7 +340,6 @@ private struct ModuleManagementDetailView: View {
             exportRow
         }
         .sheet(isPresented: $showLoginSheet) {
-            // P1.13 bypass #6: cookie via Keychain (ModuleSecretStore), not UserDefaults.
             LoginSheet(
                 onLogin: { cookie in
                     runtime.dispatch(
@@ -367,7 +366,6 @@ private struct ModuleManagementDetailView: View {
 
     private func refreshState() {
         hasApiKey = secretStore.secret(for: apiKeyName)?.isEmpty == false
-        // ModuleSecretStore migrates any legacy plaintext value on read.
         hasCookie = secretStore.secret(for: cookieKey)?.isEmpty == false
     }
 
@@ -376,7 +374,6 @@ private struct ModuleManagementDetailView: View {
         keyValidationError = nil
         Task {
             do {
-                // P1.13 bypass #1: use NetworkCapability (no URLSession.shared in modules).
                 try await DeepSeekModule.validateApiKey(key, network: NetworkCapability())
                 await MainActor.run {
                     runtime.dispatch(
@@ -399,7 +396,6 @@ private struct ModuleManagementDetailView: View {
 
     private func triggerExport() {
         Task {
-            // P1.13 bypass: UsageExportService uses capabilities, not UserDefaults.
             let svc = UsageExportService(secretStore: secretStore)
             do {
                 let items = try await svc.export()
@@ -409,7 +405,6 @@ private struct ModuleManagementDetailView: View {
                     moduleID: "deepseek"
                 )
                 await MainActor.run {
-                    // P1.13 bypass #7: exports now go to temp directory.
                     let dir = FileManager.default.temporaryDirectory.appending(path: "GlyphBarExports")
                     let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path(percentEncoded: false)))?.filter { !$0.hasPrefix(".") } ?? []
                     let latest = files.sorted().last ?? "?"

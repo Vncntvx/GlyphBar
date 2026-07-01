@@ -5,10 +5,6 @@ import SwiftUI
 final class SystemPulseModule: TypedModuleContribution {
     private var previousCPUTicks: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)?
 
-    // P1.13: SystemMetricsCapability injected; no direct mach/ProcessInfo calls
-    // outside the capability. Thermal state still read via ProcessInfo
-    // (built-in module privilege — team-lead approved; SystemMetricsCapability
-    // does not expose thermal in P1).
     private let systemMetrics: SystemMetricsCapability?
 
     init(systemMetrics: SystemMetricsCapability? = nil) {

@@ -14,9 +14,6 @@ enum CapabilityKey: String, Sendable, CaseIterable, Codable {
 }
 
 /// Marker protocol for capability implementations.
-///
-/// P1 only: all capabilities are `@MainActor final class`. P2 may introduce
-/// actor-backed capabilities; the protocol will still hold.
 @MainActor
 protocol Capability: AnyObject {
     static var declaredKey: CapabilityKey { get }
