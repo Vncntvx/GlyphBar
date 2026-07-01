@@ -65,6 +65,7 @@
 		B00000000000000000000403 /* CoreTests/RefreshSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */; };
 		B00000000000000000000404 /* CoreTests/WidgetDataBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */; };
 		B00000000000000000000405 /* ModuleTests/TemplateModuleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */; };
+		B00000000000000000000406 /* ModuleTests/NotesQuickModuleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000306 /* ModuleTests/NotesQuickModuleTests.swift */; };
 		B52A7A82D25D74065B4B38EF /* CoreTests/SettingsOverhaulTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */; };
 		B7F3C91DA4820E15D6E5B2RK /* CoreTests/QuickPanelCoordinatorAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D8E74FB1953F60C1A06D3K /* CoreTests/QuickPanelCoordinatorAPITests.swift */; };
 		BC0AE133EBDB04F6ABBAB2E4 /* App/Settings/ColorSchemeOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADD4D73C767BE42D281E3397 /* App/Settings/ColorSchemeOption.swift */; };
@@ -253,7 +254,8 @@
 		A00000000000000000000302 /* CoreTests/DeepLinkRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/DeepLinkRouterTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/RefreshSchedulerTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/WidgetDataBridgeTests.swift; sourceTree = "<group>"; };
-		A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/TemplateModuleTests.swift; sourceTree = "<group>"; };
+			A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/TemplateModuleTests.swift; sourceTree = "<group>"; };
+			A00000000000000000000306 /* ModuleTests/NotesQuickModuleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/NotesQuickModuleTests.swift; sourceTree = "<group>"; };
 		A954C75C90E434E97B5189D0 /* CoreTests/SettingsOverhaulTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/SettingsOverhaulTests.swift; sourceTree = "<group>"; };
 		A2D8E74FB1953F60C1A06D3K /* CoreTests/QuickPanelCoordinatorAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests/QuickPanelCoordinatorAPITests.swift; sourceTree = "<group>"; };
 		ADD4D73C767BE42D281E3397 /* App/Settings/ColorSchemeOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/ColorSchemeOption.swift; sourceTree = "<group>"; };
@@ -567,9 +569,10 @@
 				A2D8E74FB1953F60C1A06D3K /* CoreTests/QuickPanelCoordinatorAPITests.swift */,
 				A00000000000000000000303 /* CoreTests/RefreshSchedulerTests.swift */,
 				A00000000000000000000304 /* CoreTests/WidgetDataBridgeTests.swift */,
-				A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */,
-			);
-			path = Tests;
+					A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */,
+					A00000000000000000000306 /* ModuleTests/NotesQuickModuleTests.swift */,
+				);
+				path = Tests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -857,11 +860,12 @@
 				B7F3C91DA4820E15D6E5B2RK /* CoreTests/QuickPanelCoordinatorAPITests.swift in Sources */,
 				B00000000000000000000403 /* CoreTests/RefreshSchedulerTests.swift in Sources */,
 				B00000000000000000000404 /* CoreTests/WidgetDataBridgeTests.swift in Sources */,
-				B00000000000000000000405 /* ModuleTests/TemplateModuleTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXSourcesBuildPhase section */
+					B00000000000000000000405 /* ModuleTests/TemplateModuleTests.swift in Sources */,
+					B00000000000000000000406 /* ModuleTests/NotesQuickModuleTests.swift in Sources */,
+				);
+				runOnlyForDeploymentPostprocessing = 0;
+			};
+		/* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
 		A0000000000000000000002A /* PBXTargetDependency */ = {

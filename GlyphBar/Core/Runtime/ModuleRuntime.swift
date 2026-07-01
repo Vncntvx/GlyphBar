@@ -157,6 +157,13 @@ final class ModuleRuntime {
         supervisor.dispatch(.userAction(actionID: action.id, payload: nil), for: moduleID)
     }
 
+    /// Dispatch a command with payload through the supervisor.
+    /// Use this when the caller already has a `Command` with payload data
+    /// (e.g. panel interactions that carry user input).
+    func dispatch(command: Command, moduleID: ModuleID) {
+        supervisor.dispatch(command, for: moduleID)
+    }
+
     func setSelectedModule(_ moduleID: ModuleID?) {
         selectedModuleID = moduleID
     }

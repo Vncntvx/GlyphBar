@@ -22,6 +22,10 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild -list -
 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild -project GlyphBar.xcodeproj -scheme GlyphBar -destination 'platform=macOS' test CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
 ```
 
+## UI Design Principles
+
+Prefer macOS native SwiftUI components over custom-drawn UI. Use `List` + `Section` instead of `ScrollView` + custom cards; `Toggle(.checkbox)` instead of hand-drawn checkmarks; `.contextMenu` instead of inline icon button groups; `.searchable` instead of custom search bars; system semantic colors (`.primary`, `.secondary`, `.accentColor`) instead of hardcoded tints. Native components automatically adapt to light/dark mode, accessibility, and keyboard navigation — custom components must replicate all of this manually. Only use `DesignSystem/` components (`GlyphCard`, `GlyphSurface`, etc.) when no native equivalent exists for the specific use case.
+
 ## Coding Style & Naming Conventions
 
 Use standard Swift formatting with 4-space indentation. Prefer `final` for concrete reference types, `@MainActor` for UI-facing coordinators, and dependency injection through `ModuleContext`. Keep modules isolated behind `StatusModule`; modules must return snapshots, signals, and events rather than directly changing status bar UI. Use descriptive type names such as `ClockModule`, `StatusBarController`, and `WidgetDataBridge`.

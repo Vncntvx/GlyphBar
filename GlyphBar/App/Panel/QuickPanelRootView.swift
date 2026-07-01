@@ -394,9 +394,12 @@ private struct ModulePanelHost: View {
             switch command {
             case .refresh:
                 Task { await runtime.refresh(moduleID: contribution.manifest.id) }
-            case .userAction(let actionID, _):
-                let action = ModuleAction(id: actionID, title: actionID, systemImage: "")
-                Task { try? await runtime.dispatch(action: action, moduleID: contribution.manifest.id) }
+            case .userAction(let actionID, let payload):
+                // Preserve payload — panel interactions carry user input (note text, UUIDs, etc.)
+                runtime.dispatch(
+                    command: .userAction(actionID: actionID, payload: payload),
+                    moduleID: contribution.manifest.id
+                )
             default:
                 break
             }

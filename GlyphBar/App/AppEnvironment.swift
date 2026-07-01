@@ -102,7 +102,7 @@ final class AppEnvironment {
                 manifest: NotesQuickModule.staticManifest,
                 bridge: KernelBridge { _ in }
             )
-            return NotesQuickModule(settings: caps.settings, cache: caps.cache)
+            return NotesQuickModule(cache: caps.cache)
         }
         registry.register {
             let caps = capabilityFactory.makeCapabilities(

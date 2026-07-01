@@ -123,7 +123,7 @@ DeepSeek 是 P1 迁移的重点模块。旧版本直接使用 `URLSession.shared
 
 ## NotesQuickModule
 
-**功能**：快速备忘录，支持文本编辑和持久化存储。
+**功能**：快速备忘录，支持文本记录、置顶、内联编辑和剪贴板复制。
 
 | 属性 | 值 |
 |------|-----|
@@ -137,11 +137,37 @@ DeepSeek 是 P1 迁移的重点模块。旧版本直接使用 `URLSession.shared
 
 | 动作 ID | 标题 | 功能 |
 |---------|------|------|
-| `copyNote` | Copy Note | 复制备忘内容到剪贴板 |
+| `addNote` | Add Note | 添加新笔记 |
+| `copyNote` | Copy Note | 复制笔记内容到剪贴板 |
+| `clearCompleted` | Clear Done | 清除所有已完成笔记 |
+
+### Command 词汇
+
+| 动作 ID | Payload | 功能 |
+|---------|---------|------|
+| `addNote` | `text: 笔记文本` | 添加新笔记 |
+| `editNote` | `text: UUID, data: [title, content]` | 编辑笔记内容 |
+| `toggleComplete` | `text: UUID` | 切换完成状态 |
+| `togglePin` | `text: UUID` | 切换置顶 |
+| `deleteNote` | `text: UUID` | 删除笔记 |
+| `copyNote` | `text: UUID` | 复制到剪贴板（`.copyToClipboard` Effect） |
+| `clearCompleted` | 无 | 清除已完成 |
+
+所有面板操作通过 `PanelHostContext.dispatch(.userAction)` 走 Command/Effect 管线。
+
+### 面板交互
+
+- **List + Section** 原生列表，置顶/最近/已完成三个分组
+- **Toggle(.checkbox)** 原生复选框切换完成状态
+- **.contextMenu** 右键菜单提供置顶、复制、编辑、删除
+- **.searchable** 系统搜索栏
+- 内联编辑：点击行或右键"Edit"进入编辑态
+- 完成笔记整体 opacity 降低 + 删除线
 
 ### 存储方式
 
-- 备忘文本：`ModuleCacheNamespace` 域状态持久化
+- 备忘数据：`ModuleCacheNamespace` 域状态持久化（App Group UserDefaults）
+- 数据格式：`[Note]` Codable JSON，支持从 v1.1.0 自动迁移（`text → title`，`content = ""`）
 
 ---
 
