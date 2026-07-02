@@ -90,7 +90,6 @@ enum EffectCapabilityPolicy {
         case .requestFileImport: return .requestFileImport
         case .requestRefresh: return .requestRefresh
         case .scheduleLocal: return .scheduleLocal
-        case .networkRequest: return .showNotice // networkRequest is deprecated
         }
     }
 

@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import UniformTypeIdentifiers
 
 /// Drains `Effect` values produced by modules. This is the unified
 /// side-effect exit point — all module effects flow through here.
@@ -71,8 +72,8 @@ final class EffectExecutor {
             openSettingsAction?()
             NSApp.activate()
 
-        case .requestFileImport(let allowedTypes):
-            logger.runtime("EffectExecutor: requestFileImport(\(allowedTypes)) for \(moduleID) (capability wiring pending)")
+        case .requestFileImport(let request):
+            presentFileImport(request: request, for: moduleID)
 
         case .requestRefresh(let reason):
             if let requestRefreshAction {
@@ -88,8 +89,34 @@ final class EffectExecutor {
                 logger.runtime("EffectExecutor: scheduleLocal(\(delay)) for \(moduleID) has no runtime handler")
             }
 
-        case .networkRequest:
-            logger.warning("EffectExecutor: networkRequest effect is deprecated — use NetworkCapability instead (module \(moduleID))")
+    }
+    }
+
+    // MARK: - File Import
+
+    /// Closure called when a file import completes or is cancelled.
+    /// The runtime sets this to dispatch the result back to the module
+    /// via `Command.externalEvent`.
+    var onFileImportResult: ((ModuleID, UUID, URL?) -> Void)?
+
+    private func presentFileImport(request: FileImportRequest, for moduleID: ModuleID) {
+        Task { @MainActor in
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = request.allowedTypes.compactMap {
+                UTType(filenameExtension: $0)
+            }
+            panel.allowsMultipleSelection = false
+            panel.canChooseDirectories = request.allowDirectories
+            panel.canChooseFiles = !request.allowDirectories || true
+
+            let result: URL?
+            if panel.runModal() == .OK {
+                result = panel.url
+            } else {
+                result = nil
+            }
+
+            onFileImportResult?(moduleID, request.requestID, result)
         }
     }
 

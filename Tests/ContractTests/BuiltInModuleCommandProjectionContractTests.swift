@@ -40,7 +40,7 @@ struct ModuleHandleCommandContractTests {
         let hasSideEffects = transition.effects.contains { effect in
             switch effect {
             case .copyToClipboard, .openURL, .openModuleSettings,
-                 .requestFileImport, .networkRequest, .persistDomainState:
+                 .requestFileImport, .persistDomainState:
                 return true
             default:
                 return false

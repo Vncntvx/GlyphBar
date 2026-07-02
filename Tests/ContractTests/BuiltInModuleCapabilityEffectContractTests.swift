@@ -163,22 +163,19 @@ struct EffectContractTests {
             .openURL(URL(string: "https://example.com")!),
             .showNotice("notice"),
             .openModuleSettings,
-            .requestFileImport(allowedTypes: ["csv"]),
+            .requestFileImport(FileImportRequest(allowedTypes: ["csv"])),
             .requestRefresh(reason: .manual),
             .scheduleLocal(.refresh(reason: .scheduled), after: 5),
-            .networkRequest(NetworkRequest(url: URL(string: "https://example.com")!)),
         ]
     }
 
-    @Test func networkRequestCarriesAllFields() {
-        let request = NetworkRequest(
-            url: URL(string: "https://api.example.com/v1")!,
-            method: "POST",
-            headers: ["Authorization": "Bearer token"],
-            body: Data("payload".utf8)
+    @Test func fileImportRequestCarriesIDAndTypes() {
+        let request = FileImportRequest(
+            allowedTypes: ["csv", "zip"],
+            allowDirectories: true
         )
-        #expect(request.method == "POST")
-        #expect(request.headers["Authorization"] != nil)
-        #expect(request.body != nil)
+        #expect(request.allowedTypes == ["csv", "zip"])
+        #expect(request.allowDirectories == true)
+        #expect(request.requestID != UUID())
     }
 }

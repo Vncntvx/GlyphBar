@@ -102,6 +102,14 @@ final class DeepSeekModule: TypedModuleContribution {
                 secretStore?.setSecret(nil, for: "deepseek.platformCookie")
                 secretStore?.setSecret(nil, for: "deepseek.rawUserToken")
                 cookieExpired = false
+            case "requestCSVImport":
+                // Request the runtime to present a file chooser.
+                // The result arrives via .externalEvent(.fileImportCompleted).
+                return DomainTransition(
+                    effects: [.requestFileImport(FileImportRequest(allowedTypes: ["csv", "zip"]))],
+                    health: .healthy,
+                    refreshProjection: false
+                )
             case "importUsageItems":
                 guard let data = payload?.data,
                       let items = try? JSONDecoder().decode([ParsedUsageItem].self, from: data) else {
@@ -119,13 +127,18 @@ final class DeepSeekModule: TypedModuleContribution {
                 health: .healthy,
                 refreshProjection: true
             )
-        case .importData(let url):
-            importCSV(url: url)
-            return DomainTransition(
-                effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
-                health: .healthy,
-                refreshProjection: true
-            )
+        case .externalEvent(let event):
+            switch event {
+            case .fileImportCompleted(_, let url):
+                importCSV(url: url)
+                return DomainTransition(
+                    effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: buildSnapshot()))],
+                    health: .healthy,
+                    refreshProjection: true
+                )
+            case .fileImportCancelled:
+                return .empty
+            }
         default:
             return .empty
         }
@@ -188,13 +201,8 @@ final class DeepSeekModule: TypedModuleContribution {
             onSetCookie: { cookie in
                 context.dispatch(.userAction(actionID: "setPlatformCookie", payload: .init(text: cookie)))
             },
-            onImportCSV: { [weak self] in
-                Task { @MainActor [weak self] in
-                    guard let self, let cap = self.fileImport else { return }
-                    if let url = cap.requestImport(allowedTypes: ["csv", "zip"]) {
-                        context.dispatch(.importData(url))
-                    }
-                }
+            onImportCSV: {
+                context.dispatch(.userAction(actionID: "requestCSVImport", payload: nil))
             }
         )
     }

@@ -75,6 +75,18 @@ final class ModuleRuntime {
             self?.scheduleLocal(command, for: moduleID, after: delay)
         }
 
+        // Wire file import results back to modules via externalEvent.
+        effectExecutor.onFileImportResult = { [weak self] moduleID, requestID, url in
+            guard let self else { return }
+            let event: ExternalEvent
+            if let url {
+                event = .fileImportCompleted(requestID: requestID, url: url)
+            } else {
+                event = .fileImportCancelled(requestID: requestID)
+            }
+            self.supervisor.dispatch(.externalEvent(event), for: moduleID)
+        }
+
         // Wire supervisor to the unified effect executor.
         // Pass granted permissions so EffectExecutor can enforce the
         // Effect → Capability policy.
