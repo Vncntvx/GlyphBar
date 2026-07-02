@@ -1,6 +1,5 @@
 import AppKit
 import Foundation
-import Observation
 
 /// The single owner of the menu bar status item and its interaction model.
 ///
@@ -31,25 +30,25 @@ import Observation
 /// interface callbacks.
 @MainActor
 final class StatusItemController: NSObject {
-    private let runtime: ModuleRuntime
-    private let settingsStore: AppSettingsStore
-    private let panelCoordinator: QuickPanelCoordinator
-    private let menuCoordinator: AppMenuCoordinator
-    private let logger: GlyphLogger
+    let runtime: ModuleRuntime
+    let settingsStore: AppSettingsStore
+    let panelCoordinator: QuickPanelCoordinator
+    let menuCoordinator: AppMenuCoordinator
+    let logger: GlyphLogger
     // P1.14: arbiter + renderer replace composer + rotationEngine.
-    private let arbiter = PresentationArbiter(fallback: PresentationDecision(
+    let arbiter = PresentationArbiter(fallback: PresentationDecision(
         title: "GlyphBar",
         systemImage: "sparkles",
         severity: .normal,
         tooltip: "GlyphBar"
     ))
-    private let renderer: StatusItemRenderer
-    private let presentationTicker = PresentationTicker()
-    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    private var renderTask: Task<Void, Never>?
-    private var isPresentingContextMenu = false
-    private var isEndingExpandedSession = false
-    private var secondaryClickRecognizer: NSClickGestureRecognizer?
+    let renderer: StatusItemRenderer
+    let presentationTicker = PresentationTicker()
+    let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    var renderTask: Task<Void, Never>?
+    var isPresentingContextMenu = false
+    var isEndingExpandedSession = false
+    var secondaryClickRecognizer: NSClickGestureRecognizer?
 
     init(
         runtime: ModuleRuntime,
@@ -77,314 +76,5 @@ final class StatusItemController: NSObject {
         submitCandidatesToArbiter()
         updateRotationTimer()
         render()
-    }
-
-    // MARK: - Appearance (every OS)
-
-    private func configureAppearance() {
-        guard let button = statusItem.button else {
-            return
-        }
-        button.imagePosition = .imageLeft
-        button.toolTip = "GlyphBar"
-        // No static menu: a bound menu would make the system manage the item as
-        // a menu and suppress macOS 27 expanded-interface callbacks. The
-        // context menu is popped manually from the right-click gesture.
-        statusItem.menu = nil
-        button.menu = nil
-    }
-
-    // MARK: - Interaction (OS-dependent)
-
-    private func configureInteraction() {
-        attachSecondaryClickGestureRecognizer()
-
-        if #available(macOS 27.0, *) {
-            // Left-click is owned by the expanded interface session. Do not set
-            // button.target/action on this path.
-            statusItem.expandedInterfaceDelegate = self
-            // Close the panel when it loses focus (user clicked elsewhere):
-            // resignKey → close() → cancel the active expanded session.
-            panelCoordinator.dismissOnResignKey = true
-            // Do not let AppKit auto-hide the panel on deactivation: on macOS 27
-            // that hides the panel while the expanded session stays "active",
-            // leaving the menu bar unclickable. Losing focus closes it instead.
-            panelCoordinator.panelHidesOnDeactivate = false
-            panelCoordinator.onPanelHidden = { [weak self] in
-                self?.handlePanelHiddenByUserAction()
-            }
-            logger.statusItem("primary activation: expanded interface delegate (macOS 27+)")
-        } else {
-            // macOS 26 and earlier: target/action on left mouse-up only.
-            // Right-click is consumed by the gesture recognizer above, so the
-            // button action never needs to distinguish button type — no
-            // currentEvent inspection, no shared left/right action.
-            guard let button = statusItem.button else {
-                return
-            }
-            button.target = self
-            button.action = #selector(handlePrimaryClickLegacy(_:))
-            button.sendAction(on: [.leftMouseUp])
-            logger.statusItem("primary activation: target/action (macOS 26 and earlier)")
-        }
-    }
-
-    private func attachSecondaryClickGestureRecognizer() {
-        guard let button = statusItem.button else {
-            return
-        }
-        let recognizer = NSClickGestureRecognizer()
-        recognizer.target = self
-        recognizer.action = #selector(handleSecondaryClick(_:))
-        // 1 << 1 selects the secondary (right) button only. Primary clicks are
-        // left to the expanded interface (macOS 27) or the button action (<=26).
-        recognizer.buttonMask = 1 << 1
-        // NOTE: Apple has acknowledged a macOS 27 Beta regression where status
-        // item secondary-click events may not be forwarded at all. If this
-        // recognizer fails to fire on macOS 27 Beta, do NOT work around it with
-        // global event monitors, CGEventTap, or Input Monitoring — none of those
-        // are acceptable here.
-        button.addGestureRecognizer(recognizer)
-        secondaryClickRecognizer = recognizer
-    }
-
-    // MARK: - Legacy left-click (macOS 26 and earlier)
-
-    @objc private func handlePrimaryClickLegacy(_ sender: NSStatusBarButton) {
-        logger.statusItem("primary activation (target-action)")
-        panelCoordinator.toggle(relativeTo: statusItem)
-    }
-
-    // MARK: - Right-click (every OS, fully separated from left-click)
-
-    @objc private func handleSecondaryClick(_ recognizer: NSClickGestureRecognizer) {
-        logger.statusItem("secondary gesture recognized")
-        // Mutual exclusion: end any active expanded session and hide the panel
-        // before showing the context menu.
-        if #available(macOS 27.0, *), let session = statusItem.expandedInterfaceSession {
-            session.cancel()
-        }
-        panelCoordinator.close()
-        // Defer the modal popUp to the next runloop turn so any synchronous
-        // didEnd callback from cancel() has fully unwound first. Weak-captured
-        // to avoid a retain cycle through the async closure.
-        Task { @MainActor [weak self] in
-            self?.presentContextMenu()
-        }
-    }
-
-    private func presentContextMenu() {
-        guard !isPresentingContextMenu else {
-            return
-        }
-        isPresentingContextMenu = true
-        defer { isPresentingContextMenu = false }
-
-        let menu = menuCoordinator.makeMenu()
-        let point = contextMenuAnchorPoint()
-        logger.statusItem("menu popup")
-        menu.popUp(positioning: nil, at: point, in: nil)
-    }
-
-    private func contextMenuAnchorPoint() -> NSPoint {
-        guard let button = statusItem.button,
-              let window = button.window else {
-            return .zero
-        }
-        let frameInWindow = button.convert(button.bounds, to: nil)
-        let screenFrame = window.convertToScreen(frameInWindow)
-        return NSPoint(x: screenFrame.minX, y: screenFrame.minY - 2)
-    }
-
-    // MARK: - Expanded session sync (macOS 27+)
-
-    /// Called whenever the panel is hidden by something other than the system
-    /// ending the expanded session (close button, settings, full window, or —
-    /// the main path — losing focus / resignKey). Cancels the still-active
-    /// session so the status item does not stay stuck in the expanded state.
-    private func handlePanelHiddenByUserAction() {
-        guard !isEndingExpandedSession else {
-            return
-        }
-        if #available(macOS 27.0, *), let session = statusItem.expandedInterfaceSession {
-            logger.statusItem("panel hidden while session active; cancelling expanded session")
-            session.cancel()
-        }
-    }
-
-    // MARK: - Rendering (P1.14: arbiter + renderer)
-
-    private func observeRuntime() {
-        withObservationTracking {
-            _ = runtime.snapshots
-            _ = settingsStore.primaryModuleID
-            _ = settingsStore.enabledModuleIDs
-            _ = settingsStore.statusRotationEnabled
-            _ = settingsStore.statusRotationInterval
-            _ = settingsStore.rotationModuleIDs
-            _ = settingsStore.rotationItemIDs
-        } onChange: { [weak self] in
-            // onChange fires on an arbitrary thread — must hop to MainActor
-            Task { @MainActor in
-                self?.handleRuntimeChange()
-                self?.observeRuntime()  // re-register tracking
-            }
-        }
-    }
-
-    /// Consolidated handler for all observed property changes.
-    /// Groups the effects of the former Combine pipelines logically.
-    private func handleRuntimeChange() {
-        // All pipelines called submitCandidatesToArbiter + scheduleRender
-        // except statusRotationInterval which only called updateRotationTimer,
-        // and statusRotationEnabled which called updateRotationTimer + scheduleRender.
-        // Safe to call all three unconditionally — they are idempotent.
-        submitCandidatesToArbiter()
-        updateRotationTimer()
-        scheduleRender()
-    }
-
-    /// Collects `StatusCandidate`s from all enabled modules and submits them
-    /// to the arbiter. All modules now implement `ModuleContract` and
-    /// `statusCandidates()` directly.
-    private func submitCandidatesToArbiter() {
-        var candidates: [StatusCandidate] = []
-        let enabledSnapshots = runtime.snapshots.filter { settingsStore.isEnabled($0.key) }
-
-        for (id, snapshot) in enabledSnapshots {
-            if let module = runtime.modules[id] {
-                candidates.append(contentsOf: module.statusCandidates())
-            } else {
-                // Fallback: derive candidates from snapshot signals.
-                let projection = ProjectionBuilder.build(from: snapshot)
-                candidates.append(contentsOf: projection.statusCandidates)
-            }
-        }
-
-        // P1.14: respect rotationModuleIDs filter — only those modules
-        // contribute rotation candidates. Critical/primary candidates are
-        // always included.
-        if !settingsStore.rotationModuleIDs.isEmpty {
-            candidates = candidates.filter { candidate in
-                if candidate.semanticRole == .rotation {
-                    return settingsStore.rotationModuleIDs.contains(candidate.sourceModule)
-                }
-                return true
-            }
-        }
-
-        arbiter.submit(candidates, now: .now)
-    }
-
-    private func updateRotationTimer() {
-        presentationTicker.stop()
-        guard settingsStore.statusRotationEnabled else { return }
-        let interval = TimeInterval(settingsStore.statusRotationInterval)
-        presentationTicker.start(interval: interval) { [weak self] in
-            guard let self else { return }
-            // P2: presentation ticker drives the arbiter tick, which
-            // cycles through rotation candidates and applies TTL/hysteresis.
-            // Also run presentationTick on PresentationTickable modules.
-            self.runPresentationTicks()
-            _ = self.arbiter.tick(now: .now)
-            self.renderer.render(self.arbiter.currentDecision)
-        }
-    }
-
-    /// Run presentationTick on all PresentationTickable modules.
-    /// This updates their display projections without triggering data refresh.
-    private func runPresentationTicks() {
-        for (id, module) in runtime.modules {
-            if let tickable = module as? any PresentationTickable {
-                let projection = tickable.buildProjection()
-                let _ = tickable.presentationTick(trigger: .timerTick, projection: projection)
-                // Re-submit candidates after tick to update arbiter
-                let candidates = tickable.statusCandidates()
-                if !candidates.isEmpty {
-                    // Merge with existing arbiter candidates
-                    var allCandidates = self.collectAllCandidates()
-                    // Replace this module's candidates
-                    allCandidates.removeAll { $0.sourceModule == id }
-                    allCandidates.append(contentsOf: candidates)
-                    arbiter.submit(allCandidates, now: .now)
-                }
-            }
-        }
-    }
-
-    /// Collect candidates from all enabled modules (used by runPresentationTicks).
-    private func collectAllCandidates() -> [StatusCandidate] {
-        var candidates: [StatusCandidate] = []
-        let enabledSnapshots = runtime.snapshots.filter { settingsStore.isEnabled($0.key) }
-
-        for (id, snapshot) in enabledSnapshots {
-            if let module = runtime.modules[id] {
-                candidates.append(contentsOf: module.statusCandidates())
-            } else {
-                let projection = ProjectionBuilder.build(from: snapshot)
-                candidates.append(contentsOf: projection.statusCandidates)
-            }
-        }
-
-        if !settingsStore.rotationModuleIDs.isEmpty {
-            candidates = candidates.filter { candidate in
-                if candidate.semanticRole == .rotation {
-                    return settingsStore.rotationModuleIDs.contains(candidate.sourceModule)
-                }
-                return true
-            }
-        }
-
-        return candidates
-    }
-
-    private func scheduleRender() {
-        renderTask?.cancel()
-        renderTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(120))
-            guard !Task.isCancelled else { return }
-            self?.render()
-        }
-    }
-
-    private func render() {
-        // P1.14: single path — renderer writes the arbiter's current decision.
-        renderer.render(arbiter.currentDecision)
-    }
-}
-
-// MARK: - NSStatusItemExpandedInterfaceDelegate (macOS 27+)
-//
-// AppKit invokes these on the main thread. They are `nonisolated` to satisfy
-// the non-isolated @objc protocol requirement, then re-enter the main actor
-// synchronously via `MainActor.assumeIsolated` (guaranteed safe because AppKit
-// dispatches status item delegate callbacks on the main thread).
-
-@available(macOS 27.0, *)
-extension StatusItemController: NSStatusItemExpandedInterfaceDelegate {
-    nonisolated func statusItem(
-        _ statusItem: NSStatusItem,
-        didBegin session: NSStatusItemExpandedInterfaceSession
-    ) {
-        MainActor.assumeIsolated {
-            logger.statusItem("expanded session begin")
-            panelCoordinator.show(relativeTo: statusItem)
-        }
-    }
-
-    nonisolated func statusItemDidEndExpandedInterfaceSession(
-        _ statusItem: NSStatusItem,
-        animated: Bool
-    ) {
-        MainActor.assumeIsolated {
-            logger.statusItem("expanded session end (animated: \(animated))")
-            isEndingExpandedSession = true
-            defer { isEndingExpandedSession = false }
-            guard !settingsStore.pinPanel else {
-                logger.statusItem("panel pinned — keeping open")
-                return
-            }
-            panelCoordinator.close()
-        }
     }
 }

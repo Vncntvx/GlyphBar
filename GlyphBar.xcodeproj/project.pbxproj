@@ -176,6 +176,42 @@
 		BEBF93A3E617E43CFB214CBE /* Modules/NotesQuickModule/NotesQuickModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A110BAF94FCD7478FAA19700 /* Modules/NotesQuickModule/NotesQuickModel.swift */; };
 		B0E41267221EA473185D8DF8 /* Modules/NotesQuickModule/NotesQuickStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9500FD26D3D3440F897401E /* Modules/NotesQuickModule/NotesQuickStateStore.swift */; };
 		B9BD8B3F7792242DBA45A0FF /* Modules/NotesQuickModule/NotesQuickPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0FA04B1D49274C3E9ECBD5B /* Modules/NotesQuickModule/NotesQuickPanel.swift */; };
+		BF9B8C2017158497FB652BEA /* Modules/DeepSeekModule/DeepSeekAPIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C2AE04787F14007BB2E028 /* Modules/DeepSeekModule/DeepSeekAPIModels.swift */; };
+		BA62360F245DA4419A5CD195 /* Modules/DeepSeekModule/DeepSeekPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A777CB7F2461B4792A0329BF /* Modules/DeepSeekModule/DeepSeekPanel.swift */; };
+		B05CE784F69094BCFA96F9B0 /* Modules/DeepSeekModule/DeepSeekTrendBars.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81E0A2AC3E464FF781D789A /* Modules/DeepSeekModule/DeepSeekTrendBars.swift */; };
+		BE56038AB3CA848CAAF20EF3 /* App/Panel/QuickPanelChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8673C4C511243BAA5FAFD1 /* App/Panel/QuickPanelChrome.swift */; };
+		BD960283432804D0B8BEDD73 /* App/Panel/QuickPanelModuleContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E1B5AEA102D420E916D06A /* App/Panel/QuickPanelModuleContent.swift */; };
+		BFDE90F385157451AA84CC12 /* App/Panel/QuickPanelModuleSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66669C966FA1413680696C0 /* App/Panel/QuickPanelModuleSwitcher.swift */; };
+		B3DA8EEAEED0346199321646 /* App/Settings/ModuleManagementDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF00A66299A724AC98042469 /* App/Settings/ModuleManagementDetailView.swift */; };
+		BABE51FAE232B43668D87316 /* App/Settings/DeepSeekConfigSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D2EB74BA0CC42F1A3A6276 /* App/Settings/DeepSeekConfigSection.swift */; };
+		B2297FAD04FE440B9888C3A4 /* App/Settings/FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A541D672028614B16B33780A /* App/Settings/FlowLayout.swift */; };
+		BFC6DEA9C6F114C7B8AE69DC /* Kernel/Command/CommandPayloadDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71F60245BB7540A6B07DF2F /* Kernel/Command/CommandPayloadDecoding.swift */; };
+		BCB63698DCD5248FA9E15345 /* Modules/ClockModule/ClockModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A740977BE66CB4E60A6076AE /* Modules/ClockModule/ClockModel.swift */; };
+		B367E5515270E4C71A606175 /* Modules/ClockModule/ClockPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4787B8A9304F4626986E80C /* Modules/ClockModule/ClockPanel.swift */; };
+		B50C3F4A5C033468EB709B9F /* Modules/CounterModule/CounterModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC508B932238E4B649F3F4BE /* Modules/CounterModule/CounterModel.swift */; };
+		B3AABFA63287240769A5835F /* Modules/CounterModule/CounterPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A28B7ABBC5193480594931AE /* Modules/CounterModule/CounterPanel.swift */; };
+		B4FE75C2466424BB2AA72749 /* Modules/SystemPulseModule/SystemPulseSnapshotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEDC9DC32610D4CE19CCC67A /* Modules/SystemPulseModule/SystemPulseSnapshotProvider.swift */; };
+		B2FEDD5CD65C24A1B8CE747D /* Modules/SystemPulseModule/SystemPulsePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1369779EB64F42B1BA8A1F2 /* Modules/SystemPulseModule/SystemPulsePanel.swift */; };
+		BA0E64642553E4B24A470B5F /* Modules/NetworkMockModule/NetworkStatusProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7414E10779944C7F87B502E /* Modules/NetworkMockModule/NetworkStatusProvider.swift */; };
+		B7260A56685244B72919D519 /* Modules/NetworkMockModule/NetworkPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A551D2AFB6AE74C91838A30C /* Modules/NetworkMockModule/NetworkPanel.swift */; };
+		B8BF4F704F58244CF87E0620 /* App/StatusBar/StatusItemInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7AE8050737FB424FAD0789B /* App/StatusBar/StatusItemInteraction.swift */; };
+		B86328F2B77634A4881D018A /* App/StatusBar/StatusItemRendering.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEA8B79E2824C4843A41605B /* App/StatusBar/StatusItemRendering.swift */; };
+		BC20B3B729C5C45AC9E8C662 /* Modules/DeepSeekModule/UsageExportScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E596E89676948A0B5595B0 /* Modules/DeepSeekModule/UsageExportScripts.swift */; };
+		B410E06244363453A90C68D9 /* Modules/DeepSeekModule/UsageExportError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9FF6EFDC84554983B70E160 /* Modules/DeepSeekModule/UsageExportError.swift */; };
+		BB89FE569382F4F3D96F2573 /* Modules/DeepSeekModule/DeepSeekPanelCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC537B7CF9FFD4FE5A23F4DF /* Modules/DeepSeekModule/DeepSeekPanelCards.swift */; };
+		B89D4497D5E0C4518BA5324C /* Modules/DeepSeekModule/DeepSeekModuleAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE82DD32732B74BF6B6C7A2C /* Modules/DeepSeekModule/DeepSeekModuleAPI.swift */; };
+		BACEC8E5EA61148CEB70BA3F /* Modules/DeepSeekModule/DeepSeekModuleUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFA45F06E469541D68E7FD38 /* Modules/DeepSeekModule/DeepSeekModuleUsage.swift */; };
+		B2F1ABBB990F64CBEA2ADF65 /* Modules/DeepSeekModule/DeepSeekModuleSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5DF4CF1AD3C042618203C42 /* Modules/DeepSeekModule/DeepSeekModuleSnapshot.swift */; };
+		B535B38FAA9044850A7820D6 /* Modules/DeepSeekModule/UsageExportFileParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A967AB571AD5D47ABA89A266 /* Modules/DeepSeekModule/UsageExportFileParser.swift */; };
+		B30CD12204670408F94ECD23 /* Core/Runtime/ModuleRuntimeExternalModules.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1415BA84B514C30AFF8225 /* Core/Runtime/ModuleRuntimeExternalModules.swift */; };
+		B69FFC56C42794CAF9807400 /* Core/Runtime/ModuleRuntimeScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC4750B134F894A578CD1FCE /* Core/Runtime/ModuleRuntimeScheduling.swift */; };
+		B9635FA9C19084867AAA0593 /* Core/Runtime/KernelBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20E672A23D02448E9AD1296 /* Core/Runtime/KernelBridge.swift */; };
+		B1A2879C2AA5E42C3BFA9A48 /* Modules/NotesQuickModule/NotesQuickNoteRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCA43116CFB94392A56801C /* Modules/NotesQuickModule/NotesQuickNoteRow.swift */; };
+		BCE6113335D054D838DDEFFB /* ContractTests/BuiltInModuleCommandProjectionContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF2D1FE5F2B68416AB9019BC /* ContractTests/BuiltInModuleCommandProjectionContractTests.swift */; };
+		B69616FDE3DDE44DC93D57E3 /* ContractTests/BuiltInModuleStorageSnapshotContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0794D8B32A4B4A4CA1114B8 /* ContractTests/BuiltInModuleStorageSnapshotContractTests.swift */; };
+		B45E5FDE3E45549A6856A1FD /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1A96868003443CEBAE520C /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift */; };
+		BCE93FBCA34194DCE83EDA4F /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE08C530CA388442B9C2F4F4 /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift */; };
+		B91CFB0ADB55A4D4E9ABB3CB /* ContractTests/ThirdPartyInfrastructureContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0C563DEF2DB840EEB3C7AC5 /* ContractTests/ThirdPartyInfrastructureContractTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -377,6 +413,42 @@
 		A110BAF94FCD7478FAA19700 /* Modules/NotesQuickModule/NotesQuickModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/NotesQuickModule/NotesQuickModel.swift; sourceTree = "<group>"; };
 		A9500FD26D3D3440F897401E /* Modules/NotesQuickModule/NotesQuickStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/NotesQuickModule/NotesQuickStateStore.swift; sourceTree = "<group>"; };
 		A0FA04B1D49274C3E9ECBD5B /* Modules/NotesQuickModule/NotesQuickPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/NotesQuickModule/NotesQuickPanel.swift; sourceTree = "<group>"; };
+		A9C2AE04787F14007BB2E028 /* Modules/DeepSeekModule/DeepSeekAPIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/DeepSeekAPIModels.swift; sourceTree = "<group>"; };
+		A777CB7F2461B4792A0329BF /* Modules/DeepSeekModule/DeepSeekPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/DeepSeekPanel.swift; sourceTree = "<group>"; };
+		A81E0A2AC3E464FF781D789A /* Modules/DeepSeekModule/DeepSeekTrendBars.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/DeepSeekTrendBars.swift; sourceTree = "<group>"; };
+		AE8673C4C511243BAA5FAFD1 /* App/Panel/QuickPanelChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Panel/QuickPanelChrome.swift; sourceTree = "<group>"; };
+		A9E1B5AEA102D420E916D06A /* App/Panel/QuickPanelModuleContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Panel/QuickPanelModuleContent.swift; sourceTree = "<group>"; };
+		A66669C966FA1413680696C0 /* App/Panel/QuickPanelModuleSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Panel/QuickPanelModuleSwitcher.swift; sourceTree = "<group>"; };
+		AF00A66299A724AC98042469 /* App/Settings/ModuleManagementDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/ModuleManagementDetailView.swift; sourceTree = "<group>"; };
+		A8D2EB74BA0CC42F1A3A6276 /* App/Settings/DeepSeekConfigSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/DeepSeekConfigSection.swift; sourceTree = "<group>"; };
+		A541D672028614B16B33780A /* App/Settings/FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Settings/FlowLayout.swift; sourceTree = "<group>"; };
+		A71F60245BB7540A6B07DF2F /* Kernel/Command/CommandPayloadDecoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Command/CommandPayloadDecoding.swift; sourceTree = "<group>"; };
+		A740977BE66CB4E60A6076AE /* Modules/ClockModule/ClockModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/ClockModule/ClockModel.swift; sourceTree = "<group>"; };
+		A4787B8A9304F4626986E80C /* Modules/ClockModule/ClockPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/ClockModule/ClockPanel.swift; sourceTree = "<group>"; };
+		AC508B932238E4B649F3F4BE /* Modules/CounterModule/CounterModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/CounterModule/CounterModel.swift; sourceTree = "<group>"; };
+		A28B7ABBC5193480594931AE /* Modules/CounterModule/CounterPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/CounterModule/CounterPanel.swift; sourceTree = "<group>"; };
+		AEDC9DC32610D4CE19CCC67A /* Modules/SystemPulseModule/SystemPulseSnapshotProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/SystemPulseModule/SystemPulseSnapshotProvider.swift; sourceTree = "<group>"; };
+		A1369779EB64F42B1BA8A1F2 /* Modules/SystemPulseModule/SystemPulsePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/SystemPulseModule/SystemPulsePanel.swift; sourceTree = "<group>"; };
+		A7414E10779944C7F87B502E /* Modules/NetworkMockModule/NetworkStatusProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/NetworkMockModule/NetworkStatusProvider.swift; sourceTree = "<group>"; };
+		A551D2AFB6AE74C91838A30C /* Modules/NetworkMockModule/NetworkPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/NetworkMockModule/NetworkPanel.swift; sourceTree = "<group>"; };
+		A7AE8050737FB424FAD0789B /* App/StatusBar/StatusItemInteraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/StatusBar/StatusItemInteraction.swift; sourceTree = "<group>"; };
+		AEA8B79E2824C4843A41605B /* App/StatusBar/StatusItemRendering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/StatusBar/StatusItemRendering.swift; sourceTree = "<group>"; };
+		A6E596E89676948A0B5595B0 /* Modules/DeepSeekModule/UsageExportScripts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/UsageExportScripts.swift; sourceTree = "<group>"; };
+		A9FF6EFDC84554983B70E160 /* Modules/DeepSeekModule/UsageExportError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/UsageExportError.swift; sourceTree = "<group>"; };
+		AC537B7CF9FFD4FE5A23F4DF /* Modules/DeepSeekModule/DeepSeekPanelCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/DeepSeekPanelCards.swift; sourceTree = "<group>"; };
+		AE82DD32732B74BF6B6C7A2C /* Modules/DeepSeekModule/DeepSeekModuleAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/DeepSeekModuleAPI.swift; sourceTree = "<group>"; };
+		AFA45F06E469541D68E7FD38 /* Modules/DeepSeekModule/DeepSeekModuleUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/DeepSeekModuleUsage.swift; sourceTree = "<group>"; };
+		A5DF4CF1AD3C042618203C42 /* Modules/DeepSeekModule/DeepSeekModuleSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/DeepSeekModuleSnapshot.swift; sourceTree = "<group>"; };
+		A967AB571AD5D47ABA89A266 /* Modules/DeepSeekModule/UsageExportFileParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/DeepSeekModule/UsageExportFileParser.swift; sourceTree = "<group>"; };
+		AD1415BA84B514C30AFF8225 /* Core/Runtime/ModuleRuntimeExternalModules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ModuleRuntimeExternalModules.swift; sourceTree = "<group>"; };
+		AC4750B134F894A578CD1FCE /* Core/Runtime/ModuleRuntimeScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/ModuleRuntimeScheduling.swift; sourceTree = "<group>"; };
+		A20E672A23D02448E9AD1296 /* Core/Runtime/KernelBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/Runtime/KernelBridge.swift; sourceTree = "<group>"; };
+		ADCA43116CFB94392A56801C /* Modules/NotesQuickModule/NotesQuickNoteRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modules/NotesQuickModule/NotesQuickNoteRow.swift; sourceTree = "<group>"; };
+		AF2D1FE5F2B68416AB9019BC /* ContractTests/BuiltInModuleCommandProjectionContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/BuiltInModuleCommandProjectionContractTests.swift; sourceTree = "<group>"; };
+		A0794D8B32A4B4A4CA1114B8 /* ContractTests/BuiltInModuleStorageSnapshotContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/BuiltInModuleStorageSnapshotContractTests.swift; sourceTree = "<group>"; };
+		AE1A96868003443CEBAE520C /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/BuiltInModuleCapabilityEffectContractTests.swift; sourceTree = "<group>"; };
+		AE08C530CA388442B9C2F4F4 /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/ThirdPartyCapabilityPolicyContractTests.swift; sourceTree = "<group>"; };
+		A0C563DEF2DB840EEB3C7AC5 /* ContractTests/ThirdPartyInfrastructureContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/ThirdPartyInfrastructureContractTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -431,9 +503,14 @@
 				A00000000000000000000102 /* App/AppDelegate.swift */,
 				A00000000000000000000103 /* App/AppEnvironment.swift */,
 				A00000000000000000000104 /* App/StatusBar/StatusItemController.swift */,
+				A7AE8050737FB424FAD0789B /* App/StatusBar/StatusItemInteraction.swift */,
+				AEA8B79E2824C4843A41605B /* App/StatusBar/StatusItemRendering.swift */,
 				AF924D09DCD5A44F48948129 /* Presentation/StatusBar/StatusItemRenderer.swift */,
 				A00000000000000000000105 /* App/Panel/QuickPanelCoordinator.swift */,
 				A00000000000000000000106 /* App/Panel/QuickPanelRootView.swift */,
+				AE8673C4C511243BAA5FAFD1 /* App/Panel/QuickPanelChrome.swift */,
+				A9E1B5AEA102D420E916D06A /* App/Panel/QuickPanelModuleContent.swift */,
+				A66669C966FA1413680696C0 /* App/Panel/QuickPanelModuleSwitcher.swift */,
 				A00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift */,
 				A00000000000000000000108 /* App/Settings/SettingsRootView.swift */,
 				A9D76B73A1CF44B03B29ED64 /* App/Settings/LogsView.swift */,
@@ -445,6 +522,9 @@
 				AD087B0EC6D904392BA58B11 /* App/Settings/GeneralSettingsView.swift */,
 				ADD4D73C767BE42D281E3397 /* App/Settings/ColorSchemeOption.swift */,
 				A00000000000000000000109 /* App/Settings/ModuleManagementView.swift */,
+				AF00A66299A724AC98042469 /* App/Settings/ModuleManagementDetailView.swift */,
+				A8D2EB74BA0CC42F1A3A6276 /* App/Settings/DeepSeekConfigSection.swift */,
+				A541D672028614B16B33780A /* App/Settings/FlowLayout.swift */,
 				AE68FD1ED5C0844FD9A613AC /* App/Windows/LogsWindowCoordinator.swift */,
 				A0000000000000000000010B /* App/Routing/DeepLinkRouter.swift */,
 				A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */,
@@ -503,6 +583,7 @@
 				AFB026DEDB2264C0182D5116 /* Platform/Isolation/XPCModuleHost.swift */,
 				A8EE820E35B0D403299C7E40 /* Kernel/Effect/Effect.swift */,
 				A520C9821BDD0486D8BA6994 /* Kernel/Command/Command.swift */,
+				A71F60245BB7540A6B07DF2F /* Kernel/Command/CommandPayloadDecoding.swift */,
 				ACEB0014A5D0344788171B5B /* Kernel/Contracts/Severity.swift */,
 				ADD0EC2D5D2AC47969E44350 /* Kernel/Capabilities/Capability.swift */,
 				A83B51DEB5B31464B9FD7EF3 /* Kernel/Capabilities/ModuleBridge.swift */,
@@ -523,6 +604,9 @@
 				A745C79AD33874B6A867CFFB /* Core/Runtime/DeclarativeModule.swift */,
 				A727BA7C289BF4D4E9B1F991 /* Core/Runtime/DeclarativeModulePanel.swift */,
 				A0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift */,
+				AD1415BA84B514C30AFF8225 /* Core/Runtime/ModuleRuntimeExternalModules.swift */,
+				AC4750B134F894A578CD1FCE /* Core/Runtime/ModuleRuntimeScheduling.swift */,
+				A20E672A23D02448E9AD1296 /* Core/Runtime/KernelBridge.swift */,
 				A00000000000000000000112 /* Core/Permissions/PermissionCenter.swift */,
 				A00000000000000000000113 /* Core/Storage/AppSettingsStore.swift */,
 				A00000000000000000000114 /* Core/Storage/CacheStore.swift */,
@@ -531,18 +615,37 @@
 				A00000000000000000000119 /* DesignSystem/GlyphControls.swift */,
 				A0000000000000000000011A /* DesignSystem/GlyphStates.swift */,
 				A0000000000000000000011B /* Modules/ClockModule/ClockModule.swift */,
+				A740977BE66CB4E60A6076AE /* Modules/ClockModule/ClockModel.swift */,
+				A4787B8A9304F4626986E80C /* Modules/ClockModule/ClockPanel.swift */,
 				A99DB91499E99424FAC2F40E /* Modules/DeepSeekModule/DeepSeekModule.swift */,
+				AE82DD32732B74BF6B6C7A2C /* Modules/DeepSeekModule/DeepSeekModuleAPI.swift */,
+				AFA45F06E469541D68E7FD38 /* Modules/DeepSeekModule/DeepSeekModuleUsage.swift */,
+				A5DF4CF1AD3C042618203C42 /* Modules/DeepSeekModule/DeepSeekModuleSnapshot.swift */,
+				A9C2AE04787F14007BB2E028 /* Modules/DeepSeekModule/DeepSeekAPIModels.swift */,
+				A777CB7F2461B4792A0329BF /* Modules/DeepSeekModule/DeepSeekPanel.swift */,
+				AC537B7CF9FFD4FE5A23F4DF /* Modules/DeepSeekModule/DeepSeekPanelCards.swift */,
+				A81E0A2AC3E464FF781D789A /* Modules/DeepSeekModule/DeepSeekTrendBars.swift */,
 				A877ACBB40B714CAFBC4398F /* Modules/DeepSeekModule/UsageExportService.swift */,
+				A967AB571AD5D47ABA89A266 /* Modules/DeepSeekModule/UsageExportFileParser.swift */,
+				A6E596E89676948A0B5595B0 /* Modules/DeepSeekModule/UsageExportScripts.swift */,
+				A9FF6EFDC84554983B70E160 /* Modules/DeepSeekModule/UsageExportError.swift */,
 				AE6CAC4233ED648FF99E0E4C /* Modules/DeepSeekModule/UsageCSVParser.swift */,
 				A0E66A076CB0B4305B6F0684 /* Modules/DeepSeekModule/UsageRecordStore.swift */,
 				AB40D0A29C4B64E53A58ECBA /* Modules/DeepSeekModule/LoginWebView.swift */,
 				A0000000000000000000011C /* Modules/SystemPulseModule/SystemPulseModule.swift */,
+				AEDC9DC32610D4CE19CCC67A /* Modules/SystemPulseModule/SystemPulseSnapshotProvider.swift */,
+				A1369779EB64F42B1BA8A1F2 /* Modules/SystemPulseModule/SystemPulsePanel.swift */,
 				A0000000000000000000011D /* Modules/NotesQuickModule/NotesQuickModule.swift */,
 				A110BAF94FCD7478FAA19700 /* Modules/NotesQuickModule/NotesQuickModel.swift */,
 				A9500FD26D3D3440F897401E /* Modules/NotesQuickModule/NotesQuickStateStore.swift */,
 				A0FA04B1D49274C3E9ECBD5B /* Modules/NotesQuickModule/NotesQuickPanel.swift */,
+				ADCA43116CFB94392A56801C /* Modules/NotesQuickModule/NotesQuickNoteRow.swift */,
 				A0000000000000000000011E /* Modules/CounterModule/CounterModule.swift */,
+				AC508B932238E4B649F3F4BE /* Modules/CounterModule/CounterModel.swift */,
+				A28B7ABBC5193480594931AE /* Modules/CounterModule/CounterPanel.swift */,
 				A0000000000000000000011F /* Modules/NetworkMockModule/NetworkMockModule.swift */,
+				A7414E10779944C7F87B502E /* Modules/NetworkMockModule/NetworkStatusProvider.swift */,
+				A551D2AFB6AE74C91838A30C /* Modules/NetworkMockModule/NetworkPanel.swift */,
 				A00000000000000000000120 /* WidgetShared/AppGroup.swift */,
 				A00000000000000000000121 /* WidgetShared/WidgetSnapshotModels.swift */,
 				A00000000000000000000122 /* WidgetShared/WidgetDataBridge.swift */,
@@ -585,7 +688,12 @@
 				A5D3C9B693C7B4E3FB915680 /* KernelTests/ProjectionBuilderTests.swift */,
 				A0DAA20FE5972457BA7713A8 /* KernelTests/SnapshotEnvelopeTests.swift */,
 				A877183E44AEA4E94BCB4F19 /* ContractTests/ThirdPartyModuleContractTests.swift */,
+				A0C563DEF2DB840EEB3C7AC5 /* ContractTests/ThirdPartyInfrastructureContractTests.swift */,
+				AE08C530CA388442B9C2F4F4 /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift */,
 				A7CA92141A1904FDA96B2730 /* ContractTests/BuiltInModuleContractTests.swift */,
+				AE1A96868003443CEBAE520C /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift */,
+				A0794D8B32A4B4A4CA1114B8 /* ContractTests/BuiltInModuleStorageSnapshotContractTests.swift */,
+				AF2D1FE5F2B68416AB9019BC /* ContractTests/BuiltInModuleCommandProjectionContractTests.swift */,
 				A50B322DEB2C54375B9E767D /* KernelTests/ModuleCacheNamespaceTests.swift */,
 				A304FD97ECCA14BBE981974E /* KernelTests/ModuleSecretStoreTests.swift */,
 				AC3366CA770C64F778B2DDC3 /* KernelTests/CapabilityEnforcementTests.swift */,
@@ -735,9 +843,14 @@
 				B00000000000000000000102 /* App/AppDelegate.swift in Sources */,
 				B00000000000000000000103 /* App/AppEnvironment.swift in Sources */,
 				B00000000000000000000104 /* App/StatusBar/StatusItemController.swift in Sources */,
+				B8BF4F704F58244CF87E0620 /* App/StatusBar/StatusItemInteraction.swift in Sources */,
+				B86328F2B77634A4881D018A /* App/StatusBar/StatusItemRendering.swift in Sources */,
 				B8A786956D5CB4AB985605FC /* Presentation/StatusBar/StatusItemRenderer.swift in Sources */,
 				B00000000000000000000105 /* App/Panel/QuickPanelCoordinator.swift in Sources */,
 				B00000000000000000000106 /* App/Panel/QuickPanelRootView.swift in Sources */,
+				BE56038AB3CA848CAAF20EF3 /* App/Panel/QuickPanelChrome.swift in Sources */,
+				BD960283432804D0B8BEDD73 /* App/Panel/QuickPanelModuleContent.swift in Sources */,
+				BFDE90F385157451AA84CC12 /* App/Panel/QuickPanelModuleSwitcher.swift in Sources */,
 				B00000000000000000000107 /* App/Menu/AppMenuCoordinator.swift in Sources */,
 				B00000000000000000000108 /* App/Settings/SettingsRootView.swift in Sources */,
 				B320177F2AE2345FF9853167 /* App/Settings/LogsView.swift in Sources */,
@@ -749,6 +862,9 @@
 				BFF5589ECC5374BF49CF9E9B /* App/Settings/GeneralSettingsView.swift in Sources */,
 				BC0AE133EBDB04F6ABBAB2E4 /* App/Settings/ColorSchemeOption.swift in Sources */,
 				B00000000000000000000109 /* App/Settings/ModuleManagementView.swift in Sources */,
+				B3DA8EEAEED0346199321646 /* App/Settings/ModuleManagementDetailView.swift in Sources */,
+				BABE51FAE232B43668D87316 /* App/Settings/DeepSeekConfigSection.swift in Sources */,
+				B2297FAD04FE440B9888C3A4 /* App/Settings/FlowLayout.swift in Sources */,
 				BFB039805179844118448B23 /* App/Windows/LogsWindowCoordinator.swift in Sources */,
 				B0000000000000000000010B /* App/Routing/DeepLinkRouter.swift in Sources */,
 				B0000000000000000000010C /* Core/Modules/ModuleTypes.swift in Sources */,
@@ -807,6 +923,7 @@
 				BB3C4E0A3A76C4E50A5F3479 /* Platform/Isolation/XPCModuleHost.swift in Sources */,
 				B8C3B77318BD14C61ADA6AA9 /* Kernel/Effect/Effect.swift in Sources */,
 				BE8CBD039DC19466B983020E /* Kernel/Command/Command.swift in Sources */,
+				BFC6DEA9C6F114C7B8AE69DC /* Kernel/Command/CommandPayloadDecoding.swift in Sources */,
 				B384CE6DFEF84408994CB24E /* Kernel/Contracts/Severity.swift in Sources */,
 				B7F97C2F1EAB74674958C881 /* Kernel/Capabilities/Capability.swift in Sources */,
 				BE7F813816D0F4BEDA07D843 /* Kernel/Capabilities/ModuleBridge.swift in Sources */,
@@ -827,6 +944,9 @@
 				B05954AFCC48F4717B008F99 /* Core/Runtime/DeclarativeModule.swift in Sources */,
 				B9EEC71E0ED7345139B340D7 /* Core/Runtime/DeclarativeModulePanel.swift in Sources */,
 				B0000000000000000000010F /* Core/Runtime/ModuleRuntime.swift in Sources */,
+				B30CD12204670408F94ECD23 /* Core/Runtime/ModuleRuntimeExternalModules.swift in Sources */,
+				B69FFC56C42794CAF9807400 /* Core/Runtime/ModuleRuntimeScheduling.swift in Sources */,
+				B9635FA9C19084867AAA0593 /* Core/Runtime/KernelBridge.swift in Sources */,
 				B00000000000000000000112 /* Core/Permissions/PermissionCenter.swift in Sources */,
 				B00000000000000000000113 /* Core/Storage/AppSettingsStore.swift in Sources */,
 				B00000000000000000000114 /* Core/Storage/CacheStore.swift in Sources */,
@@ -835,18 +955,37 @@
 				B00000000000000000000119 /* DesignSystem/GlyphControls.swift in Sources */,
 				B0000000000000000000011A /* DesignSystem/GlyphStates.swift in Sources */,
 				B0000000000000000000011B /* Modules/ClockModule/ClockModule.swift in Sources */,
+				BCB63698DCD5248FA9E15345 /* Modules/ClockModule/ClockModel.swift in Sources */,
+				B367E5515270E4C71A606175 /* Modules/ClockModule/ClockPanel.swift in Sources */,
 				BD629F6CC3FDA441DA9768FF /* Modules/DeepSeekModule/DeepSeekModule.swift in Sources */,
+				B89D4497D5E0C4518BA5324C /* Modules/DeepSeekModule/DeepSeekModuleAPI.swift in Sources */,
+				BACEC8E5EA61148CEB70BA3F /* Modules/DeepSeekModule/DeepSeekModuleUsage.swift in Sources */,
+				B2F1ABBB990F64CBEA2ADF65 /* Modules/DeepSeekModule/DeepSeekModuleSnapshot.swift in Sources */,
+				BF9B8C2017158497FB652BEA /* Modules/DeepSeekModule/DeepSeekAPIModels.swift in Sources */,
+				BA62360F245DA4419A5CD195 /* Modules/DeepSeekModule/DeepSeekPanel.swift in Sources */,
+				BB89FE569382F4F3D96F2573 /* Modules/DeepSeekModule/DeepSeekPanelCards.swift in Sources */,
+				B05CE784F69094BCFA96F9B0 /* Modules/DeepSeekModule/DeepSeekTrendBars.swift in Sources */,
 				BA037834C051D44CFB213F9F /* Modules/DeepSeekModule/UsageExportService.swift in Sources */,
+				B535B38FAA9044850A7820D6 /* Modules/DeepSeekModule/UsageExportFileParser.swift in Sources */,
+				BC20B3B729C5C45AC9E8C662 /* Modules/DeepSeekModule/UsageExportScripts.swift in Sources */,
+				B410E06244363453A90C68D9 /* Modules/DeepSeekModule/UsageExportError.swift in Sources */,
 				B2E63DE050D64432E811F3D8 /* Modules/DeepSeekModule/UsageCSVParser.swift in Sources */,
 				BE5378B1A8D55427D986B38D /* Modules/DeepSeekModule/UsageRecordStore.swift in Sources */,
 				B2CEFB3A8DAF5437EA078FAF /* Modules/DeepSeekModule/LoginWebView.swift in Sources */,
 				B0000000000000000000011C /* Modules/SystemPulseModule/SystemPulseModule.swift in Sources */,
+				B4FE75C2466424BB2AA72749 /* Modules/SystemPulseModule/SystemPulseSnapshotProvider.swift in Sources */,
+				B2FEDD5CD65C24A1B8CE747D /* Modules/SystemPulseModule/SystemPulsePanel.swift in Sources */,
 				B0000000000000000000011D /* Modules/NotesQuickModule/NotesQuickModule.swift in Sources */,
 				BEBF93A3E617E43CFB214CBE /* Modules/NotesQuickModule/NotesQuickModel.swift in Sources */,
 				B0E41267221EA473185D8DF8 /* Modules/NotesQuickModule/NotesQuickStateStore.swift in Sources */,
 				B9BD8B3F7792242DBA45A0FF /* Modules/NotesQuickModule/NotesQuickPanel.swift in Sources */,
+				B1A2879C2AA5E42C3BFA9A48 /* Modules/NotesQuickModule/NotesQuickNoteRow.swift in Sources */,
 				B0000000000000000000011E /* Modules/CounterModule/CounterModule.swift in Sources */,
+				B50C3F4A5C033468EB709B9F /* Modules/CounterModule/CounterModel.swift in Sources */,
+				B3AABFA63287240769A5835F /* Modules/CounterModule/CounterPanel.swift in Sources */,
 				B0000000000000000000011F /* Modules/NetworkMockModule/NetworkMockModule.swift in Sources */,
+				BA0E64642553E4B24A470B5F /* Modules/NetworkMockModule/NetworkStatusProvider.swift in Sources */,
+				B7260A56685244B72919D519 /* Modules/NetworkMockModule/NetworkPanel.swift in Sources */,
 				B00000000000000000000120 /* WidgetShared/AppGroup.swift in Sources */,
 				B00000000000000000000121 /* WidgetShared/WidgetSnapshotModels.swift in Sources */,
 				B00000000000000000000122 /* WidgetShared/WidgetDataBridge.swift in Sources */,
@@ -887,7 +1026,12 @@
 				B5875F1C6EC9A4AEFBFBB395 /* KernelTests/ProjectionBuilderTests.swift in Sources */,
 				BD28E2294B27A4425BC84F90 /* KernelTests/SnapshotEnvelopeTests.swift in Sources */,
 				B1678B432093D4BBEBB6F671 /* ContractTests/ThirdPartyModuleContractTests.swift in Sources */,
+				B91CFB0ADB55A4D4E9ABB3CB /* ContractTests/ThirdPartyInfrastructureContractTests.swift in Sources */,
+				BCE93FBCA34194DCE83EDA4F /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift in Sources */,
 				B36697F3B19E5450B9D506DA /* ContractTests/BuiltInModuleContractTests.swift in Sources */,
+				B45E5FDE3E45549A6856A1FD /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift in Sources */,
+				B69616FDE3DDE44DC93D57E3 /* ContractTests/BuiltInModuleStorageSnapshotContractTests.swift in Sources */,
+				BCE6113335D054D838DDEFFB /* ContractTests/BuiltInModuleCommandProjectionContractTests.swift in Sources */,
 				B6FE5742BB42F4C1182FB0F5 /* KernelTests/ModuleCacheNamespaceTests.swift in Sources */,
 				B39E811A8D62345D0907C754 /* KernelTests/ModuleSecretStoreTests.swift in Sources */,
 				BB99AAEC2189C4DB3B982854 /* KernelTests/CapabilityEnforcementTests.swift in Sources */,

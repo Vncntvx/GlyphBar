@@ -4,23 +4,23 @@ import Observation
 @MainActor
 @Observable
 final class ModuleRuntime {
-    private(set) var modules: [ModuleID: any ModuleContract]
-    private(set) var moduleRecords: [ModuleID: ModuleRecord]
+    var modules: [ModuleID: any ModuleContract]
+    var moduleRecords: [ModuleID: ModuleRecord]
     private(set) var snapshots: [ModuleID: ModuleSnapshot] = [:]
     var selectedModuleID: ModuleID?
     var userNotice: String?
 
     let settingsStore: AppSettingsStore
-    private let registry: ModuleRegistry
-    private let scheduler: RefreshScheduler
-    private let logger: GlyphLogger
-    private let cacheStore: CacheStore
-    private let widgetBridge: WidgetDataBridge
-    private let capabilityFactory: CapabilityFactory
-    private let supervisor: ModuleSupervisor
-    private let effectExecutor: EffectExecutor
-    private let localTaskClock: SchedulerClock
-    private var scheduledLocalHandles: [ModuleID: [ScheduledHandle]] = [:]
+    let registry: ModuleRegistry
+    let scheduler: RefreshScheduler
+    let logger: GlyphLogger
+    let cacheStore: CacheStore
+    let widgetBridge: WidgetDataBridge
+    let capabilityFactory: CapabilityFactory
+    let supervisor: ModuleSupervisor
+    let effectExecutor: EffectExecutor
+    let localTaskClock: SchedulerClock
+    var scheduledLocalHandles: [ModuleID: [ScheduledHandle]] = [:]
 
     init(
         registry: ModuleRegistry,
@@ -210,116 +210,10 @@ final class ModuleRuntime {
         moduleRecords[moduleID]
     }
 
-    @discardableResult
-    func importModule(from sourceURL: URL, replacing: Bool = false) throws -> ModuleID {
-        let package = try registry.importExternalPackage(from: sourceURL, replacing: replacing)
-        reloadModules(selecting: package.moduleManifest.id)
-        setModuleEnabled(true, moduleID: package.moduleManifest.id)
-        return package.moduleManifest.id
-    }
-
-    func removeThirdPartyModule(moduleID: ModuleID, removeData: Bool = true) throws {
-        guard moduleRecords[moduleID]?.sourceKind == .thirdParty else {
-            throw ExternalModuleError.notThirdParty(moduleID)
-        }
-
-        settingsStore.setEnabled(false, moduleID: moduleID)
-        supervisor.unregister(moduleID: moduleID)
-        scheduler.unregister(id: moduleID)
-        cancelScheduledLocalTasks(for: moduleID)
-        try registry.removeExternalPackage(moduleID: moduleID)
-        if removeData {
-            cacheStore.clear(moduleID: moduleID)
-            widgetBridge.remove(moduleID: moduleID)
-        }
-        settingsStore.removeModuleState(moduleID: moduleID)
-        reloadModules(selecting: enabledModuleIDs.first)
-    }
-
-    func storageLocation(for moduleID: ModuleID) -> URL? {
-        guard moduleRecords[moduleID]?.sourceKind == .thirdParty else {
-            return nil
-        }
-        return registry.externalStorageLocation(moduleID: moduleID)
-    }
-
-    // MARK: - Local Scheduling
-
-    private func scheduleLocal(_ command: Command, for moduleID: ModuleID, after delay: TimeInterval) {
-        let handle = localTaskClock.schedule(after: delay) { [weak self] in
-            guard let self,
-                  self.modules[moduleID] != nil,
-                  self.settingsStore.isEnabled(moduleID)
-            else { return }
-            self.supervisor.dispatch(command, for: moduleID)
-        }
-        scheduledLocalHandles[moduleID, default: []].append(handle)
-    }
-
-    private func cancelScheduledLocalTasks(for moduleID: ModuleID) {
-        scheduledLocalHandles[moduleID]?.forEach { localTaskClock.cancel($0) }
-        scheduledLocalHandles[moduleID] = nil
-    }
-
     /// Closure set by AppEnvironment to open the settings window.
     var openSettingsAction: (() -> Void)? {
         didSet {
             effectExecutor.openSettingsAction = openSettingsAction
         }
-    }
-
-    private func reloadModules(selecting preferredModuleID: ModuleID?) {
-        let records = registry.makeRecords()
-        let removedIDs = Set(modules.keys).subtracting(records.keys)
-        for id in removedIDs {
-            supervisor.unregister(moduleID: id)
-            scheduler.unregister(id: id)
-            cancelScheduledLocalTasks(for: id)
-        }
-
-        moduleRecords = records
-        modules = records.mapValues(\.module)
-
-        let manifests = modules.values.map(\.manifest).sorted { $0.displayName < $1.displayName }
-        settingsStore.registerDefaults(for: manifests)
-
-        // Re-register all modules with the supervisor
-        for (id, module) in modules {
-            supervisor.register(
-                moduleID: id,
-                module: module,
-                sourceKind: records[id]?.sourceKind ?? .builtIn
-            )
-        }
-
-        if let preferredModuleID, modules[preferredModuleID] != nil {
-            selectedModuleID = preferredModuleID
-        } else if let selectedModuleID, modules[selectedModuleID] != nil {
-            self.selectedModuleID = selectedModuleID
-        } else {
-            selectedModuleID = enabledModuleIDs.first ?? orderedModuleIDs.first
-        }
-    }
-}
-
-// MARK: - KernelBridge
-
-/// A lightweight `ModuleBridge` implementation that buffers effects and
-/// forwards them to a handler closure. Used by `ModuleRuntime` to give
-/// modules a bridge when dispatching commands.
-@MainActor
-final class KernelBridge: ModuleBridge {
-    private let handler: ([Effect]) -> Void
-
-    init(handler: @escaping ([Effect]) -> Void) {
-        self.handler = handler
-    }
-
-    func submit(_ effects: [Effect]) {
-        handler(effects)
-    }
-
-    func submit(_ effect: Effect) {
-        submit([effect])
     }
 }
