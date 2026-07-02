@@ -51,21 +51,18 @@ struct ModuleHandleCommandContractTests {
     }
 
     @Test(arguments: builtInModuleFactories)
-    func systemCommandsDoNotCrash(entry: (name: String, factory: @Sendable @MainActor () -> any ModuleContract)) async {
+    func externalEventCommandsDoNotCrash(entry: (name: String, factory: @Sendable @MainActor () -> any ModuleContract)) async {
         let module = entry.factory()
         let bridge = makeBridge()
         let capabilities = GrantedCapabilities(bridge: bridge)
 
-        let systemCommands: [Command] = [
-            .settingsChanged,
-            .permissionChanged,
-            .appBecameActive,
-            .systemWake,
-            .networkChanged(reachable: true),
-            .clearCache,
+        // Modules must handle external events gracefully (returning .empty is fine).
+        let externalCommands: [Command] = [
+            .externalEvent(.fileImportCompleted(requestID: UUID(), url: URL(fileURLWithPath: "/tmp/test.csv"))),
+            .externalEvent(.fileImportCancelled(requestID: UUID())),
         ]
 
-        for command in systemCommands {
+        for command in externalCommands {
             let _ = await module.handle(
                 command: command,
                 capabilities: capabilities,
