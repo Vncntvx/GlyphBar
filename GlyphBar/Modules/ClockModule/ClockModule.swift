@@ -9,17 +9,6 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
 
     private let settings: ModuleSettingsNamespace?
 
-    private static let availableTimezones: [(id: String, label: String)] = [
-        ("Asia/Shanghai", "Beijing"),
-        ("Asia/Tokyo", "Tokyo"),
-        ("Europe/London", "London"),
-        ("America/New_York", "New York"),
-        ("America/Los_Angeles", "Los Angeles"),
-        ("Europe/Berlin", "Berlin"),
-        ("Asia/Dubai", "Dubai"),
-        ("Pacific/Auckland", "Auckland"),
-    ]
-
     init(settings: ModuleSettingsNamespace? = nil) {
         self.settings = settings
         let state = Self.loadState(from: settings)
@@ -93,7 +82,7 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
             case "setWorldTimezones":
                 if let zones = command.actionPayloadData([String].self) {
                     worldTimezones = zones.filter { candidate in
-                        Self.availableTimezones.contains { $0.id == candidate }
+                        ClockTimezoneCatalog.isAvailable(candidate)
                     }
                     persistState()
                 }
@@ -143,14 +132,13 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
 
         // World clocks produce rotation candidates
         for tzID in worldTimezones {
-            let label = Self.availableTimezones.first(where: { $0.id == tzID })?.label ?? tzID
             candidates.append(StatusCandidate(
                 id: "clock.world.\(tzID)",
                 sourceModule: manifest.id,
                 semanticRole: .rotation,
                 severity: .info,
                 priority: 20,
-                text: label,
+                text: ClockTimezoneCatalog.label(for: tzID),
                 icon: "globe",
                 createdAt: now,
                 expiresAt: nil,
@@ -227,7 +215,7 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
                     ))
                 }
             ),
-            availableTimezones: Self.availableTimezones
+            availableTimezones: ClockTimezoneCatalog.availableTimezones
         )
     }
 
@@ -277,12 +265,6 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
 
     // MARK: - Persistence (via capability)
 
-    private struct ClockState: Codable {
-        let uses24HourClock: Bool
-        let showSeconds: Bool
-        let worldTimezones: [String]
-    }
-
     private static let stateKey = "moduleState"
 
     private func persistState() {
@@ -296,186 +278,5 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
 
     private static func loadState(from settings: ModuleSettingsNamespace?) -> ClockState? {
         settings?.get(ClockState.self, forKey: stateKey)
-    }
-}
-
-private extension Command {
-    func actionBool(default defaultValue: Bool) -> Bool {
-        guard case .userAction(_, let payload) = self,
-              let text = payload?.text?.lowercased() else {
-            return defaultValue
-        }
-        if ["true", "1", "yes"].contains(text) { return true }
-        if ["false", "0", "no"].contains(text) { return false }
-        return defaultValue
-    }
-
-    func actionPayloadData<T: Decodable>(_ type: T.Type) -> T? {
-        guard case .userAction(_, let payload) = self,
-              let data = payload?.data else {
-            return nil
-        }
-        return try? JSONDecoder().decode(type, from: data)
-    }
-}
-
-private struct ClockPanel: View {
-    let snapshot: ModuleSnapshot?
-    @Binding var uses24HourClock: Bool
-    @Binding var showSeconds: Bool
-    @Binding var worldTimezones: [String]
-    let availableTimezones: [(id: String, label: String)]
-
-    @State private var showTimezonePicker = false
-
-    var body: some View {
-        VStack(spacing: 20) {
-            // Local time display
-            VStack(spacing: 4) {
-                    Text(snapshot?.title ?? "--:--")
-                        .font(.system(size: 48, weight: .semibold, design: .rounded).monospacedDigit())
-                        .contentTransition(.numericText())
-                    Text(snapshot?.subtitle ?? "Loading…")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-
-                // Timezone + offset
-                if let tz = snapshot?.metadata["tzAbbreviation"] {
-                    HStack(spacing: 4) {
-                        Image(systemName: "location.fill")
-                            .font(.caption)
-                        Text(tz)
-                            .font(.caption.weight(.medium))
-                        if let offset = snapshot?.metrics["offset"] {
-                            Text(String(format: "UTC%+.0f", offset))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 12)
-                    .background(.thinMaterial, in: Capsule())
-                }
-
-                // Format controls
-                HStack(spacing: 12) {
-                    Toggle(isOn: $uses24HourClock) {
-                        Label("24h", systemImage: "textformat.123")
-                            .labelStyle(.iconOnly)
-                    }
-                    .toggleStyle(.button)
-                    .controlSize(.small)
-
-                    Toggle(isOn: $showSeconds) {
-                        Label("Seconds", systemImage: "stopwatch")
-                            .labelStyle(.iconOnly)
-                    }
-                    .toggleStyle(.button)
-                    .controlSize(.small)
-                }
-
-                // World clocks
-                if !worldTimezones.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Label("World Clocks", systemImage: "globe")
-                                .font(.callout.weight(.semibold))
-                            Spacer()
-                            Button {
-                                showTimezonePicker.toggle()
-                            } label: {
-                                Image(systemName: showTimezonePicker ? "chevron.up" : "plus")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        ForEach(worldTimezones, id: \.self) { tzID in
-                            WorldClockRow(
-                                timezoneID: tzID,
-                                label: availableTimezones.first(where: { $0.id == tzID })?.label ?? tzID,
-                                uses24HourClock: uses24HourClock,
-                                onRemove: {
-                                    worldTimezones.removeAll { $0 == tzID }
-                                }
-                            )
-                        }
-                    }
-                    .padding(12)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                }
-
-                if showTimezonePicker {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Add Timezone")
-                            .font(.caption.weight(.semibold))
-                        ForEach(availableTimezones, id: \.id) { tz in
-                            if !worldTimezones.contains(tz.id) {
-                                Button {
-                                    worldTimezones.append(tz.id)
-                                    showTimezonePicker = false
-                                } label: {
-                                    HStack {
-                                        Text(tz.label)
-                                        Spacer()
-                                        Text(worldTimeText(for: tz.id))
-                                            .foregroundStyle(.secondary)
-                                            .font(.caption.monospacedDigit())
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .padding(12)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(14)
-    }
-
-    private func worldTimeText(for tzID: String) -> String {
-        guard let tz = TimeZone(identifier: tzID) else { return "--:--" }
-        let fmt = DateFormatter()
-        fmt.timeZone = tz
-        fmt.setLocalizedDateFormatFromTemplate(uses24HourClock ? "HHmm" : "hmma")
-        return fmt.string(from: Date())
-    }
-}
-
-private struct WorldClockRow: View {
-    let timezoneID: String
-    let label: String
-    let uses24HourClock: Bool
-    var onRemove: () -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .frame(width: 6, height: 6)
-                .foregroundStyle(.green)
-            Text(label)
-                .font(.callout)
-            Spacer()
-            Text(timeText)
-                .font(.callout.monospacedDigit())
-                .foregroundStyle(.secondary)
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private var timeText: String {
-        guard let tz = TimeZone(identifier: timezoneID) else { return "--:--" }
-        let fmt = DateFormatter()
-        fmt.timeZone = tz
-        fmt.setLocalizedDateFormatFromTemplate(uses24HourClock ? "HHmm" : "hmma")
-        return fmt.string(from: Date())
     }
 }
