@@ -128,26 +128,29 @@ final class CounterModule: TypedModuleContribution {
     }
 
     func panelContent(context: PanelHostContext) -> some View {
-        CounterPanel(
-            snapshot: buildSnapshot(),
-            count: count,
+        let snapshot = buildSnapshot()
+        return CounterPanel(
+            snapshot: snapshot,
+            count: Int(snapshot.metrics["count"] ?? 0),
             stepSize: Binding(
-                get: { [weak self] in self?.stepSize ?? 1 },
+                get: { Int(snapshot.metadata["stepSize"] ?? "1") ?? 1 },
                 set: { newValue in
                     context.dispatch(.userAction(actionID: "setStepSize", payload: .init(text: "\(newValue)")))
                 }
             ),
             minValue: Binding(
-                get: { [weak self] in self?.minValue },
-                set: { [weak self] newValue in
-                    let bounds = CounterBounds(minValue: newValue, maxValue: self?.maxValue)
+                get: { snapshot.metadata["minValue"].flatMap(Int.init) },
+                set: { newValue in
+                    let currentMax = snapshot.metadata["maxValue"].flatMap(Int.init)
+                    let bounds = CounterBounds(minValue: newValue, maxValue: currentMax)
                     context.dispatch(.userAction(actionID: "setBounds", payload: .init(data: try? JSONEncoder().encode(bounds))))
                 }
             ),
             maxValue: Binding(
-                get: { [weak self] in self?.maxValue },
-                set: { [weak self] newValue in
-                    let bounds = CounterBounds(minValue: self?.minValue, maxValue: newValue)
+                get: { snapshot.metadata["maxValue"].flatMap(Int.init) },
+                set: { newValue in
+                    let currentMin = snapshot.metadata["minValue"].flatMap(Int.init)
+                    let bounds = CounterBounds(minValue: currentMin, maxValue: newValue)
                     context.dispatch(.userAction(actionID: "setBounds", payload: .init(data: try? JSONEncoder().encode(bounds))))
                 }
             ),
