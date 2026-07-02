@@ -36,53 +36,53 @@ struct GrantedCapabilities {
 
 ```swift
 @MainActor final class ModuleSecretStore: Capability {
-    func set(_ value: String, for key: String) throws
-    func get(_ key: String) -> String?
-    func delete(_ key: String) throws
+    func setSecret(_ value: String?, for rawKey: String)
+    func secret(for rawKey: String) -> String?
+    func deleteSecret(for rawKey: String)
 }
 ```
 
-- **后端**：Keychain
-- **命名空间**：`module.<moduleID>.<key>`
+- **后端**：macOS Keychain（`KeychainBackend`），使用 `SecItemAdd`/`SecItemCopyMatching`/`SecItemDelete`
+- **命名空间**：`module.<moduleID>.<rawKey>`（account 字段）
 - **授予条件**：manifest 声明 `.appGroupStorage` 权限
 - **典型用途**：存储 API Key 等敏感信息（如 DeepSeek 的 API Key）
 - **隔离性**：每个模块独立实例，模块 A 无法读取模块 B 的密钥
+- **测试后端**：`InMemorySecretStoreBackend` 提供不依赖 Keychain 的内存实现
+
+> **命名诚实**：`ModuleSecretStore` 的生产后端是 Keychain，数据加密存储。测试中使用 `InMemorySecretStoreBackend` 替代。
 
 ### ModuleCacheNamespace
 
 ```swift
 @MainActor final class ModuleCacheNamespace: Capability {
-    func saveDomainState(_ data: Data, forKey key: String) throws
-    func loadDomainState(forKey key: String) -> Data?
-    func removeDomainState(forKey key: String) throws
-    func clear()
+    func saveDomainState(_ data: Data)
+    func loadDomainState() -> Data?
+    func clearDomainState()
 }
 ```
 
 - **后端**：UserDefaults（App Group suite）
-- **命名空间**：`module.<moduleID>.<key>`
+- **命名空间**：`module.<moduleID>.domainState`
 - **授予条件**：manifest 声明 `.appGroupStorage` 权限或 `.cachedState` 能力
-- **典型用途**：缓存模块域状态（如 DeepSeek 的用量数据）
+- **典型用途**：缓存模块域状态（如 NotesQuick 的备忘录数据、DeepSeek 的用量数据）
 - **隔离性**：每个模块独立实例
-- **Codable 支持**：配合 `JSONEncoder`/`JSONDecoder` 存储 Codable 类型
 
 ### ModuleSettingsNamespace
 
 ```swift
 @MainActor final class ModuleSettingsNamespace: Capability {
-    subscript<T: Codable>(key: String) -> T? { get set }
-    func set<T: Codable>(_ value: T, forKey key: String)
-    func get<T: Codable>(_ key: String) -> T?
-    func remove(forKey key: String)
+    subscript(rawKey: String) -> String? { get set }
+    func get<T: Codable>(_ type: T.Type, forKey rawKey: String) -> T?
+    func set<T: Codable>(_ value: T?, forKey rawKey: String)
 }
 ```
 
 - **后端**：UserDefaults（App Group suite）
-- **命名空间**：`module.<moduleID>.<key>`
+- **命名空间**：`module.<moduleID>.setting.<rawKey>`
 - **授予条件**：manifest 声明 `.appGroupStorage` 权限或 `.settings` 能力
-- **典型用途**：存储模块配置（如 Clock 的 24 小时制偏好、NotesQuick 的备忘录内容）
+- **典型用途**：存储模块配置（如 Clock 的 24 小时制偏好、Counter 的步长和边界）
 - **隔离性**：每个模块独立实例
-- **Codable 支持**：下标访问支持任意 Codable 类型
+- **Codable 支持**：`get(_:forKey:)` 和 `set(_:forKey:)` 支持任意 Codable 类型
 
 ### NetworkCapability
 
@@ -108,7 +108,7 @@ struct GrantedCapabilities {
 
 - **后端**：`NSOpenPanel`
 - **授予条件**：manifest 声明 `.localFiles` 权限
-- **典型用途**：让用户选择文件导入（如 DeepSeek 导入用量数据）
+- **典型用途**：让用户选择文件导入（如 DeepSeek 导入用量 CSV 数据）
 - **隔离性**：每个模块独立实例
 
 ### ClipboardCapability
@@ -147,7 +147,6 @@ struct GrantedCapabilities {
 
 ```swift
 @MainActor final class SystemMetricsCapability: Capability {
-    // 封装 Mach host_statistics、ProcessInfo、URL.resourceValues 等
     func cpuUsage() -> Double
     func memoryUsage() -> (used: UInt64, total: UInt64)
     func diskUsage() -> (used: UInt64, total: UInt64)
@@ -173,7 +172,7 @@ struct GrantedCapabilities {
 | `.appGroupStorage` | `ModuleCacheNamespace` + `ModuleSettingsNamespace` + `ModuleSecretStore` | 独占 |
 | `.localFiles` | `FileImportCapability` | 独占 |
 | `.openExternalURLs` | `NetworkCapability` | 共享 |
-| `.notifications` | （P1 暂未实现） | — |
+| `.notifications` | （暂未实现） | — |
 
 ### 能力声明 → 命名空间补充
 
@@ -194,7 +193,12 @@ struct GrantedCapabilities {
 
 1. 根据 `permissions` 授予基础能力
 2. 根据 `capabilities` 补充命名空间能力（如果尚未授予）
-3. 始终添加 `LoggingCapability` 和 `ModuleBridge`
+3. 如果模块声明 `.appGroupStorage` 权限且被允许，自动授予 `ModuleSecretStore`
+4. 始终添加 `LoggingCapability` 和 `ModuleBridge`
+
+### 权限校验
+
+内置模块（`sourceKind: .builtIn`）按声明默认授予所有权限。第三方模块（`sourceKind: .thirdParty`）需要通过 `PermissionCenter.isGranted(_:)` 校验，未授权的权限不会生成对应能力实例。
 
 ## ModuleBridge — 效果提交通道
 
@@ -225,35 +229,37 @@ func handle(command: Command, capabilities: GrantedCapabilities, bridge: ModuleB
 
 ```swift
 @MainActor final class CapabilityBroker {
-    func grant(_ key: CapabilityKey, to instance: ModuleInstanceID) async
-    func revoke(_ key: CapabilityKey, from instance: ModuleInstanceID) async
+    func grant(_ key: CapabilityKey, to instance: ModuleInstanceID)
+    func revoke(_ key: CapabilityKey, from instance: ModuleInstanceID)
     func currentGrants(for instance: ModuleInstanceID) -> Set<CapabilityKey>
-    func setGrants(_ grants: Set<CapabilityKey>, for instance: ModuleInstanceID)
+    func setGrants(_ keys: Set<CapabilityKey>, for instance: ModuleInstanceID)
     var onGrantChange: ((ModuleInstanceID, CapabilityKey, Bool) -> Void)?
 }
 ```
 
 - **触发回调**：授予/撤销时通过 `onGrantChange` 通知 Reconciler
 - **用途**：XPC 模块的能力代理校验、权限撤销时的模块降级
-- **阶段**：P4 完整实现
 
 ## 命名空间隔离机制
 
-所有带状态的存储能力都使用 `module.<moduleID>.<key>` 前缀实现隔离：
+所有带状态的存储能力都使用 `module.<moduleID>` 前缀实现隔离：
 
 ```
 UserDefaults App Group Suite:
-  module.clock.is24Hour → true
-  module.clock.selectedTimezone → "Asia/Shanghai"
-  module.deepseek.apiKey → （通过 Keychain 存储）
-  module.counter.count → 5
-  module.notesquick.text → "备忘内容"
-  module.deepseek.usageCache → <JSON Data>
+  module.clock.setting.moduleState → <ClockState JSON>
+  module.counter.setting.moduleState → <CounterState JSON>
+  module.notesQuick.domainState → <NotesQuickState Data>
+  module.deepseek.domainState → <DeepSeekCache Data>
+
+Keychain:
+  service: com.wenjiexu.GlyphBar.module
+  account: module.deepseek.deepseek.apiKey → <encrypted>
+  account: module.deepseek.deepseek.platformCookie → <encrypted>
 ```
 
 - **ModuleSecretStore**：Keychain 的 `service` 和 `account` 包含模块 ID
-- **ModuleCacheNamespace**：UserDefaults key 加 `module.<moduleID>.` 前缀
-- **ModuleSettingsNamespace**：UserDefaults key 加 `module.<moduleID>.` 前缀
+- **ModuleCacheNamespace**：UserDefaults key 为 `module.<moduleID>.domainState`
+- **ModuleSettingsNamespace**：UserDefaults key 为 `module.<moduleID>.setting.<rawKey>`
 
 这保证了模块 A 无法意外或恶意读写模块 B 的数据。
 
@@ -268,23 +274,24 @@ final class MyModule: TypedModuleContribution {
         case .refresh:
             // 使用 network 能力（如果授予了）
             if let network = capabilities.network {
+                let request = NetworkRequest(url: url, method: "GET")
                 let (data, _) = try await network.send(request)
                 // 处理数据...
             }
 
             // 使用 cache 能力（如果授予了）
             if let cache = capabilities.cache {
-                cache.saveDomainState(encodedData, forKey: "lastState")
+                cache.saveDomainState(encodedData)
             }
 
             // 使用 settings 能力（如果授予了）
             if let settings = capabilities.settings {
-                let interval: Double = settings["refreshInterval"] ?? 300
+                let interval: String? = settings["refreshInterval"]
             }
 
             // 使用 secret 能力（如果授予了）
             if let secretStore = capabilities.secretStore {
-                let apiKey = secretStore.get("apiKey")
+                let apiKey = secretStore.secret(for: "apiKey")
             }
 
             // 日志始终可用

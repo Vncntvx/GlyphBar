@@ -1,0 +1,4 @@
+interface:
+  display_name: "GlyphBar Module Developer"
+  short_description: "Scaffold and implement GlyphBar modules with tests"
+  default_prompt: "Use -module-developer to add a new GlyphBar module following the project contract, or to scaffold module files and headless tests."

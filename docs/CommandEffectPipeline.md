@@ -59,8 +59,6 @@ enum RefreshReason: Sendable {
 }
 ```
 
-模块可以根据 `reason` 调整行为，例如 `manual` 可以显示加载指示器，而 `scheduled` 则静默刷新。
-
 ### ActionPayload
 
 ```swift
@@ -70,7 +68,7 @@ struct ActionPayload: Sendable {
 }
 ```
 
-可选的动作载荷，用于传递用户操作的附加上下文。
+可选的动作载荷。`text` 用于简单字符串参数（如 API Key、布尔值），`data` 用于 Codable 编码的结构化数据。
 
 ## Effect — 统一输出词汇
 
@@ -95,16 +93,16 @@ enum Effect: Sendable {
 
 | Effect | 副作用执行 | 使用场景 |
 |--------|-----------|----------|
-| `.publishSnapshot(SnapshotEnvelope)` | 写入 WidgetBridge 并触发 `WidgetCenter.reloadAllTimelines()` | 模块数据更新后发布到 Widget |
-| `.persistDomainState(Data)` | 持久化模块不透明状态 | 保存模块的域状态数据 |
-| `.copyToClipboard(String)` | 写入 `NSPasteboard.general` | 复制文本到剪贴板 |
-| `.openURL(URL)` | 调用 `NSWorkspace.shared.open(url)` | 在浏览器中打开 URL |
-| `.showNotice(String)` | 记录日志，未来可展示通知 | 向用户显示提示信息 |
-| `.openModuleSettings` | 打开设置窗口并激活 App | 跳转到模块设置 |
-| `.requestFileImport(allowedTypes:)` | 请求文件导入对话框 | 让用户选择文件导入 |
-| `.requestRefresh(reason:)` | 请求再次刷新 | 某些操作后需要立即刷新 |
-| `.scheduleLocal(Command, after:)` | 延迟后发送 Command | 定时自我触发（如 DeepSeek 的周期性检查） |
-| `.networkRequest(NetworkRequest)` | 执行 HTTP 请求 | ⚠️ 建议使用 `NetworkCapability` 代替 |
+| `.publishSnapshot(SnapshotEnvelope)` | 写入 CacheStore + WidgetBridge + 回调 Runtime 更新 snapshot | 模块数据更新后发布到 Widget |
+| `.persistDomainState(Data)` | 日志记录（完整接线待完成） | 保存模块的域状态数据 |
+| `.copyToClipboard(String)` | `NSPasteboard.general.clearContents()` + `setString()` | 复制文本到剪贴板 |
+| `.openURL(URL)` | `NSWorkspace.shared.open(url)` | 在浏览器中打开 URL |
+| `.showNotice(String)` | 更新 runtime notice + 日志记录 | 向用户显示提示信息 |
+| `.openModuleSettings` | `openSettingsAction?()` + `NSApp.activate()` | 跳转到模块设置 |
+| `.requestFileImport(allowedTypes:)` | 日志记录（能力接线待完成） | 请求文件导入对话框 |
+| `.requestRefresh(reason:)` | 通过 runtime 回调再次 dispatch refresh | 某些操作后需要立即刷新 |
+| `.scheduleLocal(Command, after:)` | 通过 runtime 注入的 `SchedulerClock` 安排 command，可在 module disable/unload 时取消 | 定时自我触发 |
+| `.networkRequest(NetworkRequest)` | 日志警告：建议使用 `NetworkCapability` 代替 | 兼容路径，新代码不应使用 |
 
 > **注意**：`.networkRequest` 保留用于兼容，新代码应使用 `GrantedCapabilities.network` (`NetworkCapability`) 发起网络请求，这样可以利用能力授予机制进行权限控制。
 
@@ -160,8 +158,6 @@ DomainTransition(
 **忽略不相关的 Command**：
 ```swift
 DomainTransition.empty
-// 或
-DomainTransition(effects: [], health: nil, refreshProjection: false)
 ```
 
 ## ModuleBridge — Effect 提交通道
@@ -216,7 +212,7 @@ final class EffectExecutor {
 | `.requestFileImport(types)` | 日志记录（能力接线待完成） |
 | `.requestRefresh(reason)` | 通过 runtime 回调再次 dispatch refresh |
 | `.scheduleLocal(cmd, after:)` | 通过 runtime 注入的 `SchedulerClock` 安排 command，可在 module disable/unload 时取消 |
-| `.networkRequest(req)` | 警告：建议使用 `NetworkCapability` |
+| `.networkRequest(req)` | 日志警告：建议使用 `NetworkCapability` |
 
 ## 完整数据流示例
 
@@ -237,7 +233,7 @@ final class EffectExecutor {
        health: .healthy,
        refreshProjection: true
      )
-6. ModuleActor → EffectExecutor.execute(.publishSnapshot(envelope), for: "clock")
+6. ModuleActor → ModuleSupervisor.onEffects → EffectExecutor.execute(.publishSnapshot(envelope), for: "clock")
 7. EffectExecutor → CacheStore.save(snapshot) + WidgetDataBridge.publish(envelope)
 8. WidgetDataBridge → 写入 App Group UserDefaults + WidgetCenter.reloadAllTimelines()
 9. EffectExecutor 回调 ModuleRuntime 更新 `snapshots[moduleID]`
@@ -249,7 +245,7 @@ final class EffectExecutor {
 
 `ModuleActor` 保证**模块内串行**处理：
 
-- **Coalesce**：重复的 `.refresh` 命令会被合并，只保留最新的 `reason`
+- **Coalesce**：重复的 `.refresh` 命令会被合并，只保留最新的 `reason`（仅限 fire-and-forget 的 enqueue 调用；awaited `perform()` 调用不会合并）
 - **不合并**：`.userAction` 命令不会合并，确保每个用户操作都被处理
 - **代际**：使用 `GenerationToken` 和 `CancellationScope`，如果模块正在处理旧 refresh，新 refresh 取消旧任务，旧结果被丢弃
 

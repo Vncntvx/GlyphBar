@@ -35,7 +35,7 @@ GlyphBar 的架构围绕一个核心信念：**模块拥有领域状态，不拥
 │   ModuleSupervisor · ModuleActor · ModuleOperationalState│
 ├─────────────────────────────────────────────────────────┤
 │                    Execution                             │
-│   RefreshScheduler · SchedulerClock · RefreshBudget     │
+│   RefreshScheduler · SchedulerClock · RefreshJob        │
 │   SystemEnvironmentMonitor · PresentationTicker         │
 ├─────────────────────────────────────────────────────────┤
 │                    Control Plane                         │
@@ -89,8 +89,8 @@ GlyphBar/
 │   ├── Routing/            # DeepLinkRouter
 │   └── Windows/            # 日志窗口等
 ├── Kernel/                 # 微内核
-│   ├── Contracts/          # ModuleContract、DomainTransition、ModuleHealth
-│   ├── Command/            # Command 枚举
+│   ├── Contracts/          # ModuleContract、DomainTransition、ModuleHealth、ModuleIdentity
+│   ├── Command/            # Command 枚举、CommandPayloadDecoding
 │   ├── Effect/             # Effect 枚举、EffectExecutor
 │   ├── Capabilities/       # Capability 协议、GrantedCapabilities、CapabilityFactory
 │   │                        ModuleSecretStore、ModuleCacheNamespace、ModuleSettingsNamespace
@@ -106,21 +106,32 @@ GlyphBar/
 │   └── WidgetBridge/       # WidgetEnvelopeBridge
 ├── Presentation/           # 展示层
 │   ├── Arbiter/            # PresentationArbiter、StatusCandidate、HysteresisTracker
-│   │                        ArbitrationPolicy、PresentationDecision
-│   ├── Host/               # ModulePanelHost、ModuleContribution、PanelHostContext
+│   │                        ArbitrationPolicy、PresentationDecision、TrustLevel
+│   ├── Host/               # ModuleContribution、PanelHostContext
 │   └── StatusBar/          # StatusItemRenderer
-├── Platform/               # 平台扩展（P4）
+├── Platform/               # 平台扩展
 │   ├── Ingestion/          # IngestionAPI（CLI/Shortcuts/CI 数据发布）
-│   ├── Trust/              # TrustLevel
+│   ├── Trust/              # TrustLevel（已迁移至 Presentation/Arbiter/TrustLevel.swift）
 │   └── Isolation/          # XPCModuleHost、XPCModuleProtocol、XPCModuleProxy
-├── Core/                   # 遗留运行时（逐步迁移至 Kernel/Projection/Presentation）
-│   ├── Runtime/            # ModuleRuntime、ModuleRegistry
-│   ├── Modules/            # ModuleTypes（ModuleManifest、ExternalModuleManifest 等）
+├── Execution/              # 调度与 Tick
+│   ├── Scheduler/          # RefreshScheduler、RefreshJob、SchedulerClock、SystemSchedulerClock、VirtualClock
+│   ├── Environment/        # SystemEnvironmentMonitor
+│   └── Ticks/              # PresentationTickable、PresentationTicker
+├── ControlPlane/           # 控制面板
+│   ├── Desired/            # DesiredModuleState、DesiredStateStore
+│   ├── Observed/           # ObservedModuleState
+│   ├── Packages/           # Package、Installer
+│   ├── Reconciler/         # Reconciler
+│   ├── Migration/          # SchemaVersion、StorageMigration
+│   └── Upgrade/            # ModuleUpgrader
+├── Core/                   # 运行时基础设施
+│   ├── Runtime/            # ModuleRuntime、ModuleRegistry、DeclarativeModule、KernelBridge
+│   ├── Modules/            # ModuleTypes（ModuleManifest、ModuleSnapshot、ModuleAction 等）
 │   ├── Storage/            # CacheStore、AppSettingsStore
 │   ├── Permissions/        # PermissionCenter
-│   ├── Refresh/            # RefreshScheduler（旧版）
-│   ├── Status/             # StatusComposer、StatusRotationEngine（旧版）
 │   └── Logging/            # GlyphLogger
+├── Observability/          # 诊断上下文
+│   └── DiagnosticContext.swift
 ├── DesignSystem/           # 可复用 SwiftUI 组件
 ├── Modules/                # 内置模块
 │   ├── ClockModule/
@@ -135,7 +146,11 @@ GlyphBar/
 │   └── WidgetDataBridge.swift
 └── GlyphBarWidgets/        # WidgetKit 扩展
     ├── GlyphBarWidgetsBundle.swift
-    └── Providers/ModuleTimelineProvider.swift
+    ├── Providers/ModuleTimelineProvider.swift
+    ├── Views/ModuleWidgetViews.swift · GlyphWidgetComponents.swift
+    ├── Widgets/ClockWidget.swift · CounterWidget.swift · NetworkMockWidget.swift
+    │         NotesQuickWidget.swift · SystemPulseWidget.swift
+    └── Intents/OpenGlyphBarIntent.swift · OpenModuleIntent.swift · RefreshAllModulesIntent.swift
 ```
 
 ## 组合根
@@ -147,8 +162,6 @@ GlyphBar/
 3. 创建 `ModuleRuntime`，连接 `openSettingsAction` 到设置界面
 4. 创建 UI 协调器：`AppMenuCoordinator`、`QuickPanelCoordinator`、`StatusItemController`、`DeepLinkRouter`、`LogsWindowCoordinator`
 5. 首次启动时按 `manifest.priority` 排序模块
-
-未来（P3）将拆分为 `CompositionRoot`，按五平面接线，`AppEnvironment` 退化为薄壳或删除。
 
 ## 模块生命周期
 

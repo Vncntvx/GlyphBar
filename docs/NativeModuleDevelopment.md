@@ -80,7 +80,7 @@ func handle(
         return handlePermissionChanged(capabilities: capabilities)
 
     case .appBecameActive:
-        return .empty  // 或触发刷新
+        return .empty
 
     case .systemWake:
         return DomainTransition(
@@ -108,7 +108,7 @@ func handle(
         return handleImport(url: url, capabilities: capabilities)
 
     case .clearCache:
-        capabilities.cache?.clear()
+        capabilities.cache?.clearDomainState()
         return DomainTransition(
             effects: [.requestRefresh(reason: .manual)],
             health: nil,
@@ -116,7 +116,7 @@ func handle(
         )
 
     case .contributionTick:
-        return .empty  // 仅 Clock 等需要展示 Tick 的模块处理
+        return .empty
     }
 }
 ```
@@ -247,7 +247,7 @@ struct PanelHostContext {
 - `moduleID`：当前模块的 ID
 - `dispatch`：发送 Command 到内核的闭包，**替代**直接调用模块方法
 
-> **重要**：面板中的用户操作必须通过 `context.dispatch()` 发送 Command，不要直接调用模块方法或修改模块状态。这确保了单向数据流。
+> **重要**：面板中的用户操作必须通过 `context.dispatch()` 发送 Command，不要直接调用模块方法或修改模块状态。SwiftUI `Binding` 的 `set` 闭包应该 dispatch command，而不是直接修改模块属性。
 
 ## AI-native 模块模板
 
@@ -279,17 +279,36 @@ struct PanelHostContext {
     let module = MyModule()
     let harness = ModuleHarness(module: module)
 
-    let transition = await harness.dispatch(.userAction(actionID: "increment", payload: nil))
+    let transition = await harness.dispatch(.refresh(reason: .manual))
 
     #expect(transition.refreshProjection == true)
-    #expect(harness.latestSnapshot?.id == "myModule")
+    #expect(harness.latestEnvelope?.id == "mymodule")
+    #expect(harness.latestSnapshot?.id == "mymodule")
     #expect(harness.latestWidgetSnapshot?.title != nil)
 }
 ```
 
+`ModuleHarness` 的完整 API：
+
+| 方法/属性 | 用途 |
+|-----------|------|
+| `dispatch(_ command:)` | 发送 Command 并返回 `DomainTransition` |
+| `refresh(reason:)` | 发送 `.refresh` 的便捷方法 |
+| `stop()` | 取消模块的 in-flight 任务 |
+| `unload()` | 从 Supervisor 注销模块 |
+| `resetCapturedOutput()` | 清空已捕获的 effects/transitions/snapshots |
+| `emittedEffects` | 所有已捕获的 `Effect` |
+| `transitions` | 所有已捕获的 `DomainTransition` |
+| `latestEnvelope` | 最新的 `SnapshotEnvelope` |
+| `latestSnapshot` | 最新的 `ModuleSnapshot` |
+| `latestWidgetSnapshot` | 最新的 `WidgetModuleSnapshot` |
+| `isLoaded` | 模块是否已加载 |
+
 需要测试权限时，注入 `PermissionCenter`：
 
 ```swift
+let defaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+defer { defaults.removePersistentDomain(forName: defaults.suiteName!) }
 let permissions = PermissionCenter(defaults: defaults)
 let harness = ModuleHarness(
     module: ThirdPartyLikeModule(),
@@ -348,7 +367,6 @@ case .userAction(let actionID, _):
 
 ```swift
 case .refresh:
-    // 检查必要能力是否可用
     guard let network = capabilities.network else {
         return DomainTransition(
             effects: [.publishSnapshot(staleEnvelope)],
@@ -358,7 +376,7 @@ case .refresh:
     }
 
     guard let secretStore = capabilities.secretStore,
-          let apiKey = secretStore.get("apiKey") else {
+          let apiKey = secretStore.secret(for: "apiKey") else {
         return DomainTransition(
             effects: [],
             health: .misconfigured(.missingSecret("apiKey")),
@@ -391,20 +409,23 @@ func handle(command: Command, capabilities: GrantedCapabilities, bridge: ModuleB
 
     // 密钥存储
     if let secretStore = capabilities.secretStore {
-        secretStore.set("my-api-key", for: "apiKey")
-        let key = secretStore.get("apiKey")
+        secretStore.setSecret("my-api-key", for: "apiKey")
+        let key = secretStore.secret(for: "apiKey")
+        secretStore.deleteSecret(for: "apiKey")
     }
 
     // 缓存
     if let cache = capabilities.cache {
-        cache.saveDomainState(encodedData, forKey: "lastState")
-        let cached = cache.loadDomainState(forKey: "lastState")
+        cache.saveDomainState(encodedData)
+        let cached = cache.loadDomainState()
+        cache.clearDomainState()
     }
 
     // 设置
     if let settings = capabilities.settings {
-        let interval: Double = settings["refreshInterval"] ?? 300
-        settings["refreshInterval"] = 600.0
+        let interval: String? = settings["refreshInterval"]
+        settings.set(600.0, forKey: "refreshInterval")
+        let typed: Double? = settings.get(Double.self, forKey: "refreshInterval")
     }
 
     // 系统指标

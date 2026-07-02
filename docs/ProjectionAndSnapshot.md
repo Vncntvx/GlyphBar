@@ -36,7 +36,7 @@ struct ProjectionSet: Sendable {
 ```swift
 struct SummaryProjection: Sendable {
     let title: String
-    let subtitle: String?
+    let subtitle: String
     let systemImage: String
 }
 ```
@@ -47,14 +47,14 @@ struct SummaryProjection: Sendable {
 
 ```swift
 struct MetricsProjection: Sendable {
-    let items: [Metric]
+    let metrics: [Metric]
 }
 
 struct Metric: Sendable, Identifiable {
     let id: String
     let label: String
     let value: Double
-    let unit: String?
+    let unit: String
     let systemImage: String?
 }
 ```
@@ -64,11 +64,11 @@ struct Metric: Sendable, Identifiable {
 ### ListProjection
 
 ```swift
-struct ListProjection: Sendable {
+struct ListProjection: Sendable, Codable {
     let items: [Item]
 }
 
-struct Item: Sendable, Identifiable {
+struct Item: Sendable, Identifiable, Codable {
     let id: String
     let title: String
     let subtitle: String?
@@ -106,14 +106,17 @@ struct Point: Sendable {
 ```swift
 struct WidgetProjection: Sendable {
     let title: String
-    let subtitle: String?
-    let systemImage: String?
-    let metrics: [Metric]?
-    let notes: [String]?
+    let subtitle: String
+    let systemImage: String
+    let severity: Severity
+    let metrics: [MetricsProjection.Metric]
+    let notes: [String]
+    let timestamp: Date
+    let unavailableReason: String?
 }
 ```
 
-WidgetKit 专用的精简投影，提取自完整投影中适合小部件展示的数据。
+WidgetKit 专用的精简投影，提取自完整投影中适合小部件展示的数据。包含 severity、timestamp 和 unavailableReason，供 Widget 视图决定展示方式。
 
 ### PanelModelProjection
 
@@ -165,13 +168,13 @@ struct SnapshotEnvelope: Sendable, Identifiable {
 ```swift
 enum SnapshotFreshness: Sendable {
     case fresh                           // 数据是新鲜的
-    case stale(since: Date)             // 数据过期，附带过期时间
+    case stale(Date)                    // 数据过期，附带过期时间
     case unavailable(String)            // 数据不可用，附带原因描述
 }
 ```
 
 - `.fresh`：刚从模块获取的最新数据
-- `.stale(since:)`：数据已过期但仍可展示（如网络断开时显示缓存数据）
+- `.stale(_:)`：数据已过期但仍可展示（如网络断开时显示缓存数据）
 - `.unavailable(_:)`：数据完全不可用（如首次启动无缓存）
 
 ### Schema 版本化
@@ -180,7 +183,6 @@ enum SnapshotFreshness: Sendable {
 
 - 当 `ProjectionSet` 的字段类型发生变化时递增
 - Consumer（如 Widget 扩展）检查版本号，不匹配时降级处理
-- P3 引入每协议独立版本（`ProtocolVersions`）
 
 ## ModuleHealth
 
@@ -226,16 +228,19 @@ enum HealthReason: Sendable, Equatable {
 
 ## ProjectionBuilder
 
-`ProjectionBuilder` 将旧的 `ModuleSnapshot` 桥接到新的 `ProjectionSet`/`SnapshotEnvelope`：
+`ProjectionBuilder` 在 `ModuleSnapshot` 和 `ProjectionSet`/`SnapshotEnvelope` 之间桥接：
 
 ```swift
-struct ProjectionBuilder {
-    static func build(from snapshot: ModuleSnapshot) -> ProjectionSet
-    static func buildEnvelope(from snapshot: ModuleSnapshot, health: ModuleHealth) -> SnapshotEnvelope
+enum ProjectionBuilder {
+    static func build(from snapshot: ModuleSnapshot, health: ModuleHealth) -> ProjectionSet
+    static func buildEnvelope(from snapshot: ModuleSnapshot, health: ModuleHealth, validUntil: Date?) -> SnapshotEnvelope
+    static func buildSnapshot(from envelope: SnapshotEnvelope) -> ModuleSnapshot
 }
 ```
 
-这是迁移期的桥接工具，新模块应直接构建 `ProjectionSet`。
+- `build(from:)`：从 `ModuleSnapshot` 构建 `ProjectionSet`，包括 summary、metrics、list、widget、statusCandidates
+- `buildEnvelope(from:)`：从 `ModuleSnapshot` 构建 `SnapshotEnvelope`
+- `buildSnapshot(from:)`：从 `SnapshotEnvelope` 重建 `ModuleSnapshot`，用于 runtime snapshot 缓存
 
 ## Widget 数据流
 
@@ -245,12 +250,13 @@ struct ProjectionBuilder {
 Module.handle(.refresh)
     → DomainTransition(effects: [.publishSnapshot(envelope)])
     → EffectExecutor.execute(.publishSnapshot(envelope))
+    → CacheStore.save(snapshot)
     → WidgetDataBridge.publish(envelope)
     → WidgetEnvelopeBridge: 提取 WidgetProjection → 转为 WidgetModuleSnapshot
     → 写入 App Group UserDefaults (group.com.wenjiexu.GlyphBar)
     → WidgetCenter.shared.reloadAllTimelines()
     → Widget 扩展: ModuleTimelineProvider 在 timeline tick 读取 App Group
-    → 渲染 Widget UI
+    → 渲染 ModuleWidgetView
 ```
 
 ### WidgetEnvelopeBridge

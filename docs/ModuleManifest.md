@@ -49,12 +49,12 @@
 
 ### permissions — 权限声明
 
-模块声明它需要哪些平台访问权限。权限必须经用户确认后才被授予。
+模块声明它需要哪些平台访问权限。权限必须经用户确认后才被授予（对第三方模块）。
 
 | 值 | 含义 | 授予的能力 |
 |---|------|-----------|
 | `pasteboard` | 读写剪贴板 | `ClipboardCapability`（共享） |
-| `notifications` | 发送通知 | （P1 暂未实现） |
+| `notifications` | 发送通知 | （暂未实现） |
 | `systemMetrics` | 读取系统指标 | `SystemMetricsCapability`（共享） |
 | `appGroupStorage` | 访问 App Group 存储 | `ModuleCacheNamespace` + `ModuleSettingsNamespace` + `ModuleSecretStore`（独占） |
 | `openExternalURLs` | 打开外部 URL / 发起网络请求 | `NetworkCapability`（共享） |
@@ -85,8 +85,7 @@
   "id": "copyStatus",
   "title": "Copy Status",
   "systemImage": "doc.on.doc",
-  "kind": "copy",
-  "value": "Example status text"
+  "role": "standard"
 }
 ```
 
@@ -95,17 +94,17 @@
 | `id` | `String` | ✅ | 动作唯一标识符，在同一模块内不可重复 |
 | `title` | `String` | ✅ | 动作显示标题 |
 | `systemImage` | `String` | ❌ | SF Symbol 图标名 |
-| `kind` | `String` | ✅ | 动作类型 |
-| `value` | `String` | ❌ | 动作值（部分 kind 需要） |
+| `role` | `String` | ✅ | 动作角色类型 |
 
-#### Action Kinds
+#### Action Roles
 
-| Kind | 含义 | `value` 用途 | 执行方式 |
-|------|------|-------------|---------|
-| `copy` | 复制文本到剪贴板 | 要复制的文本内容 | `Effect.copyToClipboard(value)` |
-| `openURL` | 在浏览器打开 URL | 要打开的 URL | `Effect.openURL(URL(string:value)!)` |
-| `deepLink` | 触发内部深度链接 | `glyphbar://` 路由地址 | `Effect.openURL(URL(string:value)!)` |
-| `refresh` | 刷新模块数据 | 无需 | `Command.refresh(reason: .manual)` |
+| Role | 含义 | 执行方式 |
+|------|------|---------|
+| `standard` | 标准动作 | 通过 `Command.userAction` 分发给模块处理 |
+| `destructive` | 破坏性动作（如删除、重置） | 同上，UI 会额外提示确认 |
+| `refresh` | 刷新动作 | 映射为 `Command.refresh(reason: .manual)` |
+
+> **注意**：内置模块的 `ModuleAction` 使用 `role` 枚举（`standard`/`destructive`/`refresh`），不是旧的 `kind` + `value` 模式。声明式模块的 JSON manifest 中，action 处理仍通过预定义的 `kind`（copy/openURL/deepLink/refresh）执行，因为声明式模块没有原生 handle() 方法。
 
 ### widgets — Widget 描述符
 
@@ -154,6 +153,7 @@
 | 优先级 | 典型用途 |
 |--------|---------|
 | 0 | 普通信息模块（默认值） |
+| 50 | 常驻展示模块（如 Clock） |
 | 100 | 重要模块（如 DeepSeek） |
 | 500–1000 | 关键告警（保留给高严重度场景） |
 
@@ -215,8 +215,6 @@
 - `maximumGlyphBarVersion`：高于或等于此版本的 GlyphBar 拒绝加载该模块（可选）
 - `schemaVersion`：当前为 `1`，不匹配时 `ExternalModulePackageValidator` 拒绝加载
 
-P3 引入每协议独立版本化（`ProtocolVersions`），允许 manifest、snapshot、projection、storage 等各自演进。
-
 ## 完整示例
 
 ```json
@@ -237,21 +235,13 @@ P3 引入每协议独立版本化（`ProtocolVersions`），允许 manifest、sn
       "id": "copyStatus",
       "title": "Copy Status",
       "systemImage": "doc.on.doc",
-      "kind": "copy",
-      "value": "Example Status: Ready"
-    },
-    {
-      "id": "openDocs",
-      "title": "Open Documentation",
-      "systemImage": "safari",
-      "kind": "openURL",
-      "value": "https://example.com/docs"
+      "role": "standard"
     },
     {
       "id": "refreshData",
       "title": "Refresh",
       "systemImage": "arrow.clockwise",
-      "kind": "refresh"
+      "role": "refresh"
     }
   ],
   "widgets": [

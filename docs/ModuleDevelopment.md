@@ -62,8 +62,13 @@ cd MyModule.glyphbarmodule
       "id": "copyStatus",
       "title": "Copy Status",
       "systemImage": "doc.on.doc",
-      "kind": "copy",
-      "value": "Status: OK"
+      "role": "standard"
+    },
+    {
+      "id": "refreshData",
+      "title": "Refresh",
+      "systemImage": "arrow.clockwise",
+      "role": "refresh"
     }
   ],
   "widgets": [
@@ -181,7 +186,9 @@ Import → Validate → Copy → Use
 
 ### Action 处理
 
-用户点击动作按钮时，`DeclarativeModule` 根据 `kind` 执行对应行为：
+用户点击动作按钮时，`DeclarativeModule` 根据 `role` 执行对应行为：
+
+声明式模块的 action 通过预定义的 `kind` 处理（不同于原生模块的 `role` 枚举），因为声明式模块没有原生 `handle()` 方法：
 
 | Kind | 处理方式 |
 |------|---------|
@@ -221,7 +228,7 @@ Import → Validate → Copy → Use
 
 - 使用反向域名风格（如 `com.example.mymodule`）或简短唯一标识符
 - 一旦发布不要更改
-- 避免与内置模块 ID 冲突（`clock`、`counter`、`deepseek`、`notesquick`、`systempulse`、`networkmock`）
+- 避免与内置模块 ID 冲突（`clock`、`counter`、`deepseek`、`notesQuick`、`systemPulse`、`networkMock`）
 
 ### Snapshot 数据设计
 
@@ -285,3 +292,4 @@ ExampleStatus.glyphbarmodule/
 - [安全与权限](SecurityAndPermissions.md) — 信任等级和权限系统
 - [Widget 集成](WidgetIntegration.md) — 第三方模块的 Widget 策略
 - [Command/Effect 管线](CommandEffectPipeline.md) — Action 如何通过 Effect 执行
+- [原生模块开发](NativeModuleDevelopment.md) — 内置模块开发（使用 role 而非 kind）

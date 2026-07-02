@@ -13,7 +13,7 @@ Module.handle(.refresh)
     → 写入 App Group UserDefaults
     → WidgetCenter.shared.reloadAllTimelines()
     → Widget 扩展: ModuleTimelineProvider 读取 App Group
-    → 渲染 Widget UI
+    → 渲染 ModuleWidgetView
 ```
 
 Widget 扩展与主 App 运行在不同进程中，通过 App Group UserDefaults 共享数据。`SnapshotEnvelope` 和 `ProjectionSet` 仅在主 App target 编译，Widget 扩展通过共享的 `WidgetModuleSnapshot` 类型读取数据。
@@ -38,7 +38,10 @@ return DomainTransition(
 
 ```swift
 case .publishSnapshot(let envelope):
+    let snapshot = ProjectionBuilder.buildSnapshot(from: envelope)
+    cacheStore.save(snapshot)
     widgetBridge.publish(envelope)
+    onSnapshotPublished?(moduleID, snapshot)
 ```
 
 ### 3. WidgetEnvelopeBridge 转换
@@ -70,8 +73,6 @@ defaults?.set(encodedSnapshot, forKey: "widget.<moduleID>")
 ```swift
 WidgetCenter.shared.reloadAllTimelines()
 ```
-
-这通知 WidgetKit 重新请求 timeline，Widget 扩展的 `ModuleTimelineProvider` 将被调用。
 
 ### 6. Widget 扩展读取
 
@@ -159,20 +160,72 @@ GlyphBar 包含 5 个内置 Widget，每个对应一个内置模块：
 |--------|------|---------|
 | `ClockWidget` | ClockModule | 当前时间、世界时钟 |
 | `CounterWidget` | CounterModule | 当前计数值 |
-| `NetworkMockWidget` | NetworkMockModule | 网络状态 |
+| `NetworkMockWidget` | NetworkMockModule | 网络状态、本地 IP |
 | `NotesQuickWidget` | NotesQuickModule | 备忘录内容 |
 | `SystemPulseWidget` | SystemPulseModule | CPU/内存/磁盘使用率 |
 
 每个 Widget 使用 `ModuleTimelineProvider` 从 App Group 读取对应模块的 `WidgetModuleSnapshot`。
 
-## ModuleTimelineProvider
+### ModuleWidgetView
 
-`ModuleTimelineProvider` 是所有内置 Widget 共用的 timeline 提供者：
+所有内置 Widget 共用 `ModuleWidgetView` 视图，根据 `WidgetContentSections` 动态渲染内容：
 
-1. 从 App Group UserDefaults 读取 `WidgetModuleSnapshot`
-2. 如果数据可用，构建正常 Entry
-3. 如果数据不可用，构建占位 Entry（显示 "Unavailable"）
-4. 设置 timeline 的 `reloadPolicy`：根据 snapshot 的 `timestamp` 和模块的刷新间隔决定下次刷新时间
+- **Header**：SF Symbol + severity badge
+- **Title/Subtitle**：模块标题和副标题
+- **Metrics**：指标列表（小尺寸最多 2 项，其他最多 4 项）
+- **Notes**：备注列表（小尺寸最多 2 项，其他最多 4 项）
+- **Unavailable reason**：当数据不可用时显示原因
+
+Metrics 和 notes 可以同时显示，不存在互斥分支。`WidgetContentSections` 根据 widget family 自动限制条目数量。
+
+## App Intents
+
+GlyphBar 提供 3 个 App Intent：
+
+### OpenGlyphBarIntent
+
+```swift
+struct OpenGlyphBarIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open GlyphBar"
+    @Parameter(title: "Module", default: "") var moduleID: String
+
+    func perform() async throws -> some IntentResult {
+        .result(opensIntent: OpenURLIntent(Self.url(moduleID: moduleID)))
+    }
+}
+```
+
+打开 GlyphBar 面板。如果指定了 `moduleID`，则跳转到对应模块；否则打开默认面板。通过 `glyphbar://app/panel` 或 `glyphbar://module/{moduleID}` URL scheme 实现。
+
+### OpenModuleIntent
+
+```swift
+struct OpenModuleIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open Module"
+    @Parameter(title: "Module") var moduleID: String
+
+    func perform() async throws -> some IntentResult {
+        .result(opensIntent: OpenURLIntent(OpenGlyphBarIntent.url(moduleID: moduleID)))
+    }
+}
+```
+
+打开指定模块的面板。适合 Siri Shortcuts 使用："Show clock in GlyphBar"。
+
+### RefreshAllModulesIntent
+
+```swift
+@available(macOS 27.0, *)
+struct RefreshAllModulesIntent: AppIntent {
+    static var title: LocalizedStringResource = "Refresh All Modules"
+
+    func perform() async throws -> some IntentResult {
+        .result(opensIntent: OpenURLIntent(URL(string: "glyphbar://app/refresh")!))
+    }
+}
+```
+
+刷新所有已启用模块。macOS 27+ 可用，支持 `IntentAuthenticationPolicy`。
 
 ## 第三方模块的 Widget 策略
 
@@ -193,29 +246,6 @@ WidgetKit 要求 Widget kind 在编译期确定，无法在运行时动态注册
 - **通用模板 Widget**：GlyphBar 可能提供一个通用 Widget，根据模块的 `WidgetProjection` 动态渲染
 - **Widget kind codegen**：P4 可能通过 codegen 预定义 kind 集合，支持第三方模块注册 Widget kind
 - **IngestionAPI**：P4 允许外部工具（CLI/Shortcuts/CI）推送 snapshot 数据，间接更新 Widget
-
-## Widget 数据的 Schema 版本化
-
-`WidgetModuleSnapshot` 的结构可能随版本演进。P3 引入 schema 版本化：
-
-- `WidgetModuleSnapshot` 将添加 `schemaVersion` 字段
-- Widget 扩展检查版本号，不匹配时降级处理（显示基本标题/副标题）
-- 主 App 在写入时使用当前版本号
-
-## OpenGlyphBarIntent
-
-GlyphBar 提供 `OpenGlyphBarIntent`（Siri Shortcuts 集成），允许用户通过 Shortcuts 打开 App：
-
-```swift
-struct OpenGlyphBarIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open GlyphBar"
-    static var description = IntentDescription("Opens the GlyphBar menu bar app")
-
-    func perform() async throws -> some IntentResult {
-        // 激活 GlyphBar
-    }
-}
-```
 
 ## 相关文档
 

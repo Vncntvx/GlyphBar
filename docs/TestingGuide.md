@@ -51,24 +51,52 @@ xcodebuild -project GlyphBar.xcodeproj -scheme GlyphBar \
 Tests/
 ├── ContractTests/            # 契约测试（跨模块参数化验证）
 │   ├── BuiltInModuleContractTests.swift
-│   └── ThirdPartyModuleContractTests.swift
+│   ├── BuiltInModuleCapabilityEffectContractTests.swift
+│   ├── BuiltInModuleCommandProjectionContractTests.swift
+│   ├── BuiltInModuleStorageSnapshotContractTests.swift
+│   ├── ThirdPartyModuleContractTests.swift
+│   └── ThirdPartyCapabilityPolicyContractTests.swift
+│   └── ThirdPartyInfrastructureContractTests.swift
 ├── KernelTests/              # 内核基础设施测试
 │   ├── EffectExecutorTests.swift
 │   ├── ModuleCacheNamespaceTests.swift
 │   ├── ModuleSecretStoreTests.swift
+│   ├── ModuleHarnessTests.swift
+│   ├── CapabilityEnforcementTests.swift
 │   ├── ProjectionBuilderTests.swift
 │   ├── SnapshotEnvelopeTests.swift
 │   ├── WidgetSnapshotBridgeTests.swift
 │   └── DeepSeekRegressionTests.swift
-└── ModuleTests/              # 模块行为测试
-    └── TemplateModuleTests.swift
+├── CoreTests/                # 核心运行时测试
+│   ├── DeepLinkRouterTests.swift
+│   ├── QuickPanelCoordinatorAPITests.swift
+│   ├── RefreshSchedulerTests.swift
+│   ├── SettingsOverhaulTests.swift
+│   ├── StatusComposerTests.swift
+│   ├── StatusRotationEngineTests.swift
+│   ├── WidgetContentSectionsTests.swift
+│   └── WidgetDataBridgeTests.swift
+├── ExecutionTests/           # 调度层测试
+│   └── ExecutionModelTests.swift
+├── ModuleTests/              # 模块行为测试
+│   ├── ClockCounterCommandTests.swift
+│   ├── NotesQuickModuleTests.swift
+│   └── TemplateModuleTests.swift
+├── ControlPlaneTests/        # 控制面板测试
+│   ├── ControlPlaneTests.swift
+│   └── PlatformTests.swift
+└── PropertyTests/            # 属性测试
+    ├── ArbiterPropertyTests.swift
+    └── ArbiterTests.swift
 ```
 
 | 目录 | 内容 | 特点 |
 |------|------|------|
 | `ContractTests/` | 跨所有模块的契约验证 | 参数化，验证所有模块遵守公共契约 |
 | `KernelTests/` | 内核组件单元测试 | 测试 EffectExecutor、Capability、Projection 等 |
-| `ModuleTests/` | 模块集成测试 | 测试模块生命周期、注册、导入导出 |
+| `CoreTests/` | 核心运行时测试 | 测试路由、调度、设置、Widget 桥接等 |
+| `ModuleTests/` | 模块集成测试 | 测试模块 command 流和状态变更 |
+| `PropertyTests/` | 属性测试 | 仲裁器随机输入验证 |
 
 ## 测试模式
 
@@ -108,7 +136,7 @@ let bridge = KernelBridge { capturedEffects.append($0) }
 
 ### GrantedCapabilities 构建
 
-构建最小或完整的 GrantedCapabilities：
+构建最小或完整的 `GrantedCapabilities`：
 
 ```swift
 // 最小（无额外能力）
@@ -117,8 +145,8 @@ let capabilities = GrantedCapabilities(bridge: bridge)
 // 完整
 let capabilities = GrantedCapabilities(
     secretStore: ModuleSecretStore(moduleID: "test", backend: InMemorySecretStoreBackend()),
-    cache: ModuleCacheNamespace(moduleID: "test", defaults: defaults),
-    settings: ModuleSettingsNamespace(moduleID: "test", defaults: defaults),
+    cache: ModuleCacheNamespace(moduleID: "test"),
+    settings: ModuleSettingsNamespace(moduleID: "test"),
     network: NetworkCapability(),
     fileImport: nil,
     clipboard: ClipboardCapability(),
@@ -147,13 +175,13 @@ let capabilities = GrantedCapabilities(
 
 用它覆盖：
 
-- command dispatch
-- refresh
-- emitted effects
-- latest snapshot
-- widget snapshot projection
-- start/stop/unload 行为
-- permission denied/granted 路径
+- command dispatch（`dispatch(_:)`）
+- refresh（`refresh(reason:)`）
+- emitted effects（`emittedEffects`）
+- latest snapshot（`latestSnapshot`、`latestEnvelope`）
+- widget snapshot projection（`latestWidgetSnapshot`）
+- start/stop/unload 行为（`stop()`、`unload()`）
+- permission denied/granted 路径（通过 `sourceKind: .thirdParty` + `PermissionCenter`）
 
 ### 临时目录
 
