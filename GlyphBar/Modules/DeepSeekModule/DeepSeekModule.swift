@@ -1,28 +1,23 @@
 import Foundation
 import SwiftUI
-import OSLog
-
-private let log = Logger(subsystem: "com.wenjiexu.GlyphBar", category: "DeepSeek")
 
 // MARK: - Module
 
 @MainActor
 final class DeepSeekModule: TypedModuleContribution {
-    private var cached: CachedData?
-    private var lastErrorMessage: String?
-    private var cookieExpired = false
-    private var isExporting = false
+    var cached: CachedData?
+    var lastErrorMessage: String?
+    var cookieExpired = false
+    var isExporting = false
 
-    private let apiBase = "https://api.deepseek.com"
+    let secretStore: ModuleSecretStore?
+    let settings: ModuleSettingsNamespace?
+    let cache: ModuleCacheNamespace?
+    let network: NetworkCapability?
+    let fileImport: FileImportCapability?
 
-    private let secretStore: ModuleSecretStore?
-    private let settings: ModuleSettingsNamespace?
-    private let cache: ModuleCacheNamespace?
-    private let network: NetworkCapability?
-    private let fileImport: FileImportCapability?
-
-    private let exportService: UsageExportService
-    private let store: UsageRecordStore
+    let exportService: UsageExportService
+    let store: UsageRecordStore
 
     init(
         secretStore: ModuleSecretStore? = nil,
@@ -39,23 +34,6 @@ final class DeepSeekModule: TypedModuleContribution {
         self.store = UsageRecordStore(cache: cache)
         self.exportService = UsageExportService(secretStore: secretStore, cache: cache)
         loadState()
-    }
-
-    /// Validates an API key by calling the /user/balance endpoint.
-    static func validateApiKey(_ key: String, network: NetworkCapability) async throws {
-        let apiBase = "https://api.deepseek.com"
-        let request = NetworkRequest(
-            url: URL(string: "\(apiBase)/user/balance")!,
-            headers: [
-                "Authorization": "Bearer \(key)",
-                "Accept": "application/json"
-            ]
-        )
-        let (_, http) = try await network.send(request)
-        if http.statusCode == 401 { throw DeepSeekError.invalidKey }
-        if http.statusCode == 403 { throw DeepSeekError.forbidden }
-        if http.statusCode == 429 { throw DeepSeekError.rateLimited }
-        if http.statusCode != 200 { throw DeepSeekError.apiError(http.statusCode, "") }
     }
 
     var manifest: ModuleManifest { Self.staticManifest }
@@ -221,154 +199,4 @@ final class DeepSeekModule: TypedModuleContribution {
         )
     }
 
-    // MARK: - Internals
-
-    /// Refresh path used by command handling.
-    private func refreshSnapshot() async throws -> ModuleSnapshot {
-        lastErrorMessage = nil; cookieExpired = false
-
-        let apiKey = secretStore?.secret(for: "deepseek.apiKey") ?? ""
-        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            cached = nil
-            return ModuleSnapshot(
-                id: manifest.id,
-                title: "DeepSeek",
-                subtitle: "API key not configured",
-                systemImage: manifest.systemImage,
-                freshness: .unavailable("API key not configured"),
-                signals: [
-                    StatusSignal(
-                        id: "ds.unav",
-                        title: "Missing API Key",
-                        message: "Configure a DeepSeek API key to refresh balance.",
-                        systemImage: "key.slash",
-                        severity: .warning,
-                        priority: 90
-                    )
-                ]
-            )
-        }
-        let balance = try? await fetchBalance(apiKey: apiKey)
-        let totalBal = Double(balance?.balanceInfos.first?.totalBalance ?? "0") ?? 0
-        let granted = Double(balance?.balanceInfos.first?.grantedBalance ?? "0") ?? 0
-        let topped = Double(balance?.balanceInfos.first?.toppedUpBalance ?? "0") ?? 0
-
-        let existing = cached
-        cached = CachedData(
-            totalBalance: totalBal, grantedBalance: granted, toppedUpBalance: topped,
-            isAvailable: balance?.isAvailable ?? false,
-            todayCost: existing?.todayCost ?? 0, monthlyCost: existing?.monthlyCost ?? 0,
-            totalTokens: existing?.totalTokens ?? 0, totalCacheHit: existing?.totalCacheHit ?? 0, totalRequests: existing?.totalRequests ?? 0,
-            modelV4FlashTokens: existing?.modelV4FlashTokens ?? 0, modelV4FlashCost: existing?.modelV4FlashCost ?? 0,
-            modelV4FlashCacheHit: existing?.modelV4FlashCacheHit ?? 0, modelV4FlashCacheMiss: existing?.modelV4FlashCacheMiss ?? 0,
-            modelV4ProTokens: existing?.modelV4ProTokens ?? 0, modelV4ProCost: existing?.modelV4ProCost ?? 0,
-            modelV4ProCacheHit: existing?.modelV4ProCacheHit ?? 0, modelV4ProCacheMiss: existing?.modelV4ProCacheMiss ?? 0,
-            dailyItems: existing?.dailyItems ?? [], lastUpdated: Date(),
-            hasPlatformData: existing?.hasPlatformData ?? false
-        )
-        persistCache()
-        return buildSnapshot()
-    }
-
-    /// Trigger WKWebView export to fetch usage data.
-    func fetchUsageExport() async {
-        guard !isExporting else { return }
-        isExporting = true
-        cookieExpired = false
-
-        do {
-            let items = try await exportService.export()
-            applyExportedItems(items)
-            persistCache()
-        } catch let err as ExportError {
-            if case .timeout = err { lastErrorMessage = "Export timed out. Try again or import CSV manually." }
-            else { lastErrorMessage = err.localizedDescription }
-        } catch {
-            lastErrorMessage = error.localizedDescription
-        }
-        isExporting = false
-    }
-
-    /// Import usage data from a CSV file.
-    func importCSV(url: URL) {
-        guard let data = try? Data(contentsOf: url) else {
-            lastErrorMessage = "Failed to read file."
-            return
-        }
-        let items = UsageCSVParser.parse(csvData: data)
-        guard !items.isEmpty else {
-            lastErrorMessage = "No usage records found in CSV."
-            return
-        }
-        applyExportedItems(items)
-        persistCache()
-        lastErrorMessage = nil
-    }
-
-    /// Public method for Settings export to apply items directly.
-    func importExportedItems(_ items: [ParsedUsageItem]) {
-        applyExportedItems(items)
-        persistCache()
-    }
-
-    private func applyExportedItems(_ items: [ParsedUsageItem]) {
-        log.info("Upserting \(items.count, privacy: .public) items into store")
-        self.store.upsert(items)
-
-        let dailies = self.store.dailyItems(days: 10)
-        cached = CachedData(
-            totalBalance: cached?.totalBalance ?? 0, grantedBalance: cached?.grantedBalance ?? 0,
-            toppedUpBalance: cached?.toppedUpBalance ?? 0, isAvailable: cached?.isAvailable ?? false,
-            todayCost: self.store.todayCost(), monthlyCost: self.store.monthlyCost(),
-            totalTokens: self.store.totalTokens, totalCacheHit: self.store.totalCacheHit, totalRequests: self.store.totalRequests,
-            modelV4FlashTokens: self.store.flashTokens(), modelV4FlashCost: self.store.flashCost(),
-            modelV4FlashCacheHit: self.store.flashCacheHit(), modelV4FlashCacheMiss: self.store.flashCacheMiss(),
-            modelV4ProTokens: self.store.proTokens(), modelV4ProCost: self.store.proCost(),
-            modelV4ProCacheHit: self.store.proCacheHit(), modelV4ProCacheMiss: self.store.proCacheMiss(),
-            dailyItems: dailies, lastUpdated: Date(), hasPlatformData: self.store.hasData
-        )
-        log.info("Store has \(dailies.count, privacy: .public) daily groups, monthly=¥\(String(format: "%.2f", self.store.monthlyCost()), privacy: .public)")
-    }
-
-    // MARK: API
-
-    private func fetchBalance(apiKey: String) async throws -> BalanceResponse {
-        guard let network else {
-            throw DeepSeekError.networkError("Network capability not available")
-        }
-        let request = NetworkRequest(
-            url: URL(string: "\(apiBase)/user/balance")!,
-            headers: [
-                "Authorization": "Bearer \(apiKey)",
-                "Accept": "application/json"
-            ]
-        )
-        let (data, http) = try await network.send(request)
-        if http.statusCode == 401 { throw DeepSeekError.invalidKey }
-        if http.statusCode != 200 { throw DeepSeekError.apiError(http.statusCode, "") }
-        return try JSONDecoder().decode(BalanceResponse.self, from: data)
-    }
-
-    private func buildSnapshot() -> ModuleSnapshot {
-        guard let c = cached else { return ModuleSnapshot(id: manifest.id, title: "DeepSeek", subtitle: "No data", systemImage: manifest.systemImage) }
-        var sigs: [StatusSignal] = []
-        // "Account Issue" stays as a signal and is also surfaced as health.
-        if !c.isAvailable { sigs.append(StatusSignal(id: "ds.unav", title: "Account Issue", message: "Account unavailable.", systemImage: "exclamationmark.triangle", severity: .warning, priority: 90)) }
-        if cookieExpired { sigs.append(StatusSignal(id: "ds.cookie", title: "Session Expired", message: "Re-login needed.", systemImage: "person.badge.key", severity: .warning, priority: 80)) }
-        return ModuleSnapshot(id: manifest.id, title: String(format: "¥%.2f", c.totalBalance),
-            subtitle: c.hasPlatformData ? "Today ¥\(String(format: "%.2f", c.todayCost))" : "Export usage from Settings",
-            systemImage: manifest.systemImage, signals: sigs,
-            metrics: ["totalBalance": c.totalBalance, "todayCost": c.todayCost, "monthlyCost": c.monthlyCost])
-    }
-
-    private func persistCache() {
-        guard let c = cached, let data = try? JSONEncoder().encode(c) else { return }
-        cache?.saveDomainState(data)
-    }
-
-    private func loadState() {
-        guard let data = cache?.loadDomainState(),
-              let c = try? JSONDecoder().decode(CachedData.self, from: data) else { return }
-        cached = c
-    }
 }

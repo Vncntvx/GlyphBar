@@ -78,7 +78,7 @@ final class UsageExportService: NSObject {
                 log.info("Injecting plain token (no rawToken saved)")
             }
             let tokenScript = WKUserScript(source: tokenJS, injectionTime: .atDocumentStart, forMainFrameOnly: true)
-            let interceptScript = WKUserScript(source: Self.interceptJS, injectionTime: .atDocumentStart, forMainFrameOnly: false)
+            let interceptScript = WKUserScript(source: UsageExportScripts.interceptJS, injectionTime: .atDocumentStart, forMainFrameOnly: false)
 
             let uc = WKUserContentController()
             uc.addUserScript(tokenScript)
@@ -114,7 +114,7 @@ final class UsageExportService: NSObject {
         guard isLoggedIn else { log.info("Not logged in, skipping click"); return }
         clickAttempts += 1
         log.info("Click \(self.clickAttempts)/\(self.maxRetries)")
-        wv.evaluateJavaScript(Self.clickJS) { [weak self] result, error in
+        wv.evaluateJavaScript(UsageExportScripts.clickJS) { [weak self] result, error in
             guard let self, self.continuation != nil else { return }
             let msg = (result as? String) ?? "nil"
             log.info("Click: \(msg, privacy: .public)")
@@ -122,7 +122,7 @@ final class UsageExportService: NSObject {
                 self.exportTriggerTime = Date()
                 Task { @MainActor in
                     try? await Task.sleep(for: .seconds(1))
-                    let result = try? await wv.evaluateJavaScript(Self.clickJS)
+                    let result = try? await wv.evaluateJavaScript(UsageExportScripts.clickJS)
                     log.info("FollowUp: \(String(describing: result), privacy: .public)")
                 }
                 self.pollForFile(retries: 16)
@@ -143,7 +143,7 @@ final class UsageExportService: NSObject {
             log.info("Download detected: \(file.name, privacy: .public)")
             do {
                 let data = try Data(contentsOf: file.url)
-                let items = parseFile(data: data)
+                let items = UsageExportFileParser.parse(data: data)
                 log.info("Parsed \(items.count, privacy: .public) items")
                 cont.resume(returning: items)
                 self.continuation = nil; cleanup()
@@ -154,7 +154,7 @@ final class UsageExportService: NSObject {
         }
         if retries == 14 || retries == 11, let wv = webView {
             log.info("Retry click at poll \(16 - retries)")
-            wv.evaluateJavaScript(Self.clickJS, completionHandler: nil)
+            wv.evaluateJavaScript(UsageExportScripts.clickJS, completionHandler: nil)
         }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1500))
@@ -170,60 +170,6 @@ final class UsageExportService: NSObject {
             return (url, url.lastPathComponent, mod)
         }.sorted { $0.2 > $1.2 }
         return sorted.first
-    }
-
-    private func parseFile(data: Data) -> [ParsedUsageItem] {
-        if data.starts(with: [0x50, 0x4B]) {
-            return unzipAndMerge(data)
-        } else {
-            let csv = String(data: data, encoding: .utf8) ?? ""
-            log.info("CSV (\(csv.count) chars): \(csv.prefix(200), privacy: .public)")
-            return UsageCSVParser.parse(csvData: data)
-        }
-    }
-
-    private func unzipAndMerge(_ zipData: Data) -> [ParsedUsageItem] {
-        let tmp = FileManager.default.temporaryDirectory.appending(path: "glyph-zip-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: tmp) }
-        do {
-            try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
-            let zp = tmp.appending(path: "e.zip")
-            try zipData.write(to: zp)
-            let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-            p.arguments = ["-x", "-k", zp.path(percentEncoded: false), tmp.path(percentEncoded: false)]; try p.run(); p.waitUntilExit()
-
-            let files = (try? FileManager.default.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil)) ?? []
-            var allItems: [ParsedUsageItem] = []
-            for f in files {
-                if let d = try? Data(contentsOf: f) {
-                    let items = UsageCSVParser.parse(csvData: d)
-                    if !items.isEmpty {
-                        log.info("Parsed \(items.count) items from \(f.lastPathComponent, privacy: .public)")
-                        allItems.append(contentsOf: items)
-                    }
-                }
-            }
-            if !allItems.isEmpty {
-                var merged: [String: ParsedUsageItem] = [:]
-                for item in allItems {
-                    let key = "\(item.date)|\(item.model)"
-                    if var existing = merged[key] {
-                        existing.totalTokens = max(existing.totalTokens, item.totalTokens)
-                        existing.promptTokens = max(existing.promptTokens, item.promptTokens)
-                        existing.completionTokens = max(existing.completionTokens, item.completionTokens)
-                        existing.inputCacheHitTokens = max(existing.inputCacheHitTokens, item.inputCacheHitTokens)
-                        existing.inputCacheMissTokens = max(existing.inputCacheMissTokens, item.inputCacheMissTokens)
-                        existing.cost = max(existing.cost, item.cost)
-                        existing.requestCount = max(existing.requestCount, item.requestCount)
-                        merged[key] = existing
-                    } else {
-                        merged[key] = item
-                    }
-                }
-                return Array(merged.values).sorted { ($0.date, $0.model) < ($1.date, $1.model) }
-            }
-        } catch {}
-        return UsageCSVParser.parse(csvData: zipData)
     }
 
     // MARK: - WKScriptMessageHandler (JS bridge)
@@ -294,49 +240,6 @@ final class UsageExportService: NSObject {
         download.delegate = self
     }
 
-    // MARK: - JS Scripts
-
-    private static let interceptJS = """
-    (function(){if(window.__gh)return;window.__gh=true;
-    const post=(f,d)=>{window.webkit.messageHandlers.usageExport.postMessage({filename:f,dataURL:d})};
-    const oc=URL.createObjectURL;URL.createObjectURL=function(b){const r=new FileReader();
-    r.onload=()=>post('export.csv',r.result);r.readAsDataURL(b);return oc.call(URL,b)};
-    const of=window.fetch;window.fetch=function(...a){return of.apply(this,a).then(r=>{
-    const ct=(r.headers.get('content-type')||'').toLowerCase();
-    const cd=(r.headers.get('content-disposition')||'').toLowerCase();
-    if(ct.includes('zip')||ct.includes('csv')||ct.includes('octet')||ct.includes('excel')||
-    cd.includes('attachment')||cd.includes('export')||cd.includes('usage')){
-    r.clone().blob().then(b=>{const rr=new FileReader();rr.onload=()=>post('export.csv',rr.result);rr.readAsDataURL(b)})}return r})};
-    const OX=window.XMLHttpRequest;window.XMLHttpRequest=function(){const x=new OX();let u='';
-    const oo=x.open;x.open=function(m,url,...r){u=url;return oo.call(this,m,url,...r)};
-    x.addEventListener('load',function(){const ct=(x.getResponseHeader('content-type')||'').toLowerCase();
-    if(ct.includes('csv')||ct.includes('zip')||u.includes('export')||u.includes('download')){
-    let b='';const by=new Uint8Array(x.response||x.responseText||'');
-    for(let i=0;i<by.length;i++)b+=String.fromCharCode(by[i]);
-    post('export.csv','data:text/csv;base64,'+btoa(b))}});return x};
-    document.addEventListener('click',function(e){const a=e.target.closest('a');
-    if(a&&(a.download||/\\.(csv|zip)/i.test(a.href||''))){e.preventDefault();
-    fetch(a.href).then(r=>r.blob()).then(b=>{const rr=new FileReader();
-    rr.onload=()=>post(a.download||'export.csv',rr.result);rr.readAsDataURL(b)})}},true)})();
-    """
-
-    private static let clickJS = """
-    (function(){const btns=document.querySelectorAll('div.ds-button[role="button"]');let t=null;
-    btns.forEach(e=>{if((e.textContent||'').trim()==='导出')t=e});
-    if(!t){const all=document.querySelectorAll('[role="button"],button,a');
-    for(const e of all){if((e.textContent||'').trim().includes('导出')){t=e;break}}}
-    if(!t)return'no_button';
-    const rk=Object.keys(t).find(k=>k.startsWith('__reactFiber$')||k.startsWith('__reactInternalInstance$'));
-    if(rk){const f=t[rk];let c=f;
-    for(let i=0;i<15&&c;i++){if(c.memoizedProps&&typeof c.memoizedProps.onClick==='function'){
-    c.memoizedProps.onClick({preventDefault:()=>{},stopPropagation:()=>{},nativeEvent:{}});return'react_'+i}
-    if(c.pendingProps&&typeof c.pendingProps.onClick==='function'){
-    c.pendingProps.onClick({preventDefault:()=>{},stopPropagation:()=>{},nativeEvent:{}});return'pending_'+i}
-    c=c.return}}
-    t.scrollIntoView({block:'center'});
-    ['pointerover','mouseover','pointerenter','mouseenter','pointerdown','mousedown','pointerup','mouseup','click'].forEach(n=>t.dispatchEvent(new MouseEvent(n,{bubbles:true,cancelable:true})));
-    if(t.click)t.click();return'dom_clicked'})();
-    """
 }
 
 // MARK: - WKDownloadDelegate
@@ -360,15 +263,3 @@ extension UsageExportService: WKDownloadDelegate {
 }
 
 extension UsageExportService: WKScriptMessageHandler, WKNavigationDelegate {}
-
-enum ExportError: LocalizedError {
-    case notLoggedIn, authFailed, noData, timeout
-    var errorDescription: String? {
-        switch self {
-        case .notLoggedIn: "Not logged in to DeepSeek platform."
-        case .authFailed: "Session expired — please re-login."
-        case .noData: "No usage data found in export."
-        case .timeout: "Export timed out. Try again."
-        }
-    }
-}
