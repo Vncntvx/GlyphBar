@@ -184,11 +184,12 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
     }
 
     func panelContent(context: PanelHostContext) -> some View {
-        // Binding setters dispatch commands; module state remains behind handle(command:).
-        ClockPanel(
-            snapshot: buildSnapshot(),
+        let snapshot = buildSnapshot()
+        let meta = snapshot.metadata
+        return ClockPanel(
+            snapshot: snapshot,
             uses24HourClock: Binding(
-                get: { [weak self] in self?.uses24HourClock ?? true },
+                get: { meta["format"] == "24-hour" },
                 set: { newValue in
                     context.dispatch(.userAction(
                         actionID: "setFormat24h",
@@ -197,7 +198,7 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
                 }
             ),
             showSeconds: Binding(
-                get: { [weak self] in self?.showSeconds ?? false },
+                get: { meta["showSeconds"] == "true" },
                 set: { newValue in
                     context.dispatch(.userAction(
                         actionID: "setShowSeconds",
@@ -206,7 +207,13 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
                 }
             ),
             worldTimezones: Binding(
-                get: { [weak self] in self?.worldTimezones ?? [] },
+                get: {
+                    if let data = Data(base64Encoded: meta["worldTimezones"] ?? ""),
+                       let zones = try? JSONDecoder().decode([String].self, from: data) {
+                        return zones
+                    }
+                    return []
+                },
                 set: { newValue in
                     let data = try? JSONEncoder().encode(newValue)
                     context.dispatch(.userAction(
@@ -258,7 +265,8 @@ final class ClockModule: TypedModuleContribution, PresentationTickable {
                 "timezone": tz.identifier,
                 "tzAbbreviation": tzName,
                 "format": uses24HourClock ? "24-hour" : "12-hour",
-                "showSeconds": showSeconds ? "true" : "false"
+                "showSeconds": showSeconds ? "true" : "false",
+                "worldTimezones": (try? JSONEncoder().encode(worldTimezones).base64EncodedString()) ?? ""
             ]
         )
     }
