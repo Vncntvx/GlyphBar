@@ -212,6 +212,9 @@
 		B45E5FDE3E45549A6856A1FD /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1A96868003443CEBAE520C /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift */; };
 		BCE93FBCA34194DCE83EDA4F /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE08C530CA388442B9C2F4F4 /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift */; };
 		B91CFB0ADB55A4D4E9ABB3CB /* ContractTests/ThirdPartyInfrastructureContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0C563DEF2DB840EEB3C7AC5 /* ContractTests/ThirdPartyInfrastructureContractTests.swift */; };
+		BA46ACAA9D8D24E76950D0F6 /* ContractTests/NotesQuickModuleManifestContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACC4D98057E5A4E69809F729 /* ContractTests/NotesQuickModuleManifestContractTests.swift */; };
+		B191720322C2D46CDACFF712 /* ModuleTests/NotesQuickModuleIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A177C3DB96D354F79B0FB070 /* ModuleTests/NotesQuickModuleIntegrationTests.swift */; };
+		B107075705348480DB597A74 /* ModuleTests/NotesQuickPanelBuildTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0187E39B25049699E4186D /* ModuleTests/NotesQuickPanelBuildTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -449,6 +452,9 @@
 		AE1A96868003443CEBAE520C /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/BuiltInModuleCapabilityEffectContractTests.swift; sourceTree = "<group>"; };
 		AE08C530CA388442B9C2F4F4 /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/ThirdPartyCapabilityPolicyContractTests.swift; sourceTree = "<group>"; };
 		A0C563DEF2DB840EEB3C7AC5 /* ContractTests/ThirdPartyInfrastructureContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/ThirdPartyInfrastructureContractTests.swift; sourceTree = "<group>"; };
+		ACC4D98057E5A4E69809F729 /* ContractTests/NotesQuickModuleManifestContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/NotesQuickModuleManifestContractTests.swift; sourceTree = "<group>"; };
+		A177C3DB96D354F79B0FB070 /* ModuleTests/NotesQuickModuleIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/NotesQuickModuleIntegrationTests.swift; sourceTree = "<group>"; };
+		AB0187E39B25049699E4186D /* ModuleTests/NotesQuickPanelBuildTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/NotesQuickPanelBuildTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -691,6 +697,7 @@
 				A0C563DEF2DB840EEB3C7AC5 /* ContractTests/ThirdPartyInfrastructureContractTests.swift */,
 				AE08C530CA388442B9C2F4F4 /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift */,
 				A7CA92141A1904FDA96B2730 /* ContractTests/BuiltInModuleContractTests.swift */,
+				ACC4D98057E5A4E69809F729 /* ContractTests/NotesQuickModuleManifestContractTests.swift */,
 				AE1A96868003443CEBAE520C /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift */,
 				A0794D8B32A4B4A4CA1114B8 /* ContractTests/BuiltInModuleStorageSnapshotContractTests.swift */,
 				AF2D1FE5F2B68416AB9019BC /* ContractTests/BuiltInModuleCommandProjectionContractTests.swift */,
@@ -711,6 +718,8 @@
 				A4EF34F1DCCE04B509A2EE06 /* CoreTests/WidgetContentSectionsTests.swift */,
 					A00000000000000000000305 /* ModuleTests/TemplateModuleTests.swift */,
 					A00000000000000000000306 /* ModuleTests/NotesQuickModuleTests.swift */,
+					AB0187E39B25049699E4186D /* ModuleTests/NotesQuickPanelBuildTests.swift */,
+					A177C3DB96D354F79B0FB070 /* ModuleTests/NotesQuickModuleIntegrationTests.swift */,
 					A0787BFE3B0C94F91BFC64AA /* ModuleTests/ClockCounterCommandTests.swift */,
 				);
 				path = Tests;
@@ -1029,6 +1038,7 @@
 				B91CFB0ADB55A4D4E9ABB3CB /* ContractTests/ThirdPartyInfrastructureContractTests.swift in Sources */,
 				BCE93FBCA34194DCE83EDA4F /* ContractTests/ThirdPartyCapabilityPolicyContractTests.swift in Sources */,
 				B36697F3B19E5450B9D506DA /* ContractTests/BuiltInModuleContractTests.swift in Sources */,
+				BA46ACAA9D8D24E76950D0F6 /* ContractTests/NotesQuickModuleManifestContractTests.swift in Sources */,
 				B45E5FDE3E45549A6856A1FD /* ContractTests/BuiltInModuleCapabilityEffectContractTests.swift in Sources */,
 				B69616FDE3DDE44DC93D57E3 /* ContractTests/BuiltInModuleStorageSnapshotContractTests.swift in Sources */,
 				BCE6113335D054D838DDEFFB /* ContractTests/BuiltInModuleCommandProjectionContractTests.swift in Sources */,
@@ -1049,6 +1059,8 @@
 				B7A65F2997A834B76B792E32 /* CoreTests/WidgetContentSectionsTests.swift in Sources */,
 					B00000000000000000000405 /* ModuleTests/TemplateModuleTests.swift in Sources */,
 					B00000000000000000000406 /* ModuleTests/NotesQuickModuleTests.swift in Sources */,
+					B107075705348480DB597A74 /* ModuleTests/NotesQuickPanelBuildTests.swift in Sources */,
+					B191720322C2D46CDACFF712 /* ModuleTests/NotesQuickModuleIntegrationTests.swift in Sources */,
 					B873307FDD9D541528EE3CD0 /* ModuleTests/ClockCounterCommandTests.swift in Sources */,
 				);
 				runOnlyForDeploymentPostprocessing = 0;

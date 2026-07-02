@@ -33,6 +33,10 @@ final class NotesQuickModule: TypedModuleContribution {
         defaultRefreshPolicy: .manual,
         actions: [
             ModuleAction(id: "addNote", title: "Add Note", systemImage: "plus"),
+            ModuleAction(id: "editNote", title: "Edit Note", systemImage: "pencil"),
+            ModuleAction(id: "toggleComplete", title: "Toggle Complete", systemImage: "checkmark.circle"),
+            ModuleAction(id: "togglePin", title: "Toggle Pin", systemImage: "pin"),
+            ModuleAction(id: "deleteNote", title: "Delete Note", systemImage: "trash", role: .destructive),
             ModuleAction(id: "copyNote", title: "Copy Note", systemImage: "doc.on.doc"),
             ModuleAction(id: "clearCompleted", title: "Clear Done", systemImage: "checkmark.circle", role: .destructive)
         ],
