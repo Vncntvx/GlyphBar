@@ -200,11 +200,6 @@ final class ModuleRuntime {
         selectedModuleID = moduleID
     }
 
-    func publishSnapshot(_ snapshot: ModuleSnapshot) {
-        snapshots[snapshot.id] = snapshot
-        cacheStore.save(snapshot)
-        widgetBridge.publish(snapshot)
-    }
 
     func record(for moduleID: ModuleID) -> ModuleRecord? {
         moduleRecords[moduleID]

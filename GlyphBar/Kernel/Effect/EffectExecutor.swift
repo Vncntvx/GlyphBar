@@ -15,6 +15,13 @@ final class EffectExecutor {
     var scheduleLocalAction: ((ModuleID, Command, TimeInterval) -> Void)?
     var openSettingsAction: (() -> Void)?
 
+    /// The violation policy determines how unauthorized effects are handled.
+    /// Defaults to `.degradeModule` for production; tests should set `.failTest`.
+    var violationPolicy: CapabilityViolationPolicy = .degradeModule
+
+    /// Called when a capability violation is detected.
+    var onViolation: ((ModuleID, Effect, CapabilityViolationPolicy) -> Void)?
+
     init(
         widgetBridge: WidgetDataBridge,
         cacheStore: CacheStore,
@@ -25,7 +32,19 @@ final class EffectExecutor {
         self.logger = logger
     }
 
-    func execute(_ effect: Effect, for moduleID: String) async {
+    func execute(
+        _ effect: Effect,
+        for moduleID: String,
+        grantedPermissions: Set<ModulePermission> = Set(ModulePermission.allCases),
+        invocationContext: EffectInvocationContext = .userGesture
+    ) async {
+        // Check capability policy before executing.
+        let policy = EffectCapabilityPolicy.policy(for: effect)
+        if !policy.isAllowed(grantedPermissions: grantedPermissions, context: invocationContext) {
+            handleViolation(moduleID: moduleID, effect: effect)
+            return
+        }
+
         switch effect {
         case .publishSnapshot(let envelope):
             let snapshot = ProjectionBuilder.buildSnapshot(from: envelope)
@@ -70,7 +89,32 @@ final class EffectExecutor {
             }
 
         case .networkRequest:
-            logger.warning("EffectExecutor: networkRequest effect should use NetworkCapability instead (module \(moduleID))")
+            logger.warning("EffectExecutor: networkRequest effect is deprecated — use NetworkCapability instead (module \(moduleID))")
+        }
+    }
+
+    // MARK: - Violation Handling
+
+    private func handleViolation(moduleID: ModuleID, effect: Effect) {
+        let policyName: String
+        switch violationPolicy {
+        case .failTest:
+            policyName = "failTest"
+            // In test mode, we record the violation so the test harness can assert.
+            // The harness checks `violations` after dispatch.
+            onViolation?(moduleID, effect, .failTest)
+        case .assertAndNotify:
+            policyName = "assertAndNotify"
+            assertionFailure("Capability violation: module \(moduleID) attempted unauthorized effect \(effect)")
+            onViolation?(moduleID, effect, .assertAndNotify)
+        case .degradeModule:
+            policyName = "degradeModule"
+            logger.error("CAPABILITY VIOLATION: module \(moduleID) attempted unauthorized effect \(effect) — degrading module")
+            onViolation?(moduleID, effect, .degradeModule)
+        case .suspendModule:
+            policyName = "suspendModule"
+            logger.error("CAPABILITY VIOLATION: module \(moduleID) attempted unauthorized effect \(effect) — suspending module (audit)")
+            onViolation?(moduleID, effect, .suspendModule)
         }
     }
 }

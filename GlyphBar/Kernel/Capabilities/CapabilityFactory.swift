@@ -182,7 +182,8 @@ final class CapabilityFactory {
             return true
         case .thirdParty:
             guard let permissionCenter else {
-                return true
+                // Fail-closed: no PermissionCenter means no grants for third-party modules.
+                return false
             }
             return permissionCenter.isGranted(permission)
         }

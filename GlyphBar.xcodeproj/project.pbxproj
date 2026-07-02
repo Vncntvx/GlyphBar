@@ -215,6 +215,7 @@
 		BA46ACAA9D8D24E76950D0F6 /* ContractTests/NotesQuickModuleManifestContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACC4D98057E5A4E69809F729 /* ContractTests/NotesQuickModuleManifestContractTests.swift */; };
 		B191720322C2D46CDACFF712 /* ModuleTests/NotesQuickModuleIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A177C3DB96D354F79B0FB070 /* ModuleTests/NotesQuickModuleIntegrationTests.swift */; };
 		B107075705348480DB597A74 /* ModuleTests/NotesQuickPanelBuildTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0187E39B25049699E4186D /* ModuleTests/NotesQuickPanelBuildTests.swift */; };
+		B1BEA28DD67E14943AFB205E /* Kernel/Effect/EffectCapabilityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6A65D8A2DDD44D6AA9BDC27 /* Kernel/Effect/EffectCapabilityPolicy.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -455,6 +456,7 @@
 		ACC4D98057E5A4E69809F729 /* ContractTests/NotesQuickModuleManifestContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests/NotesQuickModuleManifestContractTests.swift; sourceTree = "<group>"; };
 		A177C3DB96D354F79B0FB070 /* ModuleTests/NotesQuickModuleIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/NotesQuickModuleIntegrationTests.swift; sourceTree = "<group>"; };
 		AB0187E39B25049699E4186D /* ModuleTests/NotesQuickPanelBuildTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleTests/NotesQuickPanelBuildTests.swift; sourceTree = "<group>"; };
+		A6A65D8A2DDD44D6AA9BDC27 /* Kernel/Effect/EffectCapabilityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernel/Effect/EffectCapabilityPolicy.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -536,6 +538,7 @@
 				A0000000000000000000010C /* Core/Modules/ModuleTypes.swift */,
 				A22301E2922A44BC6A12640D /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift */,
 				A4C4453EC815D404AA35BB37 /* Kernel/Effect/EffectExecutor.swift */,
+				A6A65D8A2DDD44D6AA9BDC27 /* Kernel/Effect/EffectCapabilityPolicy.swift */,
 				AB5CE3906333142438E2AECA /* Execution/Scheduler/SchedulerClock.swift */,
 				AF3CB8DD251F64899BCDDB33 /* Execution/Scheduler/SystemSchedulerClock.swift */,
 				A43D7CC6DB9F54F769013FD0 /* Execution/Scheduler/VirtualClock.swift */,
@@ -879,6 +882,7 @@
 				B0000000000000000000010C /* Core/Modules/ModuleTypes.swift in Sources */,
 				B55ABC9EA912A432E9087F2A /* Projection/WidgetBridge/WidgetEnvelopeBridge.swift in Sources */,
 				BE7B8CB790FE04A77ADB3363 /* Kernel/Effect/EffectExecutor.swift in Sources */,
+				B1BEA28DD67E14943AFB205E /* Kernel/Effect/EffectCapabilityPolicy.swift in Sources */,
 				BBD4558F476094E06AA79F52 /* Execution/Scheduler/SchedulerClock.swift in Sources */,
 				B6EEC7837190B4A2CA81D9B4 /* Execution/Scheduler/SystemSchedulerClock.swift in Sources */,
 				B01C889DDA5254A13AA11414 /* Execution/Scheduler/VirtualClock.swift in Sources */,
