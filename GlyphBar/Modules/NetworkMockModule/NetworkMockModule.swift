@@ -23,7 +23,8 @@ final class NetworkMockModule: TypedModuleContribution {
         defaultRefreshPolicy: .interval(seconds: 30),
         actions: [
             ModuleAction(id: "retry", title: "Refresh", systemImage: "arrow.clockwise", role: .refresh),
-            ModuleAction(id: "copyIP", title: "Copy IP", systemImage: "doc.on.doc")
+            ModuleAction(id: "copyIP", title: "Copy IP", systemImage: "doc.on.doc"),
+            ModuleAction(id: "toggleMockMode", title: "Toggle Mock Mode", systemImage: "flask")
         ],
         widgets: [
             ModuleWidgetDescriptor(
@@ -63,14 +64,39 @@ final class NetworkMockModule: TypedModuleContribution {
                 )
             }
         case .userAction(let actionID, _):
-            if actionID == "copyIP", let ip = statusProvider.localIPAddress() {
-                return DomainTransition(
-                    effects: [.copyToClipboard(ip)],
-                    health: nil,
-                    refreshProjection: false
-                )
+            switch actionID {
+            case "copyIP":
+                if let ip = statusProvider.localIPAddress() {
+                    return DomainTransition(
+                        effects: [.copyToClipboard(ip)],
+                        health: nil,
+                        refreshProjection: false
+                    )
+                }
+                return .empty
+            case "toggleMockMode":
+                statusProvider.useMockMode.toggle()
+                // Refresh after toggling to publish an updated snapshot
+                do {
+                    let snap = try await statusProvider.refresh(
+                        moduleID: manifest.id,
+                        systemImage: manifest.systemImage
+                    )
+                    return DomainTransition(
+                        effects: [.publishSnapshot(ProjectionBuilder.buildEnvelope(from: snap))],
+                        health: .healthy,
+                        refreshProjection: true
+                    )
+                } catch {
+                    return DomainTransition(
+                        effects: [.showNotice(error.localizedDescription)],
+                        health: .degraded(reason: .networkError(error.localizedDescription)),
+                        refreshProjection: false
+                    )
+                }
+            default:
+                return .empty
             }
-            return .empty
         default:
             return .empty
         }
