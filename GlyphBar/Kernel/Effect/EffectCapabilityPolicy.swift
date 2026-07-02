@@ -48,7 +48,9 @@ enum EffectCapabilityPolicy {
     case requestFileImport
     /// requestRefresh: no permission required, any context.
     case requestRefresh
-    /// scheduleLocal: requires .cachedState, any context.
+    /// scheduleLocal: no permission required, any context.
+    /// Scheduling a delayed command is a runtime operation, not a
+    /// storage operation — the module already produced the command.
     case scheduleLocal
 
     /// The permission required to execute this effect, if any.
@@ -62,7 +64,7 @@ enum EffectCapabilityPolicy {
         case .openModuleSettings: return nil
         case .requestFileImport: return .localFiles
         case .requestRefresh: return nil
-        case .scheduleLocal: return .appGroupStorage
+        case .scheduleLocal: return nil
         }
     }
 

@@ -14,7 +14,9 @@ final class ModuleSupervisor {
     private let logger: GlyphLogger
 
     /// Called when a module produces effects that need execution.
-    var onEffects: ((ModuleID, [Effect]) async -> Void)?
+    /// Includes the module's granted permissions so the executor can enforce
+    /// the Effect → Capability policy.
+    var onEffects: ((ModuleID, [Effect], Set<ModulePermission>) async -> Void)?
 
     /// Called when a module's operational state changes.
     var onOperationalStateChange: ((ModuleID, ModuleOperationalState) -> Void)?
@@ -113,7 +115,8 @@ final class ModuleSupervisor {
     ) async -> DomainTransition {
         let bridge = KernelBridge { [weak self] effects in
             guard let self else { return }
-            Task { await self.onEffects?(moduleID, effects) }
+            let permissions = Set(module.manifest.permissions)
+            Task { await self.onEffects?(moduleID, effects, permissions) }
         }
         let capabilities = capabilityFactory.makeCapabilities(
             for: moduleID,
@@ -128,7 +131,8 @@ final class ModuleSupervisor {
             bridge: bridge
         )
         if !transition.effects.isEmpty {
-            await onEffects?(moduleID, transition.effects)
+            let permissions = Set(module.manifest.permissions)
+            await onEffects?(moduleID, transition.effects, permissions)
         }
         return transition
     }

@@ -76,10 +76,17 @@ final class ModuleRuntime {
         }
 
         // Wire supervisor to the unified effect executor.
-        supervisor.onEffects = { [weak self] moduleID, effects in
+        // Pass granted permissions so EffectExecutor can enforce the
+        // Effect → Capability policy.
+        supervisor.onEffects = { [weak self] moduleID, effects, grantedPermissions in
             guard let self else { return }
             for effect in effects {
-                await self.effectExecutor.execute(effect, for: moduleID)
+                await self.effectExecutor.execute(
+                    effect,
+                    for: moduleID,
+                    grantedPermissions: grantedPermissions,
+                    invocationContext: .userGesture  // Default: all current paths are UI-driven
+                )
             }
         }
 

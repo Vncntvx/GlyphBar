@@ -31,7 +31,7 @@ final class ModuleHarness {
         self.logger = logger
         let factory = CapabilityFactory(logger: logger, permissionCenter: permissionCenter)
         self.supervisor = ModuleSupervisor(capabilityFactory: factory, logger: logger)
-        self.supervisor.onEffects = { [weak self] moduleID, effects in
+        self.supervisor.onEffects = { [weak self] moduleID, effects, _ in
             await self?.record(effects: effects, moduleID: moduleID)
         }
         self.supervisor.register(moduleID: module.manifest.id, module: module, sourceKind: sourceKind)
